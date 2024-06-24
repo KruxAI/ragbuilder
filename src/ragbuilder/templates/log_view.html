@@ -1,0 +1,10 @@
+{% extends "layouts.html" %}
+{% block content %}
+    <div class="container mt-5">
+        <h6>Log File: {{ filename }}</h6>
+        <div class="log-content">
+            {{ log_content }}
+        </div>
+        <a href="/" class="btn btn-primary mt-3">Back to Home</a>
+    </div>
+{% endblock content %}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if title %}
+        <title>Krux AI - {{ title }}</title>
+    {% else %}
+        <title>Krux AI</title>
+    {% endif %}
+    
+    <!-- Bootstrap css -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/4.0.0/github-markdown.min.css" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Roboto:400,300,700' rel='stylesheet'>
+    <style>
+        body {
+            padding: 2rem;
+            font-family: 'Roboto', sans-serif !important;
+           /* background-color: #f8f9fa; */
+        } 
+        /* .navbar {
+            background-color: #343a40;
+        } */
+        /* .navbar-brand, .nav-link {
+            color: #fff !important;
+        } */
+        .container {
+            margin-top: 30px;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        .expandable-text {
+            display: inline;
+        }
+        .ellipsis {
+            display: inline;
+        }
+        .full-text {
+            display: none;
+        }
+        .log-content {
+            white-space: pre-wrap; /* Preserves whitespace and formatting */
+            background-color: #f8f9fa;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .markdown-body {
+                box-sizing: border-box;
+                min-width: 200px;
+                max-width: 980px;
+                margin: 0 auto;
+                padding: 45px;
+        }
+        /* .modal-header {
+            background-color: #007bff;
+            color: #fff;
+        } */
+        /* .modal-footer {
+            justify-content: space-between;
+        } */
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <!-- <div class="container-fluid"></div> -->
+            <a class="navbar-brand me-auto px-4" href="https://www.krux.ai" target="_blank">Krux AI</a>
+            <!-- <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button> -->
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto px-2">
+                <!-- ms-auto mb-2 mb-lg-0 -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="./">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs" target="_blank">Docs</a>
+                    </li>
+                </ul>
+            </div>
+        <!-- </div> -->
+    </nav>        
+        {% block content %}{% endblock %}
+</body>
+</html>

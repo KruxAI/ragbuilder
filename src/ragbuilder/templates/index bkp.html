@@ -1,0 +1,36 @@
+{% extends "layouts.html" %}
+{% block content %}
+    <h1>Evaluation Results Summary</h1>
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>Run ID</th>
+            <th>Eval ID</th>
+            <th>RAG Config</th>
+            <th>Avg Answer Accuracy</th>
+            <th>Avg Tokens</th>
+            <th>Avg Cost per Query</th>
+            <th>Avg Latency</th>
+            <th>Avg Context Precision</th>
+            <th>Avg Context Recall</th>
+            <th>Details</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for eval in evals %}
+            <tr>
+                <td>{{ eval.run_id }}</td>
+                <td>{{ eval.eval_id }}</td>
+                <td>{{ eval.rag_config }}</td>
+                <td>{{ eval.avg_answer_accuracy }}</td>
+                <td>{{ eval.avg_tokens }}</td>
+                <td>{{ eval.avg_cost_per_query }}</td>
+                <td>{{ eval.avg_latency }}</td>
+                <td>{{ eval.avg_context_precision }}</td>
+                <td>{{ eval.avg_context_recall }}</td>
+                <td><a href="/details/{{ eval.eval_id }}">View Details</a></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock content %}
