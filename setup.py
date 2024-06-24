@@ -1,20 +1,23 @@
 from setuptools import setup, find_packages
-
+from setuptools import setup, find_packages
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 setup(
     name='ragbuilder',
-    version='0.0.1',
+    version='0.0.2',
     author='Ashwin Aravind',
     author_email='ashwin@krux.ai',
-    description='Library of Rag Methods',
+    description='RagBuilder is a toolkit designed to help you create optimal Production-ready Retrieval-Augmented Generation (RAG) pipeline for your data',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     url='https://github.com/kruxai/ragbuilder',
     package_dir={'': 'src'},
     packages=find_packages(where='src'),
     include_package_data=True,
     python_requires='>=3.7',
     package_data={
-        'ragbuilder': ['templates/*','static/*', 'eval.db'],  # Adjust the package name and template directory as necessary
+        'ragbuilder': ['templates/*','static/*', 'eval.db'],
     },
-    # package_data={'': ['logging_config.ini']},
     entry_points={
         'console_scripts': [
             'ragbuilder=ragbuilder.ragbuilder:main',
