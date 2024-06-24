@@ -5,8 +5,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name='ragbuilder',
     version='0.0.2',
-    author='Ashwin Aravind',
-    author_email='ashwin@krux.ai',
+    author='Ashwin Aravind, Aravind Parameswaran',
+    author_email='ashwin@krux.ai, aravind@krux.ai',
     description='RagBuilder is a toolkit designed to help you create optimal Production-ready Retrieval-Augmented Generation (RAG) pipeline for your data',
     long_description=long_description,
     long_description_content_type="text/markdown",
