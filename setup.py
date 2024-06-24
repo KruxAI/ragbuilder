@@ -93,23 +93,3 @@ setup(
         # other dependencies
     ],
 )
-
-
-#     name='hello-cli',
-#     version='0.1',
-#     py_modules=['hello'],
-#     entry_points={
-#         'console_scripts': [
-#             'hello=hello:main',
-#         ],
-#     },
-#     install_requires=[
-#         'argparse',  # argparse is part of the Python standard library, so this is just for demonstration.
-#     ],
-#     classifiers=[
-#         'Programming Language :: Python :: 3',
-#         'License :: OSI Approved :: MIT License',
-#         'Operating System :: OS Independent',
-#     ],
-#     python_requires='>=3.6',
-# )
