@@ -43,8 +43,6 @@ $(document).ready(function () {
                 if (response.exists) {
                     existingSynthDataPath = response.path;
                     dataExists=`<p><strong>Test data exists for the provided source dataset’s hash.</strong><br>Path: ${response.path}</p>`
-                    // const generateSynthetic = $('#generateSynthetic');
-                    // generateSynthetic.prop('checked', false);
                     $('#hashLookupResult').html(`${dataExists}`);
                     $('#foundExistingSynthData').show();
                     $('#useExistingSynthData').prop('checked', true);
@@ -199,16 +197,6 @@ $(document).ready(function () {
 
     });
 
-    // $('input[name="syntheticDataOptions"]').change(function () {
-    //     if ($('#generateSynthetic').is(':checked')) {
-    //         $('#existingTestDataPath').hide();
-    //         $('#generateSyntheticSection').show();
-    //     } else {
-    //         $('#existingTestDataPath').show();
-    //         $('#generateSyntheticSection').hide();
-    //     }
-    // });
-
     $('#confirmSelections').click(function () {
         const projectData = {
             description: $('#description').val(),
@@ -253,13 +241,6 @@ $(document).ready(function () {
                 search_k_20: $('#topK20').is(':checked')
             },
             contextualCompression: $('#contextualCompression').is(':checked'),
-            compressors: {
-                LongContextReorder: $('#longContextReorder').is(':checked'),
-                CrossEncoderReranker: $('#crossEncoderReranker').is(':checked'),
-                EmbeddingsRedundantFilter: $('#embeddingsRedundantFilter').is(':checked'),
-                EmbeddingsClusteringFilter: $('#embeddingsClusteringFilter').is(':checked'),
-                LLMChainFilter: $('#llmChainFilter').is(':checked'),
-            },
             llm: {
                 "gpt-3.5-turbo": $('#gpt35').is(':checked'),
                 "gpt-4o": $('#gpt4o').is(':checked'),
@@ -268,6 +249,15 @@ $(document).ready(function () {
             generateSyntheticData: $('#generateSynthetic').is(':checked')
         };
         
+        if ($('#contextualCompression').is(':checked')) {
+                projectData.compressors = {
+                    LongContextReorder: $('#longContextReorder').is(':checked'),
+                    CrossEncoderReranker: $('#crossEncoderReranker').is(':checked'),
+                    EmbeddingsRedundantFilter: $('#embeddingsRedundantFilter').is(':checked'),
+                    EmbeddingsClusteringFilter: $('#embeddingsClusteringFilter').is(':checked'),
+                    LLMChainFilter: $('#llmChainFilter').is(':checked')
+                };
+        }
         if ($('#existingTestData').is(':checked')) {
             projectData.testDataPath = $('#testDataPath').val();
         } else if ($('#useExistingSynthData').is(':checked')) {
@@ -280,18 +270,6 @@ $(document).ready(function () {
                 embedding: $('#embedding').val()
             };
         }
-
-        // if ($('#generateSynthetic').is(':checked')) {
-        //     projectData.existingSynthDataPath=`${existingSynthDataPath}`;
-        //     projectData.syntheticDataGeneration = {
-        //         testSize: $('#testSize').val(),
-        //         criticLLM: $('#criticLLM').val(),
-        //         generatorLLM: $('#generatorLLM').val(),
-        //         embedding: $('#embedding').val()
-        //     };
-        // } else {
-        //     projectData.testDataPath = $('#testDataPath').val();
-        // }
     
         console.log(JSON.stringify(projectData));
 
@@ -305,14 +283,6 @@ $(document).ready(function () {
             url: "/rbuilder",
             contentType: "application/json",
             data: JSON.stringify(projectData),
-            // success: function (response) {
-            //     console.log(response);
-            //     $('#newProjectForm').trigger("reset");
-            //     $('#newProjectModal').modal('hide');
-            // },
-            // error: function (error) {
-            //     console.error(error);
-            // }
             success: function(response) {
                 if (response.status === "success") {
                     alert(response.message);

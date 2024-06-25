@@ -30,8 +30,8 @@ def nuancedCombos(vectorDB, exclude_elements=None):
     arr_embedding_model = [elem for elem in arr_embedding_model if elem not in exclude_elements]
     arr_retriever = [elem for elem in arr_retriever if elem not in exclude_elements]
     arr_llm = [elem for elem in arr_llm if elem not in exclude_elements]
-    arr_contextual_compression = [elem for elem in arr_contextual_compression if elem not in exclude_elements]
-    arr_compressors = [elem for elem in arr_compressors if elem not in exclude_elements]
+    # arr_contextual_compression = [elem for elem in arr_contextual_compression if elem not in exclude_elements]
+    arr_compressors = [elem for elem in arr_compressors if elem not in exclude_elements and 'contextualCompression' not in exclude_elements]
 
     # Handle search kwargs exclusion
     arr_search_kwargs = []
