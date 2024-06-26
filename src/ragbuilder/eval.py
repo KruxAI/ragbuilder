@@ -77,6 +77,7 @@ class RagEvaluator:
             llm=None, 
             embeddings=None, 
             run_config=RunConfig(timeout=240, max_workers=1, max_wait=180, max_retries=10), 
+            is_async=False,
             model_name=None
     ):
         self.id = int(time.time())
@@ -89,6 +90,7 @@ class RagEvaluator:
         self.llm = llm
         self.embeddings = embeddings
         self.run_config = run_config
+        self.is_async = is_async
         self.eval_dataset = None   # TODO: We can invoke prepare_eval_dataset here itself. Currently going ahead with lazy call option.
         self.result_df = None
         if model_name is None:
@@ -159,6 +161,7 @@ class RagEvaluator:
                 raise_exceptions=False, 
                 llm=self.llm,
                 embeddings=self.embeddings,
+                is_async=self.is_async,
                 run_config=self.run_config
             )
             

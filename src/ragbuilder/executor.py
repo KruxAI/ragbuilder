@@ -3,6 +3,7 @@ from ragbuilder.rag_templates.langchain_templates import nuancedCombos
 from ragbuilder.langchain_module.rag import mergerag as rag
 from ragbuilder.langchain_module.common import setup_logging
 import logging
+import json
 setup_logging()
 from ragbuilder import eval
 from dotenv import load_dotenv
@@ -24,6 +25,12 @@ logger = logging.getLogger("ragbuilder")
 import pandas as pd
 from datasets import Dataset
 from langchain_openai import OpenAIEmbeddings,ChatOpenAI
+from ragas import RunConfig
+RUN_CONFIG_TIMEOUT = int(os.getenv('RUN_CONFIG_TIMEOUT', '240'))
+RUN_CONFIG_MAX_WORKERS = int(os.getenv('RUN_CONFIG_MAX_WORKERS', '16'))
+RUN_CONFIG_MAX_WAIT = int(os.getenv('RUN_CONFIG_MAX_WAIT', '180'))
+RUN_CONFIG_MAX_RETRIES = int(os.getenv('RUN_CONFIG_MAX_RETRIES', '10'))
+RUN_CONFIG_IS_ASYNC = os.getenv('RUN_CONFIG_IS_ASYNC', 'true').lower() == 'true'
 chat_model = ChatOpenAI(
     model="gpt-3.5-turbo-0125", 
     temperature=0.2,
@@ -49,13 +56,18 @@ def rag_builder(**kwargs):
                 # print(f"val={val}")
                 # print(f"val[retrieval_model]={val['retrieval_model']}")
                 rag_builder=RagBuilder(val)
-                nrageval=eval.RagEvaluator(
+                run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+                logger.info(f"{repr(run_config)}")
+                rageval=eval.RagEvaluator(
                     rag_builder, 
                     test_ds, 
-                    llm=chat_model, 
-                    embeddings=OpenAIEmbeddings(model="text-embedding-3-large")
+                    llm = chat_model, 
+                    embeddings = OpenAIEmbeddings(model="text-embedding-3-large"),
+                    #TODO: Fetch Run Config settings from advanced settings from front-end
+                    run_config = run_config,
+                    is_async = RUN_CONFIG_IS_ASYNC
                     )
-                result=nrageval.evaluate()
+                result=rageval.evaluate()
         # return result
     if kwargs['include_granular_combos']:
         print(f"vectorDB={kwargs['vectorDB']}")
@@ -66,22 +78,28 @@ def rag_builder(**kwargs):
                 # print(f"val={val}")
                 # print(f"val[retrieval_model]={val['retrieval_model']}")
                 rag_builder=RagBuilder(val)
-                nrageval=eval.RagEvaluator(
+                run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+                logger.info(f"{repr(run_config)}")
+                rageval=eval.RagEvaluator(
                     rag_builder, 
                     test_ds, 
                     llm=chat_model, 
-                    embeddings=OpenAIEmbeddings(model="text-embedding-3-large")
+                    embeddings=OpenAIEmbeddings(model="text-embedding-3-large"),
+                    #TODO: Fetch Run Config settings from advanced settings from front-end
+                    run_config = run_config,
+                    is_async = RUN_CONFIG_IS_ASYNC
                     )
-                result=nrageval.evaluate()
+                result=rageval.evaluate()
     return result
 
 
 
 class RagBuilder:
     def __init__(self, val):
+        self.config = val
         self.run_id = val['run_id']
         self.framework=val['framework']
-        self.description=val['description']
+        # self.description=val['description']
         self.retrieval_model = val['retrieval_model']
         self.source_ids = [1]
         self.loader_kwargs =   val['loader_kwargs']
@@ -93,7 +111,7 @@ class RagBuilder:
         print(f"retrieval model: {self.retrieval_model}")
         self.rag=rag.mergerag(
             framework=self.framework,
-            description=self.description,
+            # description=self.description,
             retrieval_model = self.retrieval_model,
             source_ids = self.source_ids,
             loader_kwargs = self.loader_kwargs,
@@ -102,31 +120,21 @@ class RagBuilder:
             embedding_kwargs=self.embedding_kwargs,
             retriever_kwargs=self.retriever_kwargs
         )
-        
+
     # def __repr__(self):
     #     return (
-    #             f"{{\n"
+    #             "{"
     #             # f"    run_id={self.run_id!r},\n"
     #             # f"    framework={self.framework!r},\n"
     #             # f"    description={self.description!r},\n"
-    #             f"    retrieval_model={self.retrieval_model!r},\n"
-    #             f"    source={self.loader_kwargs[1]['input_path']},\n"
-    #             f"    chunking_strategy={self.chunking_kwargs[1]},\n"
-    #             f"    vectorDB_kwargs={self.vectorDB_kwargs[1]},\n"
-    #             f"    embedding_kwargs={self.embedding_kwargs[1][0]['embedding_model']},\n"
-    #             # f"    retriever_kwargs={self.retriever_kwargs[1][self.retrieval_model]['retrievers']!r}\n"
+    #             f'"retrieval_model":{self.retrieval_model!r},'
+    #             f'"source":{self.loader_kwargs[1]["input_path"]!r},'
+    #             f'"chunking_strategy":{self.chunking_kwargs[1]!r},'
+    #             f'"vectorDB_kwargs":{self.vectorDB_kwargs[1]!r},'
+    #             f'"embedding_kwargs":{self.embedding_kwargs[1][0]["embedding_model"]!r},'
+    #             f'"retriever_kwargs":{self.retriever_kwargs!r}'
+    #             # f'"retriever_kwargs":{self.retriever_kwargs[1][self.retrieval_model]!r}'
     #             "}")
+    
     def __repr__(self):
-        return (
-                "{"
-                # f"    run_id={self.run_id!r},\n"
-                # f"    framework={self.framework!r},\n"
-                # f"    description={self.description!r},\n"
-                f'"retrieval_model":{self.retrieval_model!r},'
-                f'"source":{self.loader_kwargs[1]["input_path"]!r},'
-                f'"chunking_strategy":{self.chunking_kwargs[1]!r},'
-                f'"vectorDB_kwargs":{self.vectorDB_kwargs[1]!r},'
-                f'"embedding_kwargs":{self.embedding_kwargs[1][0]["embedding_model"]!r},'
-                f'"retriever_kwargs":{self.retriever_kwargs!r}'
-                # f'"retriever_kwargs":{self.retriever_kwargs[1][self.retrieval_model]!r}'
-                "}")
+        return json.dumps(self.config)

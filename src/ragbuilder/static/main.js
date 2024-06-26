@@ -32,6 +32,15 @@ $(document).ready(function () {
         validateSourceData();
     });
 
+    // Disable Compressors if contextualCompression is unselected
+    $('#contextualCompression').change(function() {
+        if (!this.checked) {
+            $('#longContextReorder, #crossEncoderReranker, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('checked', false).prop('disabled', true);
+        } else {
+            $('#longContextReorder, #crossEncoderReranker, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('disabled', false);
+        }
+    });
+
     $('#nextStep1').click(function () {
         const sourceData = $('#sourceData').val();
         $.ajax({

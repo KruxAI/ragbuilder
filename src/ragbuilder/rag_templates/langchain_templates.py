@@ -146,7 +146,7 @@ def nuancedCombos(vectorDB, exclude_elements=None):
 
         combination_configs[start_index] = {
             'framework': 'langchain',
-            'description': 'Combination RAG using Langchain with RecursiveCharacterTextSplitter',
+            # 'description': 'Combination RAG using Langchain with RecursiveCharacterTextSplitter',
             'chunking_kwargs': {
                 1: chunking_kwargs,
             },

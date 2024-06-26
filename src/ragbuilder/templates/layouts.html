@@ -39,7 +39,14 @@
             display: inline;
         }
         .full-text {
-            display: none;
+            max-height: 250px; 
+            /* max-width: 600px;  */
+            overflow-y: auto;
+            white-space: pre-wrap;  /* Preserve formatting */
+            background: #f8f9fa;  /* Light grey background for contrast */
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            margin-top: 10px;
         }
         .log-content {
             white-space: pre-wrap; /* Preserves whitespace and formatting */
@@ -57,6 +64,12 @@
                 margin: 0 auto;
                 padding: 45px;
         }
+        pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+        .string { color: green; }
+        .number { color: darkorange; }
+        .boolean { color: blue; }
+        .null { color: magenta; }
+        .key { color: red; }
         /* .modal-header {
             background-color: #007bff;
             color: #fff;

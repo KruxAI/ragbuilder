@@ -61,13 +61,13 @@
                         <!-- <td>{{ run.run_config }}</td> -->
                         <td>
                             <span class="expandable-text">{{ run.run_config[:30] }}<span class="ellipsis">...</span></span>
-                            <span class="full-text" style="display: none;">{{ run.run_config }}</span>
+                            <pre class="full-text" style="display: none;">{{ run.run_config }}</pre>
                             <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
                         </td>
                         <!-- <td>{{ run.disabled_opts }}</td> -->
                         <td>
                             <span class="expandable-text">{{ run.disabled_opts[:30] }}<span class="ellipsis">...</span></span>
-                            <span class="full-text" style="display: none;">{{ run.disabled_opts }}</span>
+                            <pre class="full-text" style="display: none;">{{ run.disabled_opts }}</pre>
                             <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
                         </td>
                         <td>{{ run.run_ts }}</td>
@@ -81,7 +81,7 @@
     </div>
 </div>
 <!-- New Project Modal -->
-<div class="modal fade" id="newProjectModal" tabindex="-1" role="dialog" aria-labelledby="newProjectModalLabel" aria-hidden="true">
+<div class="modal fade" id="newProjectModal" data-bs-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="newProjectModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -409,9 +409,9 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
-<script src="{{ url_for('static', filename='main.js') }}"></script>
+<script src="{{ url_for('static', path='main.js') }}"></script>
 <!-- Script to show RAG Config as a exandable/ collapsable text. -->
-<script>
+<!-- <script>
     $(document).ready(function() {
         $('.toggle-text').click(function() {
             console.log('Toggle clicked');
@@ -431,6 +431,32 @@
             }
         });
     });
+</script> -->
+<script>
+    $(document).ready(function() {
+        $('.toggle-text').click(function() {
+            var expandableText = $(this).siblings('.expandable-text');
+            var fullText = $(this).siblings('.full-text');
+            
+            if (expandableText.is(':visible')) {
+                expandableText.hide();
+                // Format the JSON text in a pretty format before showing
+                var jsonText = fullText.text();
+                try {
+                    var parsedJson = JSON.parse(jsonText);
+                    var prettyJson = JSON.stringify(parsedJson, null, 4);
+                    fullText.text(prettyJson);
+                } catch (e) {
+                    console.error("Invalid JSON text:", jsonText);
+                }
+                fullText.show();
+                $(this).text('➖');
+            } else {
+                expandableText.show();
+                fullText.hide();
+                $(this).text('➕');
+            }
+        });
+    });
 </script>
-
 {% endblock content %}

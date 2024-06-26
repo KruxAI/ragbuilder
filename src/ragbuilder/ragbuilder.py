@@ -1,3 +1,10 @@
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from fastapi.logger import logger 
+from pydantic import BaseModel, Field
+from typing import Optional
 import sqlite3
 import markdown
 import pkg_resources
@@ -9,7 +16,6 @@ import os
 import hashlib
 import logging
 import requests
-from flask import Flask, render_template, render_template_string, g, request, jsonify, abort
 from pathlib import Path
 from urllib.parse import urlparse
 from ragbuilder.executor import rag_builder
@@ -19,169 +25,168 @@ from ragbuilder import generate_data
 from ragbuilder.analytics import track_event
 from ragbuilder.evaldb_dmls import *
 
+# fastapi_setup_logging(logger)
 setup_logging()
 logger = logging.getLogger("ragbuilder")
-LOG_FILENAME=logger.handlers[0].baseFilename
-LOG_DIRNAME=Path(LOG_FILENAME).parent
+LOG_FILENAME = logger.handlers[0].baseFilename
+LOG_DIRNAME = Path(LOG_FILENAME).parent
+BASE_DIR = Path(__file__).resolve().parent
 print(f"LOG_FILENAME = {LOG_FILENAME}")
 
-url = "http://localhost:8001"
+url = "http://localhost:8005"
 
-app=Flask(__name__)
+app = FastAPI()
 DATABASE = 'eval.db'
+
+templates = Jinja2Templates(directory=Path(BASE_DIR, 'templates'))
+app.mount("/static", StaticFiles(directory=Path(BASE_DIR, 'static')), name="static")
 
 def basename(path):
     return os.path.basename(path)
 
 # Register the filter with the Jinja2 environment
-app.jinja_env.filters['basename'] = basename
-
-def get_hashmap():
-    hashmap = getattr(g, '_hashmap', None)
-    if hashmap is None:
-        db = get_db()
-        cur=db.execute('SELECT hash, test_data_path FROM synthetic_data_hashmap')
-        rows = cur.fetchall()
-        hashmap = g._hashmap = {row[0]: row[1] for row in rows}
-    return hashmap
-
-def insert_hashmap(hash, path):
-    logger.info(f"Saving hashmap for synthetic data: {path} ...")
-    db = get_db()
-    insert_query=f"""
-            INSERT INTO synthetic_data_hashmap (hash, test_data_path) 
-            VALUES ('{hash}', '{path}')
-        """
-    db.execute(insert_query)
-    db.commit() 
-    logger.info(f"Saved hashmap for synthetic data: {path}")
-
+templates.env.filters['basename'] = basename
 
 def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
+    try:
+        db = sqlite3.connect(DATABASE, check_same_thread=False)
         db.row_factory = sqlite3.Row
-    return db
+        return db
+    except sqlite3.Error as e:
+        logger.error(f"Database connection failed: {e}")
+        raise HTTPException(status_code=500, detail="Database connection failed")
 
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
+def get_hashmap(db: sqlite3.Connection = Depends(get_db)):
+    cur = db.execute('SELECT hash, test_data_path FROM synthetic_data_hashmap')
+    rows = cur.fetchall()
+    return {row[0]: row[1] for row in rows}
 
-@app.route("/")
-def index():
+def insert_hashmap(hash: str, path: str, db: sqlite3.Connection = Depends(get_db)):
+    logger.info(f"Saving hashmap for synthetic data: {path} ...")
+    insert_query = """
+        INSERT INTO synthetic_data_hashmap (hash, test_data_path) 
+        VALUES (?, ?)
+    """
+    db.execute(insert_query, (hash, path))
+    db.commit()
+    logger.info(f"Saved hashmap for synthetic data: {path}")
+
+@app.on_event("startup")
+async def startup():
     db = get_db()
-    tbl_create_run_details= db.execute(run_details_dml)
-    tbl_create_rag_eval_details= db.execute(rag_eval_details_dml)
-    tbl_create_rag_eval_summary= db.execute(rag_eval_summary_dml)
-    tbl_create_synthetic_data_hashmap= db.execute(synthetic_data_hashmap_dml)
+    db.execute(run_details_dml)
+    db.execute(rag_eval_details_dml)
+    db.execute(rag_eval_summary_dml)
+    db.execute(synthetic_data_hashmap_dml)
+    db.close()
+
+# @app.on_event("shutdown")
+# def shutdown_db():
+#     db.close()
+
+@app.get("/", response_class=HTMLResponse)
+def index(request: Request, db: sqlite3.Connection = Depends(get_db)):
     cur = db.execute("""
-            SELECT 
-                run_id,
-                status,
-                description,
-                src_data,
-                log_path,
-                run_config,
-                disabled_opts,
-                datetime(run_ts, 'unixepoch', 'localtime') AS run_ts
-            FROM run_details
-            ORDER BY run_ts DESC""")
+        SELECT 
+            run_id,
+            status,
+            description,
+            src_data,
+            log_path,
+            run_config,
+            disabled_opts,
+            datetime(run_ts, 'unixepoch', 'localtime') AS run_ts
+        FROM run_details
+        ORDER BY run_ts DESC
+    """)
     runs = cur.fetchall()
-    return render_template('index.html', runs=runs)
+    db.close()
+    return templates.TemplateResponse(request=request, name='index.html', context={"runs": runs})
+    # return templates.TemplateResponse(str(Path(BASE_DIR, 'templates', 'index.html')), {"request": request, "runs": runs})
 
-@app.route('/summary/<int:run_id>')
-def summary(run_id):
-    db = get_db()
+@app.get('/summary/{run_id}', response_class=HTMLResponse)
+async def summary(request: Request, run_id: int, db: sqlite3.Connection = Depends(get_db)):
     cur = db.execute("""
-            SELECT 
-                rag_eval_summary.run_id,
-                run_details.description,
-                rag_eval_summary.eval_id,
-                rag_eval_summary.rag_config,
-                round(rag_eval_summary.avg_answer_correctness, 2) AS avg_answer_correctness,
-                round(rag_eval_summary.avg_faithfulness, 2) AS avg_faithfulness,
-                round(rag_eval_summary.avg_answer_relevancy, 2) AS avg_answer_relevancy,
-                round(rag_eval_summary.avg_context_precision, 2) AS avg_context_precision,
-                round(rag_eval_summary.avg_context_recall, 2) AS avg_context_recall,
-                round(rag_eval_summary.avg_tokens, 0) AS avg_tokens,
-                round(rag_eval_summary.avg_cost_per_query, 5) AS avg_cost_per_query,
-                round(rag_eval_summary.avg_latency/1000000000.0, 2) AS avg_latency,
-                datetime(rag_eval_summary.eval_ts, 'unixepoch', 'localtime') AS eval_ts
-            FROM rag_eval_summary
-            LEFT JOIN run_details 
-            	ON rag_eval_summary.run_id = run_details.run_id
-            WHERE rag_eval_summary.run_id = ?
-            ORDER BY 5 DESC""", (run_id,))
+        SELECT 
+            rag_eval_summary.run_id,
+            run_details.description,
+            rag_eval_summary.eval_id,
+            rag_eval_summary.rag_config,
+            round(rag_eval_summary.avg_answer_correctness, 2) AS avg_answer_correctness,
+            round(rag_eval_summary.avg_faithfulness, 2) AS avg_faithfulness,
+            round(rag_eval_summary.avg_answer_relevancy, 2) AS avg_answer_relevancy,
+            round(rag_eval_summary.avg_context_precision, 2) AS avg_context_precision,
+            round(rag_eval_summary.avg_context_recall, 2) AS avg_context_recall,
+            round(rag_eval_summary.avg_tokens, 0) AS avg_tokens,
+            round(rag_eval_summary.avg_cost_per_query, 5) AS avg_cost_per_query,
+            round(rag_eval_summary.avg_latency/1000000000.0, 2) AS avg_latency,
+            datetime(rag_eval_summary.eval_ts, 'unixepoch', 'localtime') AS eval_ts
+        FROM rag_eval_summary
+        LEFT JOIN run_details 
+            ON rag_eval_summary.run_id = run_details.run_id
+        WHERE rag_eval_summary.run_id = ?
+        ORDER BY 5 DESC
+    """, (run_id,))
     evals = cur.fetchall()
+    db.close()
     description = evals[0]['description'] if evals else "Unnamed Project"
-    return render_template('summary.html', evals=evals, description=description)
+    return templates.TemplateResponse(request=request, name='summary.html', context={"evals": evals, "description": description})
 
-
-@app.route('/details/<int:eval_id>')
-def details(eval_id):
-    db = get_db()
+@app.get('/details/{eval_id}', response_class=HTMLResponse)
+async def details(request: Request, eval_id: int, db: sqlite3.Connection = Depends(get_db)):
     cur = db.execute("""
-            SELECT 
-                question_id,
-                question,
-                answer,
-                contexts,
-                ground_truth,
-                round(answer_correctness, 2) AS answer_correctness,
-                round(faithfulness, 2) AS faithfulness,
-                round(answer_relevancy, 2) AS answer_relevancy,
-                round(context_precision, 2) AS context_precision,
-                round(context_recall, 2) AS context_recall,
-                round(latency/1000000000.0, 2) AS latency,
-                round(tokens, 1) AS tokens,
-                round(cost, 5) AS cost,
-                datetime(eval_ts, 'unixepoch', 'localtime') as eval_timestamp
-            FROM rag_eval_details 
-            WHERE eval_id = ?""", (eval_id,))
+        SELECT 
+            question_id,
+            question,
+            answer,
+            contexts,
+            ground_truth,
+            round(answer_correctness, 2) AS answer_correctness,
+            round(faithfulness, 2) AS faithfulness,
+            round(answer_relevancy, 2) AS answer_relevancy,
+            round(context_precision, 2) AS context_precision,
+            round(context_recall, 2) AS context_recall,
+            round(latency/1000000000.0, 2) AS latency,
+            round(tokens, 1) AS tokens,
+            round(cost, 5) AS cost,
+            datetime(eval_ts, 'unixepoch', 'localtime') as eval_timestamp
+        FROM rag_eval_details 
+        WHERE eval_id = ?
+    """, (eval_id,))
     details = cur.fetchall()
-    return render_template('details.html', details=details)
+    db.close()
+    return templates.TemplateResponse(request=request, name='details.html', context={"details": details})
 
-@app.route("/docs")
-def docs():
+@app.get("/docs", response_class=HTMLResponse)
+def docs(request: Request):
     with open("README.md", "r") as f:
         markdown_text = f.read()
-    html = markdown.markdown(markdown_text)    
-    return render_template('docs.html', content=html)
-    # return html
+    html = markdown.markdown(markdown_text)
+    return templates.TemplateResponse(request=request, name='docs.html', context={"content": html})
 
-@app.route('/view_log/<path:filename>')
-def view_log(filename):
+@app.get('/view_log/{filename}', response_class=HTMLResponse)
+async def view_log(request: Request, filename: str):
     log_filepath = os.path.join(LOG_DIRNAME, filename)
-    print(f"Accessing log file at: {log_filepath}")  # Debugging output
+    print(f"Accessing log file at: {log_filepath}")
     try:
         with open(log_filepath, 'r') as file:
             log_content = file.read()
-        return render_template('log_view.html', log_content=log_content, filename=log_filepath)
+        return templates.TemplateResponse(request=request, name='log_view.html', context={"log_content": log_content, "filename": log_filepath})
     except FileNotFoundError:
-        abort(404)
+        raise HTTPException(status_code=404, detail="Log file not found")
 
-@app.route("/get_log_filename", methods=["GET"])
-def get_log_filename():
-    return jsonify({"log_filename": LOG_FILENAME})
+@app.get("/get_log_filename")
+async def get_log_filename():
+    return {"log_filename": LOG_FILENAME}
 
-@app.route("/get_log_updates", methods=["GET"])
+@app.get("/get_log_updates")
 def get_log_updates():
     with open(LOG_FILENAME, 'r') as log_file:
         log_content = log_file.read()
-    return jsonify({"log_content": log_content})
+    return {"log_content": log_content}
 
-@app.route("/check_test_data", methods=["POST"])
-def check_test_data():
-    source_data = request.json.get('sourceData')
-    hash_value = get_hash(source_data)
-    hashmap=get_hashmap()
-    if hash_value in hashmap:
-        return jsonify({"exists": True, "path": hashmap[hash_value]})
-    else:
-        return jsonify({"exists": False, "hash": hash_value})
+class SourceDataCheck(BaseModel):
+    sourceData: str
 
 def get_hash(source_data):
     src_type=l.classify_path(source_data)
@@ -227,16 +232,17 @@ def _get_hash_dir(dir_path):
     except Exception as e:
         print(f"Error hashing directory content: {e}")
         return None
-
-@app.route("/check_source_data", methods=["POST"])
-def check_source_data():
-    source_data = request.json.get('sourceData')
-    if is_valid_source_data(source_data):
-        return jsonify({"valid": True})
+    
+@app.post("/check_test_data")
+async def check_test_data(data: SourceDataCheck, hashmap: dict = Depends(get_hashmap)):
+    source_data = data.sourceData
+    hash_value = get_hash(source_data)
+    if hash_value in hashmap:
+        return {"exists": True, "path": hashmap[hash_value]}
     else:
-        return jsonify({"valid": False})
+        return {"exists": False, "hash": hash_value}
 
-def is_valid_source_data(source_data):
+def _is_valid_source_data(source_data):
     # Check if source_data is a URL
     try:
         result = urlparse(source_data)
@@ -249,17 +255,42 @@ def is_valid_source_data(source_data):
     # Check if source_data is a file or directory
     return os.path.exists(source_data)
 
-@app.route("/rbuilder", methods=["POST"])
-def rbuilder_route():
-    project_data = request.json
-    result=parse_config(project_data)
-    return result
-    # Use below for debugging
-    # dummy_test(project_data)
-    # print(f'project_data={project_data}')
-    # return jsonify({"status": "success"})
+@app.post("/check_source_data")
+async def check_source_data(data: SourceDataCheck):
+    return {"valid": _is_valid_source_data(data.sourceData)}
 
-def _get_disabled_opts(config):
+class ProjectData(BaseModel):
+    description: str
+    sourceData: str
+    compareTemplates: bool
+    includeNonTemplated: bool
+    chunkingStrategy: dict[str, bool]
+    chunkSize: dict[str, bool]
+    embeddingModel: dict[str, bool]
+    vectorDB: str
+    retriever: dict[str, bool]
+    topK: dict[str, bool]
+    contextualCompression: bool
+    llm: dict[str, bool]
+    generateSyntheticData: bool
+    compressors: Optional[dict[str, bool]] = Field(default=None)
+    syntheticDataGeneration: Optional[dict] = Field(default=None)
+    testDataPath: Optional[str] = Field(default=None)
+    existingSynthDataPath: Optional[str] = Field(default=None)
+    testSize: Optional[str] = Field(default=None)
+    criticLLM: Optional[str] = Field(default=None)
+    generatorLLM: Optional[str] = Field(default=None)
+    embedding: Optional[str] = Field(default=None)
+
+@app.post("/rbuilder")
+def rbuilder_route(project_data: ProjectData, db: sqlite3.Connection = Depends(get_db)):
+    result = parse_config(project_data.model_dump(), db)
+    return result
+    # print(project_data)
+    # print(project_data.model_dump())
+    # return {"status": "success", "message": "Ok"}
+
+def _get_disabled_opts(config: dict):
     disabled_opts = []
     stack = [config]  # Initialize the stack with the root dictionary
     while stack:
@@ -267,13 +298,12 @@ def _get_disabled_opts(config):
         for key, value in current_dict.items():
             if isinstance(value, dict):
                 stack.append(value)
-            elif not value:
+            elif value is False:
                 disabled_opts.append(key)
     return disabled_opts
 
-def _db_write(run_details):
+def _db_write(run_details: tuple, db: sqlite3.Connection):
     logger.info(f"Logging run config details in db...")
-    db = get_db()
     insert_query=f"""
             INSERT INTO run_details(
                 run_id,
@@ -291,9 +321,8 @@ def _db_write(run_details):
     db.commit() 
     logger.info(f"Saved run config details in db")
 
-def _update_status(run_id, status):
+def _update_status(run_id: int, status: int, db: sqlite3.Connection):
     logger.info(f"Updating status for run_id {run_id} as {status}...")
-    db = get_db()
     upd_query=f"""
             UPDATE run_details set
                 status = ?
@@ -301,10 +330,14 @@ def _update_status(run_id, status):
         """
     db.execute(upd_query, (status, run_id,))
     db.commit() 
-    logger.info(f"Saved run config details in db")
+    logger.info(f"Updated run_id {run_id} with status {status} in db")
 
 
-def parse_config(config):
+def parse_config(config: dict, db: sqlite3.Connection):
+    # The implementation remains largely the same, but use the passed db connection
+    # Instead of get_db(), use the db parameter
+    # Replace jsonify with direct dictionary returns
+    # ...
     enable_analytics = os.getenv('ENABLE_ANALYTICS', 'True').lower() == 'true'
     logger.info(f"enable_analytics= {enable_analytics}")
     if enable_analytics:
@@ -337,12 +370,6 @@ def parse_config(config):
         embedding_model=config["syntheticDataGeneration"]["embedding"]
         # TODO: Add Distribution
 
-        # print(f'test_data_type={type(test_size)}\
-        #       test_size=\"{test_size}\",\
-        #     generator_llm=\"{generator_llm}\",\
-        #     critic_llm=\"{critic_llm}\",\
-        #     embeddings=\"{embedding_model}\"')
-        # return jsonify({'status':'success'})
         try:
             f_name=generate_data.generate_data(
                 src_data=src_path,
@@ -354,10 +381,10 @@ def parse_config(config):
             if f_name is None:
                 logger.error(f'Synthetic test data generation failed.')
                 # _update_status(run_id, 'Failed')
-                return jsonify({
+                return {
                     "status": "error",
                     "message": str(e)
-                }), 400
+                }, 400
         except Exception as e:
             logger.error(f'Synthetic test data generation failed: {e}')
             raise
@@ -381,7 +408,7 @@ def parse_config(config):
         json.dumps(disabled_opts), 
         run_id
     )
-    _db_write(run_details)
+    _db_write(run_details, db)
     try:
         logger.info(f"Spawning RAG configs by invoking rag_builder...")
         res = rag_builder(
@@ -396,26 +423,27 @@ def parse_config(config):
         logger.info(f"res = {res}")
     except Exception as e:
         logger.error(f'Failed to complete creation and evaluation of RAG configs: {e}')
-        _update_status(run_id, 'Failed')
-        return jsonify({
+        _update_status(run_id, 'Failed', db)
+        db.close()
+        return {
             "status": "error",
             "message": str(e)
-        }), 400
+        }, 400
     else:
         logger.info(f"Processing finished successfully")
-        _update_status(run_id, 'Success')
-        return jsonify({
+        _update_status(run_id, 'Success', db)
+        db.close()
+        return {
             "status": "success",
             "message": "Completed successfully.",
             "run_id": run_id
-        })
+        }
     # return jsonify({'status':'success', 'f_name': f_name})
 
- 
 def main():
-    # logger.info("Open http://localhost:8001/ in your browser to access the ragbuilder Dashboard.")
     threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-    app.run(port=8001)
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8005)
 
 if __name__ == '__main__':
     main()
