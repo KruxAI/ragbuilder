@@ -36,6 +36,7 @@ def ragbuilder_loader(**kwargs):
     
     try:
         input_path = kwargs.get("input_path")
+        return_code = kwargs.get("return_code",False)
         if not input_path:
             raise ValueError("Input path is missing or empty.")
         
@@ -43,11 +44,11 @@ def ragbuilder_loader(**kwargs):
         logger.info(f"Source type identified: {source}")
         
         if source == "directory":
-            return ragbuilder_directory_loader(input_path)
+            return ragbuilder_directory_loader(input_path,return_code)
         elif source == "url":
-            return ragbuilder_url_loader(input_path)
+            return ragbuilder_url_loader(input_path,return_code)
         elif source == "file":
-            return ragbuilder_file_loader(input_path)
+            return ragbuilder_file_loader(input_path,return_code)
         else:
             logger.error("Invalid input path type.")
             return None
@@ -56,36 +57,49 @@ def ragbuilder_loader(**kwargs):
         logger.error(f"Error in ragbuilder_loader: {e}")
         return None
 
-def ragbuilder_directory_loader(input_path):
+def ragbuilder_directory_loader(input_path,return_code):
     logger.info("ragbuilder_directory_loader Invoked")
     
     try:
-        loader = DirectoryLoader(input_path)
-        docs = loader.load()
+        if not return_code:
+            loader = DirectoryLoader(input_path)
+            docs = loader.load()
+        else:
+            docs = f"""
+                    DirectoryLoader(input_path={input_path})
+                    docs = loader.load()"""
         return docs
     
     except Exception as e:
         logger.error(f"Error in ragbuilder_directory_loader: {e}")
         return None
 
-def ragbuilder_url_loader(input_path):
+def ragbuilder_url_loader(input_path,return_code):
     logger.info("ragbuilder_url_loader Invoked")
     
     try:
-        loader = WebBaseLoader(input_path)
-        docs = loader.load()
+        if not return_code:
+            loader = WebBaseLoader(input_path)
+            docs = loader.load()
+        else:   
+            docs = f"""WebBaseLoader(input_path='{input_path}')
+    docs = loader.load()"""
         return docs
     
     except Exception as e:
         logger.error(f"Error in ragbuilder_url_loader: {e}")
         return None
 
-def ragbuilder_file_loader(input_path):
+def ragbuilder_file_loader(input_path,return_code):
     logger.info("ragbuilder_file_loader Invoked")
     
     try:
-        loader = UnstructuredFileLoader(input_path)
-        docs = loader.load()
+        if not return_code:
+            loader = UnstructuredFileLoader(input_path)
+            docs = loader.load()
+        else:
+            docs = f"""UnstructuredFileLoader(input_path={input_path})
+                    docs = loader.load()"""
         return docs
     
     except Exception as e:
