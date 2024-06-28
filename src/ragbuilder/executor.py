@@ -1,6 +1,8 @@
 from ragbuilder.rag_templates.top_n_templates import top_n_templates
 from ragbuilder.rag_templates.langchain_templates import nuancedCombos
-from ragbuilder.langchain_module.rag import mergerag as rag
+# from ragbuilder.langchain_module.rag import mergerag as rag
+from ragbuilder.langchain_module.rag import getCode as rag
+# from ragbuilder.router import router 
 from ragbuilder.langchain_module.common import setup_logging
 import logging
 import json
@@ -14,13 +16,6 @@ current_working_directory = os.getcwd()
 dotenv_path = os.path.join(current_working_directory, '.env')
 load_dotenv(dotenv_path)
 logger = logging.getLogger("ragbuilder")
-# pregenerated_cofigs = [
-      
-#       #list if permuations of the chunking strategies,llm,...etc
-# ]
-# def exclude_filter():
-
-#     return granular_rag 
 #Load Sythetic Data
 import pandas as pd
 from datasets import Dataset
@@ -37,6 +32,22 @@ chat_model = ChatOpenAI(
     verbose=True
 )
 #####
+from langchain_openai import ChatOpenAI
+from langchain_community.document_loaders import *
+from langchain_openai import OpenAIEmbeddings
+from langchain.text_splitter import *
+from langchain_chroma import *
+
+import os
+from operator import itemgetter
+from langchain import hub
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
+from langchain.retrievers import *
+from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+
+#####
+
 
 import time
 def rag_builder(**kwargs):
@@ -59,7 +70,7 @@ def rag_builder(**kwargs):
                 run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
                 logger.info(f"{repr(run_config)}")
                 rageval=eval.RagEvaluator(
-                    rag_builder, 
+                    rag_builder, # code for rag function
                     test_ds, 
                     llm = chat_model, 
                     embeddings = OpenAIEmbeddings(model="text-embedding-3-large"),
@@ -81,7 +92,7 @@ def rag_builder(**kwargs):
                 run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
                 logger.info(f"{repr(run_config)}")
                 rageval=eval.RagEvaluator(
-                    rag_builder, 
+                    rag_builder, # rag function
                     test_ds, 
                     llm=chat_model, 
                     embeddings=OpenAIEmbeddings(model="text-embedding-3-large"),
@@ -109,7 +120,15 @@ class RagBuilder:
         self.retriever_kwargs=val['retriever_kwargs']
         # self.prompt_text =  val['prompt_text'] 
         print(f"retrieval model: {self.retrieval_model}")
-        self.rag=rag.mergerag(
+
+        # self.router(Configs) # Calls appropriate code generator calls codeGen Within returns Code string
+        # namespace={}
+        # exec(rag_func_str, namespace) # executes code
+        # ragchain=namespace['ragchain'] catch the func object
+        # self.runCode=ragchain()
+
+        # output of router is genrated code as string
+        self.router=rag.codeGen(
             framework=self.framework,
             # description=self.description,
             retrieval_model = self.retrieval_model,
@@ -120,6 +139,15 @@ class RagBuilder:
             embedding_kwargs=self.embedding_kwargs,
             retriever_kwargs=self.retriever_kwargs
         )
+        locals_dict={}
+        globals_dict = globals()
+
+        #execution os string
+        exec(self.router,globals_dict,locals_dict)
+        logger.info(f"Generated Code:\n{self.router}")
+
+        #old rag func hooked to eval
+        self.rag = locals_dict['rag_pipeline']()
 
     # def __repr__(self):
     #     return (

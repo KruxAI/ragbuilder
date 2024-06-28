@@ -71,7 +71,7 @@ class LogStream(object):
 class RagEvaluator:
     def __init__(
             self, 
-            rag, 
+            rag, #Code for RAG function 
             test_dataset, 
             context_fn=None, 
             llm=None, 
