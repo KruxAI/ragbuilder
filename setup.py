@@ -91,7 +91,8 @@ setup(
         'requests',
         'markdown',
         'singlestoredb',
-        'langchain_pinecone'
+        'langchain_pinecone',
+        'scikit-optimize'
         # other dependencies
     ],
 )

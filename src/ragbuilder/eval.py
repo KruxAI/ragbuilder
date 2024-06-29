@@ -174,7 +174,8 @@ class RagEvaluator:
             
             # Save everything to DB
             self._db_write()
-            return result
+            # return result
+            return self.result_df['answer_correctness'].mean() # TODO: OR result['answer_correctness'] maybe?
     
     def _db_write(self):
         db = sqlite3.connect(DATABASE)
