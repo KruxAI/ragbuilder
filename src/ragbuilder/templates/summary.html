@@ -99,7 +99,7 @@
                         <td>🕓 {{ eval.avg_latency }}s</td>
                         <td>{{ eval.eval_ts }}</td>
                         <td><a href="/details/{{ eval.eval_id }}" class="btn btn-link btn-sm">View Details</a></td>
-                        <td><a href="#" class="btn btn-link btn-sm disabled" aria-disabled="true">View Code snippet</a></td>
+                        <td><a href="#" class="btn btn-link btn-sm view-code-snippet" data-code="{{ eval.code_snippet }}">View Code snippet</a></td>
                     </tr>
                 {% endfor %}
                 </tbody>
@@ -107,6 +107,26 @@
         </div>
     </div>
 </div>
+
+<!-- Code Snippet Modal -->
+<div class="modal fade" id="codeSnippetModal" tabindex="-1" role="dialog" aria-labelledby="codeSnippetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="codeSnippetModalLabel">Code Snippet</h1>
+                <button class="btn ms-2" id="copyCodeSnippet" title="Copy">
+                    <i class="bi bi-copy" style="font-size: 1.2rem;"></i>
+                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <pre><code id="codeSnippet" class="language-python"></code></pre>
+                <!-- <button class="btn btn-secondary" id="copyCodeSnippet">Copy</button> -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- New Project Modal -->
 <div class="modal fade" id="newProjectModal" data-bs-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="newProjectModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
@@ -414,6 +434,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
 <script src="{{ url_for('static', path='main.js') }}"></script>
 <!-- Script to show RAG Config as a exandable/ collapsable text. -->
 <script>
@@ -440,6 +462,25 @@
                 fullText.hide();
                 $(this).text('➕');
             }
+        });
+
+        // Handle code snippet modal
+        $('.view-code-snippet').click(function(event) {
+            event.preventDefault();
+            var codeSnippet = $(this).data('code');
+            $('#codeSnippet').text(codeSnippet);
+            Prism.highlightElement($('#codeSnippet')[0]);
+            $('#codeSnippetModal').modal('show');
+        });
+
+        // Copy code snippet to clipboard
+        $('#copyCodeSnippet').click(function() {
+            var codeSnippet = $('#codeSnippet').text();
+            navigator.clipboard.writeText(codeSnippet).then(function() {
+                alert('Copied to clipboard');
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+            });
         });
     });
 </script>

@@ -81,8 +81,9 @@ class RagEvaluator:
             model_name=None
     ):
         self.id = int(time.time())
-        self.rag_fn = rag.rag
         self.rag = rag
+        self.rag_fn = rag.rag
+        self.code_snippet = rag.router
         # TODO: Change Rag config assignment to RAG config Json that we'll get either via kwargs or object properties of the RAG object
         self.rag_config = repr(rag) 
         self.test_dataset = test_dataset
@@ -257,6 +258,7 @@ class RagEvaluator:
             run_id,
             eval_id,
             rag_config,
+            code_snippet,
             avg_answer_correctness,
             avg_faithfulness,
             avg_answer_relevancy,
@@ -271,6 +273,7 @@ class RagEvaluator:
             MAX(run_id) as run_id,
             eval_id,
             ? rag_config,
+            ? code_snippet,
             avg(answer_correctness) as avg_answer_correctness,
             avg(faithfulness) as avg_faithfulness,
             avg(answer_relevancy) as avg_answer_relevancy,
@@ -284,7 +287,7 @@ class RagEvaluator:
         WHERE eval_id = {self.id}
         GROUP BY eval_id
         """
-        db.execute(summary_query, (self.rag_config,))
+        db.execute(summary_query, (self.rag_config, self.code_snippet))
         db.commit()
         db.close()
 

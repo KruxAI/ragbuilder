@@ -93,12 +93,12 @@ def codeGen(**kwargs):
 
     code_text =  "\n" + "\n".join(code_strings)
     import_text="\n".join(imports)+global_imports
-    function_code = import_text+f"""
+    function_code = import_text+"""
 def rag_pipeline():
     try:
         def format_docs(docs):
             return "\\n".join(doc.page_content for doc in docs) 
-        {code_text.replace('\n', '\n        ')}
+        {0}
         prompt = hub.pull("rlm/rag-prompt")
         rag_chain = (
             RunnableParallel(context=retriever, question=RunnablePassthrough())
@@ -109,6 +109,6 @@ def rag_pipeline():
     except Exception as e:
         print(f"An error occurred: {{e}}")
 
-"""
+""".format(code_text.replace('\n', '\n        '))
     logger.info(f"Code completed{function_code}")
     return function_code

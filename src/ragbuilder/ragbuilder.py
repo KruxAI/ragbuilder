@@ -112,6 +112,7 @@ async def summary(request: Request, run_id: int, db: sqlite3.Connection = Depend
             run_details.description,
             rag_eval_summary.eval_id,
             rag_eval_summary.rag_config,
+            rag_eval_summary.code_snippet,
             round(rag_eval_summary.avg_answer_correctness, 2) AS avg_answer_correctness,
             round(rag_eval_summary.avg_faithfulness, 2) AS avg_faithfulness,
             round(rag_eval_summary.avg_answer_relevancy, 2) AS avg_answer_relevancy,
