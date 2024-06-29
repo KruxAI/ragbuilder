@@ -51,27 +51,31 @@ def getRetriever(**kwargs):
 
     elif retriever_type == "parentDocFullDoc":
         logger.info("Parent Document (Full) Retriever Invoked")
-        code_string= f"""store = InMemoryStore()
+        code_string= f"""
+store = InMemoryStore()
 retriever=ParentDocumentRetriever(vectorstore=c,docstore=store,child_splitter=splitter)
 retriever.add_documents(docs)
         """
-        import_string = f"""from langchain.retrievers import ParentDocumentRetriever"""
+        import_string = f"""from langchain.retrievers import ParentDocumentRetriever
+from langchain.storage import InMemoryStore"""
         return {'code_string':code_string,'import_string':import_string}
 
     elif retriever_type == "parentDocLargeChunk":
         
         logger.info("Parent Document (Large Chunk) Retriever Invoked")
         parent_kwargs = kwargs.copy()
-        parent_kwargs['chunk_size'] = kwargs["chunk_size"]*3
-        parent_kwargs['chunk_overlap'] = kwargs["chunk_overlap"]*3
+        parent_kwargs['chunk_size'] = kwargs["chunking_kwargs"]["chunk_size"]*3
+        parent_kwargs['chunk_overlap'] = kwargs["chunking_kwargs"]["chunk_overlap"]*3
         parent_kwargs['splitter_name']="parent_splitter"
         parent_chunk_strategy=getChunkingStrategy(**parent_kwargs)
         print('parent_chunk_strategy',parent_chunk_strategy)
         code_string=f"""{parent_chunk_strategy['code_string']}"""
-        code_string+="""store = InMemoryStore()
+        code_string+="""
+store = InMemoryStore()
 retriever = ParentDocumentRetriever(vectorstore=c,docstore=store,child_splitter=splitter,parent_splitter=parent_splitter)
 retriever.add_documents(docs)"""
-        import_string = f"""from langchain.retrievers import ParentDocumentRetriever"""
+        import_string = f"""from langchain.retrievers import ParentDocumentRetriever
+from langchain.storage import InMemoryStore"""
         return {'code_string':code_string,'import_string':import_string}
 
     elif retriever_type == "bm25Retriever":

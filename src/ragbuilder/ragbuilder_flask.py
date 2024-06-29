@@ -318,7 +318,7 @@ def parse_config(config):
     include_granular_combos=config["includeNonTemplated"]
     # gen_synthetic_data=config["generateSyntheticData"]
     src_path=config.get("sourceData", None)
-    src_data={ 1 : {'source':'url','input_path': src_path}}
+    src_data={'source':'url','input_path': src_path}
     syntheticDataGenerationOpts=config.get("syntheticDataGeneration", None)
     existingSynthDataPath=config.get("existingSynthDataPath", None)
     vectorDB=config.get("vectorDB", None)
