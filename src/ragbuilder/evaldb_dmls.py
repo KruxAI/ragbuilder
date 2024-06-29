@@ -38,6 +38,7 @@ rag_eval_summary_dml="""CREATE TABLE IF NOT EXISTS
     run_id BIGINT,
     eval_id BIGINT PRIMARY KEY,
     rag_config JSON,
+    code_snippet TEXT,
     avg_answer_correctness DOUBLE,
     avg_faithfulness DOUBLE,
     avg_answer_relevancy DOUBLE,

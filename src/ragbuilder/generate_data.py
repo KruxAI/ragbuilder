@@ -45,7 +45,7 @@ def load_src(src_data):
     # loader = DirectoryLoader(src_data, glob="*.md", show_progress=True)
     # docs = loader.load()
     try:
-        docs = l.ragbuilder_loader(input_path=src_data)
+        docs = l.ragbuilder_loader(input_path=src_data,return_code=False)
         if docs:
             logger.info("Completed loading docs")
             # Add the filename attribute in metadata for Ragas
