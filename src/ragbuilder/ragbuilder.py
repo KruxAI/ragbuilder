@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import sqlite3
 import markdown
-import pkg_resources
 import threading
 import webbrowser
 import time
@@ -16,6 +15,7 @@ import os
 import hashlib
 import logging
 import requests
+import uvicorn
 from pathlib import Path
 from urllib.parse import urlparse
 from ragbuilder.executor import rag_builder
@@ -442,7 +442,6 @@ def parse_config(config: dict, db: sqlite3.Connection):
 
 def main():
     threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-    import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8005)
 
 if __name__ == '__main__':

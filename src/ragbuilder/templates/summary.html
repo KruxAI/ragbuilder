@@ -77,6 +77,7 @@
                     <th>Latency</th>
                     <th>Timestamp</th>
                     <th>Details</th>
+                    <th>Code Snippet</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -98,6 +99,7 @@
                         <td>🕓 {{ eval.avg_latency }}s</td>
                         <td>{{ eval.eval_ts }}</td>
                         <td><a href="/details/{{ eval.eval_id }}" class="btn btn-link btn-sm">View Details</a></td>
+                        <td><a href="#" class="btn btn-link btn-sm disabled" aria-disabled="true">View Code snippet</a></td>
                     </tr>
                 {% endfor %}
                 </tbody>
