@@ -24,7 +24,7 @@ setup(
         ],
     },
     install_requires=[
-        'Flask',
+        'fastapi',
         'pytest==7.2.1',
         'pytest-xdist~=3.2.0',
         'coverage~=7.1.0',
@@ -72,7 +72,6 @@ setup(
         'langchain-huggingface',
         'rank_bm25',
         'ragas',
-        'flask',
         'pandas',
         # 'pillow_heif',
         # 'opencv-python',
