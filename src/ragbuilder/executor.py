@@ -31,21 +31,39 @@ chat_model = ChatOpenAI(
     temperature=0.2,
     verbose=True
 )
-#####
-from langchain_openai import ChatOpenAI
-from langchain_community.document_loaders import *
-from langchain_openai import OpenAIEmbeddings
-from langchain.text_splitter import *
-from langchain_chroma import *
-
-import os
+#Import needed for Executing the Generated Code
 from operator import itemgetter
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-from langchain.retrievers import *
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 
+import dotenv
+from langchain_community.document_loaders import *
+from langchain_text_splitters import *
+from langchain.retrievers import *
+from langchain.retrievers.document_compressors import *
+from langchain_community.document_transformers import *
+from langchain.retrievers.multi_query import *
+from langchain_mistralai.chat_models import *
+from langchain_openai import *
+from langchain_mistralai import *
+from langchain_huggingface import *
+from langchain_experimental.text_splitter import *
+from langchain_community.embeddings import *
+from langchain_chroma import Chroma
+from langchain_community.vectorstores import *
+from langchain_pinecone import PineconeVectorStore
+from langchain.storage import InMemoryStore
+ 
+# import local modules
+from ragbuilder.langchain_module.retriever.retriever import *
+from ragbuilder.langchain_module.loader.loader import *
+from ragbuilder.langchain_module.llms.llmConfig import *
+from ragbuilder.langchain_module.chunkingstrategy.langchain_chunking import *
+from ragbuilder.langchain_module.embedding_model.embedding import *
+from ragbuilder.langchain_module.vectordb.vectordb import *
+from ragbuilder.langchain_module.common import setup_logging
+import logging
 #####
 
 
@@ -54,7 +72,7 @@ def rag_builder(**kwargs):
     run_id=kwargs['run_id']
     src_data=kwargs['src_data']
     vectorDB=kwargs['vectorDB']
-    test_data=kwargs['test_data'] #loader_kwargs = { 1 : {'source':'url','input_path': url1}},
+    test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']

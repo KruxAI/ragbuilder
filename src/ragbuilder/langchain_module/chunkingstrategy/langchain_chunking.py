@@ -67,7 +67,7 @@ def getLangchainSemanticChunker(**kwargs):
         splitter_name=kwargs.get('splitter_name','splitter')
         code_string = f"""
 from langchain_experimental.text_splitter import SemanticChunker
-{splitter_name} = SemanticChunker(embedding, breakpoint_threshold_type='{kwargs['chunking_kwargs']['breakpoint_threshold_type']}')
+{splitter_name} = SemanticChunker(embedding, breakpoint_threshold_type='{kwargs.get('chunking_kwargs').get('breakpoint_threshold_type','percentile')}')
 splits={splitter_name}.create_documents(docs[0].page_content)
 """
         import_string = f"""from langchain_experimental.text_splitter import SemanticChunker"""

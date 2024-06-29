@@ -35,39 +35,42 @@ def codeGen(**kwargs):
     logger.info(f"Generating Code for Langchain Rag Pipeline")
     imports = []
     code_strings = []
-
+    logger.info(f"Generating Code:getLLM(**kwargs)")
     llm = getLLM(**kwargs)
     code_strings.append(llm['code_string'])
     imports.append(llm['import_string'])
-    kwargs['input_path']=kwargs['loader_kwargs'][1]['input_path']
+    kwargs['input_path']=kwargs['loader_kwargs']['input_path']
+    logger.info(f"Generating Code: ragbuilder_loader(**kwargs)")
     docs = ragbuilder_loader(**kwargs)
     code_strings.append(docs['code_string'])
     imports.append(docs['import_string'])
-    kwargs['embedding_model']=kwargs['embedding_kwargs'][1][0]['embedding_model']
-    embedding_model_str=kwargs['embedding_model']
+    kwargs['embedding_model']=kwargs['embedding_kwargs']['embedding_model']
+    logger.info(f"Generating Code: getEmbedding(**kwargs)")
     embedding = getEmbedding(**kwargs)
     code_strings.append(embedding['code_string'])
     imports.append(embedding['import_string'])
 
-    kwargs['chunking_kwargs']=kwargs['chunking_kwargs'][1]
+    kwargs['chunking_kwargs']=kwargs['chunking_kwargs']
+    logger.info(f"Generating Code: getChunkingStrategy(**kwargs)")
     strategy = getChunkingStrategy(**kwargs)
     code_strings.append(strategy['code_string'])
     imports.append(strategy['import_string'])
 
-    kwargs['db_type'] = kwargs['vectorDB_kwargs'][1]['vectorDB']
+    kwargs['db_type'] = kwargs['vectorDB_kwargs']['vectorDB']
+    logger.info(f"Generating Code: getVectorDB(**kwargs)")
     vector = getVectorDB(kwargs['db_type'],kwargs['embedding_model'])
     code_strings.append(vector['code_string'])
     imports.append(vector['import_string'])
     logger.info(f"Retriever String initiated")
-    kwargs['retriever_kwargs']['retrievers'] = kwargs['retriever_kwargs'][1][embedding_model_str]['retrievers']
-    logger.info(f"Retreiver String Completed{kwargs['retriever_kwargs'][1][embedding_model_str]}")
-    if len(kwargs['retriever_kwargs'][1][embedding_model_str]['retrievers']) > 0:
+
+    if len(kwargs['retriever_kwargs']['retrievers']) > 0:
         logger.info(f"Retreiver String Completed{kwargs['retriever_kwargs']}")
         code_strings.append("retrievers=[]")
         for rtr in kwargs['retriever_kwargs']['retrievers']:
             kwargs['retriever_type'] = rtr['retriever_type']
             kwargs['search_type'] = rtr.get('search_type',None)
             kwargs['search_kwargs'] = rtr['search_kwargs']
+            logger.info(f"Generating Code: getRetriever(**kwargs)")
             retriever = getRetriever(**kwargs)
             code_strings.append(retriever['code_string'])
             code_strings.append("retrievers.append(retriever)")
@@ -78,9 +81,9 @@ def codeGen(**kwargs):
         code_strings.append(retriever['code_string'])
         imports.append(retriever['import_string'])
     logger.info(f"Retriever String completed")
-    if kwargs['retriever_kwargs'][1]['contextual_compression_retriever']:
+    if kwargs['retriever_kwargs']['contextual_compression_retriever']:
         code_strings.append("arr_comp=[]")
-        for cmp in kwargs['retriever_kwargs'][1]['document_compressor_pipeline']:
+        for cmp in kwargs['retriever_kwargs']['document_compressor_pipeline']:
             kwargs['compressor'] = cmp
             compressor_code = getCompressors(**kwargs)
             print(compressor_code)
