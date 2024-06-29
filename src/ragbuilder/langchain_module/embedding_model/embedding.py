@@ -24,14 +24,19 @@ def getEmbedding(**kwargs):
         
         if embedding_model in ["text-embedding-3-small","text-embedding-3-large","text-embedding-ada-002"]:
             logger.info(f"OpenAIEmbeddings Invoked: {embedding_model}")
-            return OpenAIEmbeddings(model=embedding_model)
+            code_string= f"""embedding=OpenAIEmbeddings(model='{embedding_model}')"""
+            import_string = f"""from langchain_openai import OpenAIEmbeddings"""
+            return {'code_string':code_string,'import_string':import_string}
         elif embedding_model == "mistral-embed":
             logger.info(f"MistralAIEmbeddings Invoked: {embedding_model}")
-            return MistralAIEmbeddings(api_key=os.environ.get("MISTRAL_API_KEY"))
+            code_string= f"""embedding=MistralAIEmbeddings(api_key=os.environ.get("MISTRAL_API_KEY"))"""
+            import_string = f"""from langchain_mistralai import MistralAIEmbeddings"""
+            return {'code_string':code_string,'import_string':import_string}
         elif embedding_model == "all-MiniLM-l6-v2":
             logger.info(f"HuggingFaceInferenceAPIEmbeddings Invoked: {embedding_model}")
-            return HuggingFaceInferenceAPIEmbeddings(
-                api_key=os.environ.get("HUGGINGFACEHUB_API_TOKEN"), model_name="sentence-transformers/all-MiniLM-l6-v2")
+            code_string= f"""embedding=HuggingFaceInferenceAPIEmbeddings(api_key=os.environ.get("HUGGINGFACEHUB_API_TOKEN"), model_name="sentence-transformers/all-MiniLM-l6-v2")"""
+            import_string = f"""from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings"""
+            return {'code_string':code_string,'import_string':import_string}
         else:
             raise ValueError(f"Invalid LLM: {embedding_model}")
     except KeyError as ke:

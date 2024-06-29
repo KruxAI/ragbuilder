@@ -1,7 +1,7 @@
 import re
 import os
 import logging
-from ragbuilder.langchain_module.common import setup_logging
+from ragbuilder.langchain_module.common import setup_logging,codeGen
 from langchain_community.document_loaders import DirectoryLoader, WebBaseLoader, UnstructuredFileLoader
 
 # Setup logging
@@ -32,10 +32,11 @@ def classify_path(input_str):
         return "Neither"
 
 def ragbuilder_loader(**kwargs):
-    logger.info("ragbuilder_loader Invoked")
+    logger.info(f"ragbuilder_loader Invoked:{kwargs}")
     
     try:
         input_path = kwargs.get("input_path")
+        return_code = kwargs.get("return_code",False)
         if not input_path:
             raise ValueError("Input path is missing or empty.")
         
@@ -43,11 +44,11 @@ def ragbuilder_loader(**kwargs):
         logger.info(f"Source type identified: {source}")
         
         if source == "directory":
-            return ragbuilder_directory_loader(input_path)
+            return ragbuilder_directory_loader(input_path,return_code)
         elif source == "url":
-            return ragbuilder_url_loader(input_path)
+            return ragbuilder_url_loader(input_path,return_code)
         elif source == "file":
-            return ragbuilder_file_loader(input_path)
+            return ragbuilder_file_loader(input_path,return_code)
         else:
             logger.error("Invalid input path type.")
             return None
@@ -56,38 +57,35 @@ def ragbuilder_loader(**kwargs):
         logger.error(f"Error in ragbuilder_loader: {e}")
         return None
 
-def ragbuilder_directory_loader(input_path):
+def ragbuilder_directory_loader(input_path,return_code):
     logger.info("ragbuilder_directory_loader Invoked")
-    
-    try:
-        loader = DirectoryLoader(input_path)
-        docs = loader.load()
-        return docs
-    
-    except Exception as e:
-        logger.error(f"Error in ragbuilder_directory_loader: {e}")
-        return None
+    import_string = f"""
+from langchain_community.document_loaders import DirectoryLoader"""
 
-def ragbuilder_url_loader(input_path):
+    code_string = f"""
+loader = DirectoryLoader('{input_path}')
+docs = loader.load()
+"""
+    return {'code_string':code_string,'import_string':import_string}
+
+def ragbuilder_url_loader(input_path,return_code):
     logger.info("ragbuilder_url_loader Invoked")
-    
-    try:
-        loader = WebBaseLoader(input_path)
-        docs = loader.load()
-        return docs
-    
-    except Exception as e:
-        logger.error(f"Error in ragbuilder_url_loader: {e}")
-        return None
+    import_string = f"""
+from langchain_community.document_loaders import WebBaseLoader"""
 
-def ragbuilder_file_loader(input_path):
+    code_string = f"""
+loader = WebBaseLoader('{input_path}')
+docs = loader.load()
+"""
+    return {'code_string':code_string,'import_string':import_string}
+    
+def ragbuilder_file_loader(input_path,return_code):
     logger.info("ragbuilder_file_loader Invoked")
-    
-    try:
-        loader = UnstructuredFileLoader(input_path)
-        docs = loader.load()
-        return docs
-    
-    except Exception as e:
-        logger.error(f"Error in ragbuilder_file_loader: {e}")
-        return None
+    import_string = f"""
+from langchain_community.document_loaders import UnstructuredFileLoader"""
+
+    code_string = f"""
+loader = UnstructuredFileLoader('{input_path}')
+docs = loader.load()
+"""
+    return {'code_string':code_string,'import_string':import_string}

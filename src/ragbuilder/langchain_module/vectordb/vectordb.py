@@ -10,7 +10,7 @@ from getpass import getpass
 setup_logging()
 logger = logging.getLogger("ragbuilder")
 
-def getVectorDB(splits, embedding, embedding_model, db_type):
+def getVectorDB(db_type,embedding_model):
     """
     Initialize and return a vector database object based on the specified db_type.
 
@@ -25,20 +25,26 @@ def getVectorDB(splits, embedding, embedding_model, db_type):
     Raises:
     - ValueError: If db_type is not supported.
     """
+    logger.info(f"getVectorDB:{db_type}{embedding_model}")
     timestamp = str(int(time.time()))
     index_name = "testindex-ragbuilder-" + timestamp
     if db_type == "chromaDB":
         logger.info("Chroma DB Loaded")
         logger.info(f"Chroma DB Index Created {index_name}")
-        return Chroma.from_documents(documents=splits, embedding=embedding, collection_name=index_name,)
+        code_string= f"""c=Chroma.from_documents(documents=splits, embedding=embedding, collection_name='{index_name}',)"""
+        import_string = f"""from langchain_chroma import Chroma"""
     elif db_type == "faissDB":
         logger.info("FAISS DB Loaded")
-        return FAISS.from_documents(documents=splits, embedding=embedding)
+        code_string= f"""c=FAISS.from_documents(documents=splits, embedding=embedding)"""
+        import_string = f"""from langchain_community.vectorstores import FAISS"""
     elif db_type == "singleStoreDB":
         index_name = "testindex_ragbuilder_" + timestamp
         logger.info("Singlestore DB Loaded")
         logger.info(f"Singlestore DB Index Created {index_name}")
-        return SingleStoreDB.from_documents(documents=splits, embedding=embedding,table_name=index_name)
+        code_string= f"""
+index_name='{index_name}'
+c=SingleStoreDB.from_documents(documents=splits, embedding=embedding,table_name='{index_name}')""" 
+        import_string= f"""from langchain_community.vectorstores import SingleStoreDB"""
     elif db_type == "pineconeDB":
         logger.info("PineCone DB Loaded")
         if embedding_model in ["text-embedding-3-small","text-embedding-ada-002"]:
@@ -51,16 +57,20 @@ def getVectorDB(splits, embedding, embedding_model, db_type):
              embedding_dimension=384
         else:
             raise
-        pc = Pinecone()
-        pc.create_index(
-            name=index_name,
-            dimension=embedding_dimension,
-            metric="cosine",
-        spec=ServerlessSpec(cloud="aws", region="us-east-1"),)
-        while not pc.describe_index(index_name).status["ready"]:
-            time.sleep(1)
         logger.info(f"Pinecone DB Index Created {index_name}")
-        return PineconeVectorStore.from_documents(splits, embedding, index_name=index_name)
+        code_string= f"""
+index_name='{index_name}'
+pc = Pinecone()
+pc.create_index(
+name='{index_name}',
+dimension={embedding_dimension},
+metric="cosine",
+spec=ServerlessSpec(cloud="aws", region="us-east-1"),)
+while not pc.describe_index(index_name).status["ready"]:
+    time.sleep(1)
+c=PineconeVectorStore.from_documents(splits, embedding, index_name='{index_name}')"""
+        import_string = f"""from langchain_pinecone import PineconeVectorStore"""
     else:
         raise ValueError(f"Unsupported db_type: {db_type}. Supported types are singleStoreDB, 'chromaDB', 'pineconeDB' and 'faissDB'.")
+    return {'code_string':code_string,'import_string':import_string}
 

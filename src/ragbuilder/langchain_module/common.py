@@ -67,8 +67,8 @@ def setup_logging():
         logger.addHandler(console_handler)
 
         # Redirect stdout and stderr to the logger
-        sys.stdout = LoggerWriter(logger, logging.INFO)
-        sys.stderr = LoggerWriter(logger, logging.ERROR)
+        # sys.stdout = LoggerWriter(logger, logging.INFO)
+        # sys.stderr = LoggerWriter(logger, logging.ERROR)
 
         print(log_filename)
         return log_filename
@@ -99,3 +99,16 @@ class LoggerWriter:
             if not re.search(r"GET /get_log_updates|common.py - flush -", self._buffer):
                 self.logger.log(self.level, self._buffer.rstrip())
             self._buffer = ''
+
+
+def codeGen(code_string,return_code,output_var):
+    globals_dict = {}
+    locals_dict = {}
+    try:
+        if not return_code:
+            exec(code_string,globals_dict,locals_dict)
+            return locals_dict[output_var]
+        else:
+            return code_string
+    except Exception as e:
+        return e
