@@ -41,5 +41,3 @@ def rag_pipeline():
         return rag_chain
     except Exception as e:
         print(f"An error occurred: {e}")
-    
-print(rag_pipeline().invoke("How many startups are there in India?"))
