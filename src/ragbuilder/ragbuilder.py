@@ -18,7 +18,7 @@ import requests
 import uvicorn
 from pathlib import Path
 from urllib.parse import urlparse
-from ragbuilder.executor import rag_builder
+from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging
 from ragbuilder import generate_data
@@ -37,6 +37,7 @@ url = "http://localhost:8005"
 
 app = FastAPI()
 DATABASE = 'eval.db'
+BAYES_OPT=1
 
 templates = Jinja2Templates(directory=Path(BASE_DIR, 'templates'))
 app.mount("/static", StaticFiles(directory=Path(BASE_DIR, 'static')), name="static")
@@ -356,6 +357,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
     syntheticDataGenerationOpts=config.get("syntheticDataGeneration", None)
     existingSynthDataPath=config.get("existingSynthDataPath", None)
     vectorDB=config.get("vectorDB", None)
+    optimization=config.get("optimization", 'bayesianOptimization')
+    
     if existingSynthDataPath:
         f_name=existingSynthDataPath
         logger.info(f"Existing synthetic test data detected: {f_name}")
@@ -410,18 +413,31 @@ def parse_config(config: dict, db: sqlite3.Connection):
         run_id
     )
     _db_write(run_details, db)
+
     try:
-        logger.info(f"Spawning RAG configs by invoking rag_builder...")
-        res = rag_builder(
-            run_id=run_id, 
-            compare_templates=compare_templates, 
-            src_data=src_data, 
-            test_data=f_name,
-            include_granular_combos=include_granular_combos, 
-            vectorDB=vectorDB,
-            disabled_opts=disabled_opts
-        )
-        logger.info(f"res = {res}")
+        if optimization=='bayesianOptimization':
+            logger.info(f"Using Bayesian optimization to find optimal RAG configs...")
+            res = rag_builder_bayes_optmization(
+                run_id=run_id, 
+                compare_templates=compare_templates, 
+                src_data=src_data, 
+                test_data=f_name,
+                include_granular_combos=include_granular_combos, 
+                vectorDB=vectorDB,
+                disabled_opts=disabled_opts
+            )
+        else:
+            logger.info(f"Spawning RAG configs by invoking rag_builder...")
+            res = rag_builder(
+                run_id=run_id, 
+                compare_templates=compare_templates, 
+                src_data=src_data, 
+                test_data=f_name,
+                include_granular_combos=include_granular_combos, 
+                vectorDB=vectorDB,
+                disabled_opts=disabled_opts
+            )
+            logger.info(f"res = {res}")
     except Exception as e:
         logger.error(f'Failed to complete creation and evaluation of RAG configs: {e}')
         _update_status(run_id, 'Failed', db)

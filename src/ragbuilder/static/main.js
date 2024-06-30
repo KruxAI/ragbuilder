@@ -255,7 +255,8 @@ $(document).ready(function () {
                 "gpt-4o": $('#gpt4o').is(':checked'),
                 "gpt-4-turbo": $('#gpt4Turbo').is(':checked')
             },
-            generateSyntheticData: $('#generateSynthetic').is(':checked')
+            generateSyntheticData: $('#generateSynthetic').is(':checked'),
+            optimization: $('input[name="optimization"]:checked').attr('id')
         };
         
         if ($('#contextualCompression').is(':checked')) {
@@ -313,6 +314,13 @@ $(document).ready(function () {
                 alert(errorMsg);
             }
         });            
+
+        // Tooltip logic
+        $('.info-icon').hover(function() {
+            $(this).next('.tooltip').show();
+        }, function() {
+            $(this).next('.tooltip').hide();
+        });
     });
     
     function fetchLogUpdates() {
