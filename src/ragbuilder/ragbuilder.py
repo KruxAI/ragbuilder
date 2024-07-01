@@ -127,7 +127,7 @@ async def summary(request: Request, run_id: int, db: sqlite3.Connection = Depend
         LEFT JOIN run_details 
             ON rag_eval_summary.run_id = run_details.run_id
         WHERE rag_eval_summary.run_id = ?
-        ORDER BY 5 DESC
+        ORDER BY 6 DESC
     """, (run_id,))
     evals = cur.fetchall()
     db.close()
