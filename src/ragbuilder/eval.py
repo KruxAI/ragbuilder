@@ -118,15 +118,17 @@ class RagEvaluator:
             for _i in range(loops):
                 start = time.perf_counter()
                 with get_openai_callback() as cb:
-                    response = dict(self.rag_fn.invoke(row["question"]))
-                    # print(f"response={response}")
-                    tokens=cb.total_tokens
-                    cost=cb.total_cost
+                    try:
+                        response = dict(self.rag_fn.invoke(row["question"]))
+                        tokens=cb.total_tokens
+                        cost=cb.total_cost
+                    except Exception as e:
+                        logger.error(f"Error invoking RAG for question: {row['question']}")
+                        response = {"answer":None, "context":None}
                 latency_results.append(1000000000*(time.perf_counter() - start))
             eval_ds.append(
                 {
                     "eval_id" : self.id,
-                    # TODO: Change Run-id to whatever ID will be generated at the time of user prompt of the Rag builder
                     "run_id" : self.rag.run_id,  
                     "eval_ts" : datetime.now(timezone.utc).timestamp(),
                     "question" : row["question"],
@@ -222,39 +224,6 @@ class RagEvaluator:
         db.execute(insert_query)
         db.commit() 
         
-        # summary_query=f"""
-        # INSERT INTO rag_eval_summary (
-        #     run_id,
-        #     eval_id,
-        #     rag_config,
-        #     avg_answer_correctness,
-        #     avg_faithfulness,
-        #     avg_answer_relevancy,
-        #     avg_context_precision,
-        #     avg_context_recall,
-        #     avg_tokens,
-        #     avg_cost_per_query,
-        #     avg_latency,
-        #     eval_ts
-        # )
-        # SELECT 
-        #     MAX(run_id) as run_id,
-        #     eval_id,
-        #     \"{self.rag_config}\" rag_config,
-        #     avg(answer_correctness) as avg_answer_correctness,
-        #     avg(faithfulness) as avg_faithfulness,
-        #     avg(answer_relevancy) as avg_answer_relevancy,
-        #     avg(context_precision) as avg_context_precision,
-        #     avg(context_recall) as avg_context_recall,
-        #     avg(tokens) as avg_tokens,
-        #     avg(cost) as avg_cost_per_query,
-        #     avg(latency) as avg_latency,
-        #     MAX(eval_ts) as eval_ts
-        # FROM rag_eval_details
-        # WHERE eval_id = {self.id}
-        # GROUP BY eval_id
-        # """
-        # db.execute(summary_query)
         summary_query=f"""
         INSERT INTO rag_eval_summary (
             run_id,

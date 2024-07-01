@@ -247,4 +247,10 @@ class RagBuilder:
     #             "}")
     
     def __repr__(self):
-        return json.dumps(self.config)
+        try:
+            json_config=json.dumps(self.config)
+        except Exception as e:
+            logger.error(f"Error serializing RAG config as JSON: {e}")
+            return json.dumps({"config": "Failed to serialize RAG config"})
+        return json_config
+             

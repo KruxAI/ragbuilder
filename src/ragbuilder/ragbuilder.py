@@ -159,7 +159,7 @@ async def details(request: Request, eval_id: int, db: sqlite3.Connection = Depen
     db.close()
     return templates.TemplateResponse(request=request, name='details.html', context={"details": details})
 
-@app.get("/docs", response_class=HTMLResponse)
+@app.get("/read_docs", response_class=HTMLResponse)
 def docs(request: Request):
     with open("README.md", "r") as f:
         markdown_text = f.read()
@@ -232,7 +232,7 @@ def _get_hash_dir(dir_path):
                         md5_hash.update(chunk)
         return md5_hash.hexdigest()
     except Exception as e:
-        print(f"Error hashing directory content: {e}")
+        logger.error(f"Error hashing directory content: {e}")
         return None
     
 @app.post("/check_test_data")
