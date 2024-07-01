@@ -140,7 +140,7 @@
                     <form id="newProjectForm">
                         <div id="step1">
                             <div class="mt-3">
-                                <p class="text-muted small">
+                                <p class="fw-light text-muted small">
                                     Please provide a brief description of your use-case, input the path to your data (URL, directory or file), and select the methods for building RAG configurations.
                                 </p>
                             </div>
@@ -179,7 +179,7 @@
                         <div id="step2" style="display: none;" class="container-fluid">
                             <h5>Detailed RAG parameters</h5>
                             <div class="mt-3">
-                                <p class="text-muted small">
+                                <p class="fw-light text-muted small">
                                     To tailor your RAG configurations, you can unselect any specific options you wish to exclude (e.g., "Chunking Strategy: Character"). For best results, leave all settings unchanged and click "Next."
                                 </p>
                             </div>
@@ -232,6 +232,24 @@
                                 <div class="form-group form-check form-switch mx-3">
                                     <input type="checkbox" class="form-check-input" id="embeddingAda" unchecked>
                                     <label class="form-check-label" for="embeddingAda">text-embedding-ada-002</label>
+                                </div>
+
+                                <h6 class="mt-4">Vector DB</h6>
+                                <div class="form-group form-check form-switch mx-3">
+                                    <input type="radio" class="form-check-input" name="vectorDB" id="chromaDB" checked>
+                                    <label class="form-check-label" for="chromaDB">Chroma DB</label>
+                                </div>
+                                <div class="form-group form-check form-switch mx-3">
+                                    <input type="radio" class="form-check-input" name="vectorDB" id="faissDB" unchecked>
+                                    <label class="form-check-label" for="faissDB">FAISS DB</label>
+                                </div>
+                                <div class="form-group form-check form-switch mx-3">
+                                    <input type="radio" class="form-check-input" name="vectorDB" id="singleStoreDB" unchecked>
+                                    <label class="form-check-label" for="singleStoreDB">Singlestore DB</label>
+                                </div>
+                                <div class="form-group form-check form-switch mx-3">
+                                    <input type="radio" class="form-check-input" name="vectorDB" id="pineconeDB" unchecked>
+                                    <label class="form-check-label" for="pineconeDB">Pinecone DB</label>
                                 </div>
 
                                 <h6 class="mt-4">Retriever</h6>
@@ -288,6 +306,10 @@
                                     <label class="form-check-label" for="longContextReorder">Long Context Reorder</label>
                                 </div>
                                 <div class="form-group form-check form-switch mx-5">
+                                    <input type="checkbox" class="form-check-input" id="crossEncoderReranker" checked>
+                                    <label class="form-check-label" for="crossEncoderReranker">Cross Encoder Re-ranker</label>
+                                </div>
+                                <div class="form-group form-check form-switch mx-5">
                                     <input type="checkbox" class="form-check-input" id="embeddingsRedundantFilter" unchecked>
                                     <label class="form-check-label" for="embeddingsRedundantFilter">Embedding Redundant Filter</label>
                                 </div>
@@ -313,8 +335,21 @@
                                     <input type="checkbox" class="form-check-input" id="gpt4Turbo" unchecked>
                                     <label class="form-check-label" for="gpt4Turbo">GPT-4 Turbo</label>
                                 </div>
+                                
+                                <h5 class="mt-5">Advanced Optimization Settings</h5>
+                                <p class="fw-light text-muted extra-small">
+                                    Ragbuilder uses Bayesian optimization for efficient hyperparameter tuning. Alternatively, you can generate and assess all parameter combinations for exhaustive insights, but this approach is long-running, costly, and computationally intensive.
+                                </p>
+                                <div class="form-group mx-3">
+                                    <input type="radio" class="form-check-input" id="bayesianOptimization" name="optimization" checked>
+                                    <label class="form-check-label" for="bayesianOptimization">Use Bayesian Optimization (Recommended)</label>
+                                </div>
+                                <div class="form-group mx-3">
+                                    <input type="radio" class="form-check-input" id="fullParameterSearch" name="optimization">
+                                    <label class="form-check-label" for="fullParameterSearch">Evaluate All Possible Combinations </label>
+                                </div>
                             </div>
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <div class="d-grid gap-2 pt-2 d-md-flex justify-content-md-end">
                                 <button type="button" class="btn btn-secondary my-3 me-md-2" id="previousStep2">Back</button>
                                 <button type="button" class="btn btn-primary my-3 mx-2" id="nextStep2">Next</button>
                             </div>
@@ -322,7 +357,7 @@
                         <div id="step3" style="display: none;">
                             <h5>RAG Evaluation Dataset Options</h5>
                             <div class="my-3">
-                                <p class="text-muted small">
+                                <p class="fw-light text-muted extra-small">
                                     You can either generate a synthetic test dataset or provide your own test dataset file (CSV format with at least 2 columns: "question" and "ground_truth"). If synthetic test data was previously generated for the specified source data, we will automatically re-use it.
                                 </p>
                             </div>
@@ -398,7 +433,7 @@
                         <div id="step4" style="display: none;">
                             <h5>Review Selections</h5>
                             <div class="my-3">
-                                <p class="text-muted small">
+                                <p class="fw-light text-muted small">
                                     Please review all your configuration selections below.
                                 </p>
                             </div>
