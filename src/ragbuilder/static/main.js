@@ -112,9 +112,8 @@ $(document).ready(function () {
                 </ul>
                 <p><strong>Chunk Size:</strong></p>
                 <ul>
-                    <li>1000: ${$('#chunk1000').is(':checked')? '✔' : '☐'}</li>
-                    <li>2000: ${$('#chunk2000').is(':checked')? '✔' : '☐'}</li>
-                    <li>3000: ${$('#chunk3000').is(':checked')? '✔' : '☐'}</li>
+                    <li>Min: ${$('#chunkMin').val()}</li>
+                    <li>Max: ${$('#chunkMax').val()}</li>
                 </ul>
                 <p><strong>Embedding Model:</strong></p>
                 <ul>
@@ -220,9 +219,8 @@ $(document).ready(function () {
                 CharacterTextSplitter: $('#character').is(':checked')
             },
             chunkSize: {
-                "chunk1000": $('#chunk1000').is(':checked'),
-                "chunk2000": $('#chunk2000').is(':checked'),
-                "chunk3000": $('#chunk3000').is(':checked')
+                min: $('#chunkMin').val(),
+                max: $('#chunkMax').val()
             },
             embeddingModel: {
                 "text-embedding-3-small": $('#embeddingSmall').is(':checked'),
