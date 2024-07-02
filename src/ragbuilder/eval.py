@@ -123,7 +123,7 @@ class RagEvaluator:
                         tokens=cb.total_tokens
                         cost=cb.total_cost
                     except Exception as e:
-                        logger.error(f"Error invoking RAG for question: {row['question']}")
+                        logger.error(f"Error invoking RAG for question: {row['question']}. \ERROR: {e}")
                         response = {"answer":None, "context":None}
                 latency_results.append(1000000000*(time.perf_counter() - start))
             eval_ds.append(

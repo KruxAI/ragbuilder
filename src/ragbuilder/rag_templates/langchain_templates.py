@@ -2,6 +2,7 @@ import logging
 import itertools
 import time
 from skopt.space import Categorical, Integer
+from functools import reduce
 from ragbuilder.langchain_module.common import setup_logging
 
 setup_logging()
@@ -11,13 +12,15 @@ logger = logging.getLogger("ragbuilder")
 arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
 arr_chunk_size = [1000, 2000, 3000]
 arr_embedding_model = ['text-embedding-3-small','text-embedding-3-large','text-embedding-ada-002']
-arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
+retriever_combinations = arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
 arr_llm = ['gpt-3.5-turbo','gpt-4o','gpt-4-turbo']
 arr_contextual_compression = [True, False]
-arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
+compressor_combinations = arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
 arr_search_kwargs = ['5', '10', '20']
 chunk_overlap = 200
+chunk_step_size=100
 no_chunk_req_loaders = ['SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter']
+chunk_req_loaders = ['RecursiveCharacterTextSplitter','CharacterTextSplitter']
 vectorDB="chromaDB" #[P0] TODO: Replace hardcoded value with user-selected value
 
 def _filter_exclusions(exclude_elements):
@@ -43,14 +46,17 @@ def _filter_exclusions(exclude_elements):
     if 'search_k_20' not in exclude_elements:
         arr_search_kwargs.append('20')
 
-    # Handle Chunking strategy exclusion
-    arr_chunk_size = []
-    if 'chunk1000' not in exclude_elements:
-        arr_chunk_size.append(1000)
-    if 'chunk2000' not in exclude_elements:
-        arr_chunk_size.append(2000)
-    if 'chunk3000' not in exclude_elements:
-        arr_chunk_size.append(3000)
+    # Handle chunk size exclusion
+    if set(arr_chunking_strategy).issubset(no_chunk_req_loaders):
+        arr_chunk_size=[0] # Default value - will be irrelevant since we only have loaders that don't require chunk_size
+
+    # arr_chunk_size = []
+    # if 'chunk1000' not in exclude_elements:
+    #     arr_chunk_size.append(1000)
+    # if 'chunk2000' not in exclude_elements:
+    #     arr_chunk_size.append(2000)
+    # if 'chunk3000' not in exclude_elements:
+    #     arr_chunk_size.append(3000)
     
     # Handle contextual compression exclusion
     if 'contextualCompression' in exclude_elements:
@@ -59,9 +65,42 @@ def _filter_exclusions(exclude_elements):
     else:
         arr_contextual_compression = [True, False]
 
+def count_combos():
+    reduce(lambda x, y: 
+                x * len(y), 
+                [
+                    arr_chunking_strategy, 
+                    arr_chunk_size,
+                    arr_search_kwargs,
+                    arr_embedding_model, 
+                    retriever_combinations,
+                    arr_contextual_compression,
+                    compressor_combinations,
+                    arr_llm
+                ], 1
+    )
+
 def set_vectorDB(vecDB):
     global vectorDB 
     vectorDB = vecDB
+
+def _get_arr_chunk_size(min, max, step_size):
+    if min==max:
+        return [min]
+    if max-min<step_size:
+        return [min, max]
+    chunk_sizes=[]
+    for i in range(min, max+1, step_size):
+        if max-i<step_size and max-i>25:
+            print(i, max)
+            chunk_sizes.extend([i, max])
+            break
+        chunk_sizes.append(i)
+    return chunk_sizes
+
+def set_arr_chunk_size(min, max, step_size=chunk_step_size):
+    global arr_chunk_size
+    arr_chunk_size = _get_arr_chunk_size(min, max, step_size)
 
 def _generate_combinations(options):
     combos = options
@@ -72,6 +111,7 @@ def _generate_combinations(options):
     return tuple(combos)
 
 def generate_config_space(exclude_elements=None):
+    global retriever_combinations, compressor_combinations
     logger.info(f"Filtering exclusions...")
     _filter_exclusions(exclude_elements)
 
@@ -80,10 +120,13 @@ def generate_config_space(exclude_elements=None):
     logger.debug(f"arr_compressors = {arr_compressors}")
     retriever_combinations = _generate_combinations(arr_retriever)
     compressor_combinations = _generate_combinations(arr_compressors)
+    cnt_combos=count_combos()
+    logger.info(f"Number of RAG combinations : {cnt_combos}")
     logger.debug(f"retriever_combinations = {retriever_combinations}")
     logger.debug(f"compressor_combinations = {compressor_combinations}")
     logger.debug(f"chunking_strategy = {Categorical(tuple(arr_chunking_strategy), name='chunking_strategy')}")
-    logger.debug(f"chunk_size = {Integer(min(arr_chunk_size), max(arr_chunk_size), name='chunk_size')}")
+    # logger.debug(f"chunk_size = {Integer(min(arr_chunk_size), max(arr_chunk_size), name='chunk_size')}")
+    logger.info(f"chunk_size = {Categorical(tuple(arr_chunk_size), name='chunk_size')}")
     logger.debug(f"embedding_model = {Categorical(tuple(arr_embedding_model), name='embedding_model')}")
     logger.debug(f"retrievers = {Categorical(retriever_combinations, name='retrievers')}")
     logger.debug(f"llm = {Categorical(tuple(arr_llm), name='llm')}")
@@ -94,36 +137,37 @@ def generate_config_space(exclude_elements=None):
 
     space=[
         Categorical(tuple(arr_chunking_strategy), name='chunking_strategy'),
-        Integer(min(arr_chunk_size), max(arr_chunk_size), name='chunk_size'),
+        # Integer(min(arr_chunk_size), max(arr_chunk_size), name='chunk_size'),
+        Categorical(tuple(arr_chunk_size), name='chunk_size'),
+        Categorical(tuple(arr_search_kwargs), name='search_k'),
         Categorical(tuple(arr_embedding_model), name='embedding_model'),
         Categorical(retriever_combinations, name='retrievers'),
         # Categorical(tuple(retriever_combinations), name='retrievers')#,
-        Categorical(tuple(arr_llm), name='llm'),
         Categorical(tuple(arr_contextual_compression), name='contextual_compression'),
         Categorical(compressor_combinations, name='compressors'),
-        Categorical(tuple(arr_search_kwargs), name='search_k'), #TODO: Make this into an Integer variable to iterate through all possible values between a min & max
+        Categorical(tuple(arr_llm), name='llm')
     ]
     logger.info(f"space = {space}")
     return space
 
 def generate_config_from_params(params):
-    logger.debug(f"params={params}")
+    logger.info(f"params={params}")
     chunking_strategy=params['chunking_strategy']
     chunk_size=params['chunk_size']
+    search_k=params['search_k']
     embedding_model=params['embedding_model']
     retrievers=params['retrievers']
-    llm=params['llm']
     contextual_compression=params['contextual_compression']
-    search_k=params['search_k']
     compressors=params['compressors']
+    llm=params['llm']
     logger.debug(f"chunking_strategy={chunking_strategy}")
-    logger.debug(f"chunk_size={chunk_size}")
+    logger.info(f"chunk_size={chunk_size}")
+    logger.debug(f"search_k={search_k}")
     logger.debug(f"embedding_model={embedding_model}")
     logger.debug(f"retrievers={retrievers}")
-    logger.debug(f"llm={llm}")
     logger.debug(f"contextual_compression={contextual_compression}")
-    logger.debug(f"search_k={search_k}")
     logger.debug(f"compressors={compressors}")
+    logger.debug(f"llm={llm}")
 
     chunking_kwargs = {}
     if chunking_strategy not in no_chunk_req_loaders:
