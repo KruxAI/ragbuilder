@@ -67,8 +67,8 @@ def setup_logging():
         logger.addHandler(console_handler)
 
         # Redirect stdout and stderr to the logger
-        # sys.stdout = LoggerWriter(logger, logging.INFO)
-        # sys.stderr = LoggerWriter(logger, logging.ERROR)
+        sys.stdout = LoggerWriter(logger, logging.INFO)
+        sys.stderr = LoggerWriter(logger, logging.ERROR)
 
         print(log_filename)
         return log_filename
@@ -78,8 +78,12 @@ class LoggerWriter:
         self.logger = logger
         self.level = level
         self._buffer = ''
+        self._is_logging = False  # Flag to avoid recursion
 
     def write(self, message):
+        if self._is_logging:
+            return
+
         self._buffer += message
         while '\n' in self._buffer:
             line, self._buffer = self._buffer.split('\n', 1)
@@ -87,18 +91,34 @@ class LoggerWriter:
                 # Ignore lines with "GET /get_log_updates" or "common.py - flush -"
                 if re.search(r"GET /get_log_updates|common.py - flush -", line):
                     continue
-                # Log HTTP requests at INFO level
-                if re.search(r'GET|POST', line):
-                    self.logger.log(logging.INFO, line.rstrip())
-                else:
-                    self.logger.log(self.level, line.rstrip())
+
+                self._is_logging = True
+                try:
+                    # Log HTTP requests at INFO level
+                    if re.search(r'GET|POST', line):
+                        self.logger.log(logging.INFO, line.rstrip())
+                    else:
+                        self.logger.log(self.level, line.rstrip())
+                finally:
+                    self._is_logging = False
 
     def flush(self):
+        if self._is_logging:
+            return
+
         if self._buffer:
             # Ignore lines with "GET /get_log_updates" or "common.py - flush -"
             if not re.search(r"GET /get_log_updates|common.py - flush -", self._buffer):
-                self.logger.log(self.level, self._buffer.rstrip())
+                self._is_logging = True
+                try:
+                    self.logger.log(self.level, self._buffer.rstrip())
+                finally:
+                    self._is_logging = False
             self._buffer = ''
+    
+    def isatty(self):
+        return False
+
 
 
 def codeGen(code_string,return_code,output_var):
