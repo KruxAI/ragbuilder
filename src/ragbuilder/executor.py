@@ -9,6 +9,7 @@ import logging
 import json
 from skopt import gp_minimize
 from skopt.utils import use_named_args
+from skopt.callbacks import DeltaXStopper
 setup_logging()
 from ragbuilder import eval
 from dotenv import load_dotenv
@@ -74,19 +75,29 @@ def rag_builder_bayes_optmization(**kwargs):
     run_id=kwargs['run_id']
     src_data=kwargs['src_data']
     vectorDB=kwargs['vectorDB']
+    min_chunk_size=kwargs.get('min_chunk_size', 1000)
+    max_chunk_size=kwargs.get('max_chunk_size', 1000)
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None
     # Define the configuration space
-    lc_templates.set_vectorDB = vectorDB
+    lc_templates.set_vectorDB(vectorDB)
+    lc_templates.set_arr_chunk_size(min_chunk_size, max_chunk_size)
     space = lc_templates.generate_config_space(exclude_elements=disabled_opts)
     logger.info(f"Config space={space}")
+    configs_evaluated=dict()
     
     @use_named_args(space)
     def objective(**params):
         config = lc_templates.generate_config_from_params(params)
+        str_config=json.dumps(config)
+        score = configs_evaluated.get(str_config, None)
+        if score:
+            logger.info(f"Config already evaluated with score: {score}: {config}")
+            return score
+        
         config['loader_kwargs'] = src_data
         config['run_id'] = run_id
         logger.info(f"Config raw={config}\n\n")
@@ -114,14 +125,18 @@ def rag_builder_bayes_optmization(**kwargs):
             run_config=run_config,
             is_async=RUN_CONFIG_IS_ASYNC
         )
-
+        # x=input("Continue? ")
+        # if x.lower() != 'y':
+        #      exit()
         score = rageval.evaluate()
+        logger.info(f"Adding to configs evaluated...")
+        configs_evaluated[str_config]=score
         return -score  # We negate the score because gp_minimize minimizes
     
     # Run Bayesian optimization
     logger.info(f"Running Bayesian optimization...")
     # result = gp_minimize(objective, space, n_calls=20, random_state=42)
-    result = gp_minimize(objective, space, n_calls=20, random_state=42)
+    result = gp_minimize(objective, space, n_calls=20, random_state=42, callback=DeltaXStopper(1e-8))
     logger.info(f"Completed Bayesian optimization...")
 
     best_params = result.x
@@ -136,6 +151,8 @@ def rag_builder(**kwargs):
     run_id=kwargs['run_id']
     src_data=kwargs['src_data']
     vectorDB=kwargs['vectorDB']
+    min_chunk_size=kwargs.get('min_chunk_size', 1000)
+    max_chunk_size=kwargs.get('max_chunk_size', 1000)
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
@@ -164,6 +181,7 @@ def rag_builder(**kwargs):
         # return result
     if kwargs['include_granular_combos']:
         print(f"vectorDB={kwargs['vectorDB']}")
+        lc_templates.set_arr_chunk_size(min_chunk_size, max_chunk_size)
         for key,val in lc_templates.nuancedCombos(vectorDB,disabled_opts).items():
                 logger.info(f"Combination Templates: {key}")
                 val['loader_kwargs']=src_data
@@ -251,6 +269,8 @@ class RagBuilder:
             json_config=json.dumps(self.config)
         except Exception as e:
             logger.error(f"Error serializing RAG config as JSON: {e}")
-            return json.dumps({"config": "Failed to serialize RAG config"})
+            logger.info(f"self.config = {self.config}")
+            raw_config=str(self.config).replace("'", '"')
+            return json.dumps({"msg": "Failed to serialize RAG config", "raw_config": raw_config})
         return json_config
              

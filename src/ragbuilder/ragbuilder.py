@@ -424,6 +424,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 test_data=f_name,
                 include_granular_combos=include_granular_combos, 
                 vectorDB=vectorDB,
+                min_chunk_size=1000, #TODO: Change to user-selected value
+                max_chunk_size=2000, #TODO: Change to user-selected value
                 disabled_opts=disabled_opts
             )
         else:
@@ -435,6 +437,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 test_data=f_name,
                 include_granular_combos=include_granular_combos, 
                 vectorDB=vectorDB,
+                min_chunk_size=1000, #TODO: Change to user-selected value
+                max_chunk_size=2000, #TODO: Change to user-selected value
                 disabled_opts=disabled_opts
             )
             logger.info(f"res = {res}")
