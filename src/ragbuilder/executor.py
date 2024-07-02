@@ -129,6 +129,7 @@ def rag_builder_bayes_optmization(**kwargs):
         # if x.lower() != 'y':
         #      exit()
         score = rageval.evaluate()
+        # time.sleep(60)
         logger.info(f"Adding to configs evaluated...")
         configs_evaluated[str_config]=score
         return -score  # We negate the score because gp_minimize minimizes
@@ -244,7 +245,7 @@ class RagBuilder:
 
         #execution os string
         exec(self.router,globals_dict,locals_dict)
-        logger.info(f"Generated Code:\n{self.router}")
+        logger.info(f"Generated Code\n{self.router}")
 
         #old rag func hooked to eval
         self.rag = locals_dict['rag_pipeline']()

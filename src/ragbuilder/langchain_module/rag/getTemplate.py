@@ -184,7 +184,7 @@ def generate_configs(configs):
             loader_kwargs = {'input_path':'https://geektheoria.wordpress.com/2024/04/24/challenges-of-deploying-naive-retrieval-augmented-generation-rag-models-in-production/'},
         )
         print(generated_code)
-        logger.info(f"Generated Code :{config_id}\n{generated_code}")
+        logger.info(f"Generated Code")
         locals_dict={}
         globals_dict = globals()
         exec(generated_code,globals_dict,locals_dict)
@@ -199,12 +199,14 @@ def generate_configs(configs):
 # configs=nuancedCombos('chromaDB', e)
 # print(configs)
 # print(generate_configs(configs))
-combs=[['CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk3000', 'chunk1000', 'text-embedding-3-large', 'text-embedding-ada-002', 'vectorMMR', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_20', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
-['RecursiveCharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'CharacterTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'vectorSimilarity', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
-['RecursiveCharacterTextSplitter', 'CharacterTextSplitter', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk3000', 'text-embedding-3-small', 'text-embedding-3-large', 'vectorSimilarity', 'vectorMMR', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_20', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
-['RecursiveCharacterTextSplitter', 'CharacterTextSplitter', 'SemanticChunker', 'HTMLHeaderTextSplitter', 'chunk3000', 'chunk1000', 'text-embedding-3-large', 'text-embedding-ada-002', 'vectorSimilarity', 'vectorMMR', 'bm25Retriever', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_20', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
-['HTMLHeaderTextSplitter', 'CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'vectorSimilarity', 'vectorMMR', 'bm25Retriever', 'multiQuery', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
-['CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk3000', 'text-embedding-3-small', 'text-embedding-3-large', 'vectorSimilarity', 'vectorMMR', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'search_k_10', 'search_k_20', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo']]
+# combs=[
+    # ['CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk3000', 'chunk1000', 'text-embedding-3-large', 'text-embedding-ada-002', 'vectorMMR', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_20', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
+#  ['RecursiveCharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'CharacterTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'vectorSimilarity', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
+# ['RecursiveCharacterTextSplitter', 'CharacterTextSplitter', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk3000', 'text-embedding-3-small', 'text-embedding-3-large', 'vectorSimilarity', 'vectorMMR', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_20', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
+#  ['RecursiveCharacterTextSplitter', 'CharacterTextSplitter', 'SemanticChunker', 'HTMLHeaderTextSplitter', 'chunk3000', 'chunk1000', 'text-embedding-3-large', 'text-embedding-ada-002', 'vectorSimilarity', 'vectorMMR', 'bm25Retriever', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_20', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
+# ['HTMLHeaderTextSplitter', 'CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'vectorSimilarity', 'vectorMMR', 'bm25Retriever', 'multiQuery', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo'],
+# ['CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk3000', 'text-embedding-3-small', 'text-embedding-3-large', 'vectorSimilarity', 'vectorMMR', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'search_k_10', 'search_k_20', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker', 'contextualCompression', 'gpt-4o', 'gpt-4-turbo']
+# ]
 # for c in combs:
 #     configs=nuancedCombos('chromaDB', c)
 #     print(generate_configs(configs))
@@ -216,57 +218,57 @@ combs=[['CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter'
 #     if x.lower() != 'y':
 #         break
 
-advanced_combos=[
+# advanced_combos=[
 #     # ['CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'vectorSimilarity', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder','gpt-4o', 'gpt-4-turbo'],
-['CharacterTextSplitter', 'SemanticChunker', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter','gpt-4o', 'gpt-4-turbo'],
+# ['CharacterTextSplitter', 'SemanticChunker', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter','gpt-4o', 'gpt-4-turbo'],
 # # ['CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'vectorSimilarity', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LongContextReorder', 'CrossEncoderReranker','gpt-4o', 'gpt-4-turbo'],
 # # ['CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'vectorSimilarity', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsRedundantFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker','gpt-4o', 'gpt-4-turbo'],
 # # ['CharacterTextSplitter', 'SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter', 'chunk2000', 'chunk1000', 'text-embedding-3-small', 'text-embedding-ada-002', 'vectorSimilarity', 'bm25Retriever', 'multiQuery', 'parentDocFullDoc', 'parentDocLargeChunk', 'search_k_10', 'search_k_5', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker','gpt-4o', 'gpt-4-turbo']
-]
-for c in advanced_combos:
-    configs=nuancedCombos('chromaDB', c)
-    for config_id, config in configs.items():
-        json_config = json.dumps(config, indent=4)
-        print(json_config)
-        print("\n#---------------------------------------------------------------------------#\n")
-        # x=input("Continue? ")
-        # if x.lower() != 'y':
-        #     break
-    # print(generate_configs(configs))
-    x=input("Continue? ")
-    if x.lower() != 'y':
-        break
+# ]
+# for c in advanced_combos:
+#     configs=nuancedCombos('chromaDB', c)
+#     for config_id, config in configs.items():
+#         json_config = json.dumps(config, indent=4)
+#         print(json_config)
+#         print("\n#---------------------------------------------------------------------------#\n")
+#         # x=input("Continue? ")
+#         # if x.lower() != 'y':
+#         #     break
+#     # print(generate_configs(configs))
+#     x=input("Continue? ")
+#     if x.lower() != 'y':
+#         break
  
  
 
-# from ragbuilder.rag_templates.top_n_templates import top_n_templates
-# configs=top_n_templates
-# def generate_configs(configs):
-#     generated_configs = []
-#     logger.info("Starting Testing")
-#     for config_id, config in configs.items():
-#         description = f"Configuration {config_id} for a LangChain-based retrieval system"
-#         logger.info(f"************Running Test:{config_id}*************")
-#         generated_code = codeGen(
-#             framework=config['framework'],
-#             description=description,
-#             retrieval_model=config['retrieval_model'],
-#             chunking_kwargs=config['chunking_kwargs'],
-#             vectorDB_kwargs=config['vectorDB_kwargs'],
-#             embedding_kwargs=config['embedding_kwargs'],
-#             retriever_kwargs=config['retriever_kwargs'],
-#             loader_kwargs = {'input_path':'https://ashwinaravind.github.io/'},
-#         )
-#         print(generated_code)
-#         logger.info(f"Generated Code :{config_id}\n{generated_code}")
-#         locals_dict={}
-#         globals_dict = globals()
-#         exec(generated_code,globals_dict,locals_dict)
-#         print(locals_dict)
-#         rag_chain = locals_dict['rag_pipeline']()
-#         res = rag_chain.invoke("how many startups are there in india?")
-#         logger.info(f"Result of Code Execute :{res}")
-#         logger.info(f"End of Code Execute{config_id} :{res}")
-#         break
-#     return 'Done'
-# print(generate_configs(configs))
+from ragbuilder.rag_templates.top_n_templates import top_n_templates
+configs=top_n_templates
+def generate_configs(configs):
+    generated_configs = []
+    logger.info("Starting Testing")
+    for config_id, config in configs.items():
+        description = f"Configuration {config_id} for a LangChain-based retrieval system"
+        logger.info(f"************Running Test:{config_id}*************")
+        generated_code = codeGen(
+            framework=config['framework'],
+            description=description,
+            retrieval_model=config['retrieval_model'],
+            chunking_kwargs=config['chunking_kwargs'],
+            vectorDB_kwargs=config['vectorDB_kwargs'],
+            embedding_kwargs=config['embedding_kwargs'],
+            retriever_kwargs=config['retriever_kwargs'],
+            loader_kwargs = {'input_path':'https://ashwinaravind.github.io/'},
+        )
+        print(generated_code)
+        logger.info(f"Generated Code :{config_id}\n{generated_code}")
+        locals_dict={}
+        globals_dict = globals()
+        exec(generated_code,globals_dict,locals_dict)
+        print(locals_dict)
+        rag_chain = locals_dict['rag_pipeline']()
+        res = rag_chain.invoke("how many startups are there in india?")
+        logger.info(f"Result of Code Execute :{res}")
+        logger.info(f"End of Code Execute{config_id} :{res}")
+        # break
+    return 'Done'
+print(generate_configs(configs))

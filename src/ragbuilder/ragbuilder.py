@@ -357,9 +357,9 @@ def parse_config(config: dict, db: sqlite3.Connection):
     syntheticDataGenerationOpts=config.get("syntheticDataGeneration", None)
     existingSynthDataPath=config.get("existingSynthDataPath", None)
     vectorDB=config.get("vectorDB", None)
-    min_chunk_size=config["chunkSize"]["min"]
-    max_chunk_size=config["chunkSize"]["max"]
-    optimization=config.get("optimization", 'bayesianOptimization')
+    min_chunk_size=int(config["chunkSize"]["min"])
+    max_chunk_size=int(config["chunkSize"]["max"])
+    optimization=config.get("optimization", None)
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath

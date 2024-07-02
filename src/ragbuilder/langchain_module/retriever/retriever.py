@@ -37,7 +37,7 @@ def getRetriever(**kwargs):
 
     if retriever_type in ["vectorSimilarity", "vectorMMR"]:
         logger.info("Vector Retriever Invoked")
-        code_string= f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={kwargs['search_kwargs']})"""
+        code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
         import_string = f""
 
         return {'code_string':code_string,'import_string':import_string}
@@ -45,7 +45,7 @@ def getRetriever(**kwargs):
 
     elif retriever_type == "multiQuery":
         logger.info("Multi Query Retriever Invoked")
-        code_string= f"""retriever=MultiQueryRetriever.from_llm(c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={kwargs['search_kwargs']}),llm=llm)"""
+        code_string= f"""retriever=MultiQueryRetriever.from_llm(c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}}),llm=llm)"""
         import_string = f"""from langchain.retrievers.multi_query import MultiQueryRetriever"""
         return {'code_string':code_string,'import_string':import_string}
 

@@ -113,5 +113,5 @@ def rag_pipeline():
         print(f"An error occurred: {{e}}")
 
 """.format(code_text.replace('\n', '\n        '))
-    logger.info(f"Code completed{function_code}")
+    logger.info(f"Code completed")
     return function_code

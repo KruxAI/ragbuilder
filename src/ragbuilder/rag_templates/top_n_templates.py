@@ -9,8 +9,8 @@ top_n_templates= {
       'embedding_kwargs': {'embedding_model': 'text-embedding-3-large'},
       'retriever_kwargs': {
         'retrievers': [
-          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': {'k': 5}},
-          {'retriever_type': 'vectorMMR', 'search_type': 'mmr', 'search_kwargs': {'k': 5}}
+          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs':5},
+          {'retriever_type': 'vectorMMR', 'search_type': 'mmr', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['LongContextReorder'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
@@ -26,7 +26,7 @@ top_n_templates= {
       'embedding_kwargs': {'embedding_model': 'text-embedding-3-large'},
       'retriever_kwargs': {
         'retrievers': [
-          {'retriever_type': 'bm25Retriever', 'search_type': 'similarity', 'search_kwargs': {'k': 5}}
+          {'retriever_type': 'bm25Retriever', 'search_type': 'similarity', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['LongContextReorder'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
@@ -42,8 +42,8 @@ top_n_templates= {
       'embedding_kwargs': {'embedding_model': 'text-embedding-3-large'},
       'retriever_kwargs': {
         'retrievers': [
-          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': {'k': 5}},
-          {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': {'k': 5}}
+          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': 5},
+          {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['LongContextReorder'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
@@ -59,8 +59,8 @@ top_n_templates= {
       'embedding_kwargs': {'embedding_model': 'text-embedding-3-large'},
       'retriever_kwargs': {
         'retrievers': [
-          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': {'k': 5}},
-          {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': {'k': 5}}
+          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': 5},
+          {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['LongContextReorder'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
@@ -76,8 +76,8 @@ top_n_templates= {
       'embedding_kwargs': {'embedding_model': 'text-embedding-3-large'},
       'retriever_kwargs': {
         'retrievers': [
-          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': {'k': 5}},
-          {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': {'k': 5}}
+          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': 5},
+          {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['CrossEncoderReranker'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
@@ -93,8 +93,8 @@ top_n_templates= {
       'embedding_kwargs': {'embedding_model': 'text-embedding-3-large'},
       'retriever_kwargs': {
         'retrievers': [
-          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': {'k': 5}},
-          {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': {'k': 5}}
+          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': 5},
+          {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['LLMChainFilter', 'LongContextReorder'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
@@ -110,8 +110,8 @@ top_n_templates= {
       'embedding_kwargs': {'embedding_model': 'text-embedding-3-large'},
       'retriever_kwargs': {
         'retrievers': [
-          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': {'k': 5}},
-          {'retriever_type': 'vectorMMR', 'search_type': 'mmr', 'search_kwargs': {'k': 5}}
+          {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': 5},
+          {'retriever_type': 'vectorMMR', 'search_type': 'mmr', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['EmbeddingsRedundantFilter'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
@@ -135,7 +135,7 @@ top_n_templates= {
     },
     'retriever_kwargs': {
         'retrievers': [
-            {'retriever_type': 'multiQuery', 'search_type': 'similarity', 'search_kwargs': {'k': 5}}
+            {'retriever_type': 'multiQuery', 'search_type': 'similarity', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['LongContextReorder'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
@@ -158,8 +158,8 @@ top_n_templates= {
     },
     'retriever_kwargs': {
         'retrievers': [
-            {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': {'k': 5}},
-            {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': {'k': 5}}
+            {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': 5},
+            {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['LongContextReorder'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
@@ -182,8 +182,8 @@ top_n_templates= {
     },
     'retriever_kwargs': {
         'retrievers': [
-            {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': {'k': 5}},
-            {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': {'k': 5}}
+            {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': 5},
+            {'retriever_type': 'bm25Retriever', 'search_type': 'mmr', 'search_kwargs': 5}
         ],
         'document_compressor_pipeline': ['LongContextReorder'],
         'EmbeddingsClusteringFilter_kwargs': {'embeddings': 'text-embedding-3-large', 'num_clusters': 4, 'num_closest': 1, 'sorted': True},
