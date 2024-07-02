@@ -136,7 +136,7 @@ def rag_builder_bayes_optmization(**kwargs):
     # Run Bayesian optimization
     logger.info(f"Running Bayesian optimization...")
     # result = gp_minimize(objective, space, n_calls=20, random_state=42)
-    result = gp_minimize(objective, space, n_calls=20, random_state=42, callback=DeltaXStopper(1e-8))
+    result = gp_minimize(objective, space, n_calls=20, random_state=42) #, callback=DeltaXStopper(1e-8))
     logger.info(f"Completed Bayesian optimization...")
 
     best_params = result.x
