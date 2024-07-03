@@ -137,7 +137,8 @@ def getCompressors(**kwargs):
         code_string= f"""
 model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
 arr_comp.append(CrossEncoderReranker(model=model, top_n=5))"""
-        import_string = f"""from langchain.retrievers.document_compressors import CrossEncoderReranker"""
+        import_string = f"""from langchain.retrievers.document_compressors import CrossEncoderReranker
+from langchain_community.cross_encoders import HuggingFaceCrossEncoder"""
         return {'code_string':code_string,'import_string':import_string}
 
     pipeline_compressor = DocumentCompressorPipeline(transformers=arr_transformer)

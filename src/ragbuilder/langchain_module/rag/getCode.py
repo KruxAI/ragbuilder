@@ -112,6 +112,11 @@ def rag_pipeline():
     except Exception as e:
         print(f"An error occurred: {{e}}")
 
+##To get the answer and context, use the following code
+#res=rag_pipeline().invoke("your prompt here")
+#print(res["answer"])
+#print(res["context"])
+
 """.format(code_text.replace('\n', '\n        '))
     logger.info(f"Code completed")
     return function_code

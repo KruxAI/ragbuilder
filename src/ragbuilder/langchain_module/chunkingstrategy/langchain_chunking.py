@@ -38,7 +38,6 @@ def getLangchainRecursiveCharacterTextSplitter(**kwargs):
         logger.info("RecursiveCharacterTextSplitter Invoked")
         splitter_name=kwargs.get('splitter_name','splitter')
         code_string = f"""
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 {splitter_name} = RecursiveCharacterTextSplitter(chunk_size={kwargs['chunk_size']}, chunk_overlap={kwargs['chunk_overlap']})
 splits={splitter_name}.split_documents(docs)"""
         import_string = f"""from langchain.text_splitter import RecursiveCharacterTextSplitter"""
@@ -52,7 +51,6 @@ def getLangchainCharacterTextSplitter(**kwargs):
         logger.info("CharacterTextSplitter Invoked")
         splitter_name=kwargs.get('splitter_name','splitter')
         code_string = f"""
-from langchain.text_splitter import CharacterTextSplitter
 {splitter_name} = CharacterTextSplitter(chunk_size={kwargs['chunk_size']}, chunk_overlap={kwargs['chunk_overlap']})
 splits={splitter_name}.split_documents(docs)"""
         import_string = f"""from langchain.text_splitter import CharacterTextSplitter"""
@@ -66,7 +64,6 @@ def getLangchainSemanticChunker(**kwargs):
         logger.info("SemanticChunker Invoked")
         splitter_name=kwargs.get('splitter_name','splitter')
         code_string = f"""
-from langchain_experimental.text_splitter import SemanticChunker
 {splitter_name} = SemanticChunker(embedding, breakpoint_threshold_type='{kwargs.get('chunking_kwargs').get('breakpoint_threshold_type','percentile')}')
 splits={splitter_name}.create_documents(docs[0].page_content)
 """
@@ -85,7 +82,6 @@ headers_to_split_on = [
     ("#", "Header 1"),
     ("##", "Header 2"),
     ("###", "Header 3")]
-from langchain.text_splitter import MarkdownHeaderTextSplitter
 {splitter_name} = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on, strip_headers=False)
 splits={splitter_name}.split_text(docs[0].page_content)"""
         import_string = f"""from langchain.text_splitter import MarkdownHeaderTextSplitter"""

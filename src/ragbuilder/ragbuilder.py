@@ -360,7 +360,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     vectorDB=config.get("vectorDB", None)
     min_chunk_size=int(config["chunkSize"]["min"])
     max_chunk_size=int(config["chunkSize"]["max"])
-    optimization=config.get("optimization", 'bayesianOptimization')
+    optimization=config.get("optimization", 'fullParameterSearch')
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath
@@ -418,7 +418,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     _db_write(run_details, db)
 
     try:
-        if optimization=='bayesianOptimization':
+        if include_granular_combos and optimization=='bayesianOptimization':
             logger.info(f"Using Bayesian optimization to find optimal RAG configs...")
             res = rag_builder_bayes_optmization(
                 run_id=run_id, 
@@ -431,7 +431,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 max_chunk_size=max_chunk_size, 
                 disabled_opts=disabled_opts
             )
-        else:
+        if compare_templates or (include_granular_combos  and optimization=='fullParameterSearch') :
             logger.info(f"Spawning RAG configs by invoking rag_builder...")
             res = rag_builder(
                 run_id=run_id, 
