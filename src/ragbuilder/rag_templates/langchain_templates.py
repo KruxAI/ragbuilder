@@ -154,7 +154,7 @@ def generate_config_from_params(params):
     logger.info(f"params={params}")
     chunking_strategy=params['chunking_strategy']
     chunk_size=int(params['chunk_size'])
-    search_k=int(params['search_k'])
+    search_kwargs=int(params['search_k'])
     embedding_model=params['embedding_model']
     retrievers=params['retrievers']
     contextual_compression=bool(params['contextual_compression'])
@@ -162,7 +162,7 @@ def generate_config_from_params(params):
     llm=params['llm']
     logger.debug(f"chunking_strategy={chunking_strategy}")
     logger.info(f"chunk_size={chunk_size}")
-    logger.debug(f"search_k={search_k}")
+    logger.debug(f"search_k={search_kwargs}")
     logger.debug(f"embedding_model={embedding_model}")
     logger.debug(f"retrievers={retrievers}")
     logger.debug(f"contextual_compression={contextual_compression}")
@@ -181,7 +181,7 @@ def generate_config_from_params(params):
             'chunk_strategy': chunking_strategy
         }
 
-    search_kwargs={"k": search_k}
+
     retrievers_lst=retrievers.split('|') if '|' in retrievers else [retrievers]
     compressors_lst=compressors.split('|') if '|' in compressors else [compressors]
 

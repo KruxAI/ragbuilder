@@ -275,6 +275,7 @@ class ProjectData(BaseModel):
     contextualCompression: bool
     llm: dict[str, bool]
     generateSyntheticData: bool
+    optimization: str
     compressors: Optional[dict[str, bool]] = Field(default=None)
     syntheticDataGeneration: Optional[dict] = Field(default=None)
     testDataPath: Optional[str] = Field(default=None)
@@ -359,7 +360,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     vectorDB=config.get("vectorDB", None)
     min_chunk_size=int(config["chunkSize"]["min"])
     max_chunk_size=int(config["chunkSize"]["max"])
-    optimization=config.get("optimization", None)
+    optimization=config.get("optimization", 'bayesianOptimization')
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath
