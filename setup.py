@@ -93,6 +93,10 @@ setup(
         'singlestoredb',
         'langchain_pinecone',
         'scikit-optimize'
+        'pydantic',
+        'uvicorn',
+        'pinecone-client',
+        'setuptools'
         # other dependencies
     ],
 )

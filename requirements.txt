@@ -62,3 +62,8 @@ requests
 markdown
 langchain_pinecone
 singlestoredb
+fastapi
+pydantic
+uvicorn
+scikit-optimize
+pinecone-client
