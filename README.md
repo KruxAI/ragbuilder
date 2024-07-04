@@ -108,11 +108,11 @@ PINECONE_API_KEY="XXXXXX"
 ```
 
 ### Instructions
-Create a new file named .env in your project directory.
-Copy the example content provided above into the .env file.
-Replace the placeholder values with your actual API keys and connection string.
-Save the .env file.
-Ensure that the .env file is located in the same directory where you run the ragbuilder command to ensure the environment variables are properly loaded.
+1. Create a new file named .env in your project directory.
+2. Copy the example content provided above into the .env file.
+3. Replace the placeholder values with your actual API keys and connection string.
+4. Save the .env file.
+5. Ensure that the .env file is located in the same directory where you run the ragbuilder command to ensure the environment variables are properly loaded.
 
 By setting up these environment variables, you enable the RagBuilder project to authenticate and interact with the necessary external services.
 
