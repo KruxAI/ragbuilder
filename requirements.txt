@@ -11,7 +11,7 @@ langchainhub
 langchain-openai 
 langchain-chroma
 bs4
-langchain-core
+langchain-core==0.2.13
 unstructured
 pdf2image
 pdfminer.six
@@ -63,7 +63,8 @@ markdown
 langchain_pinecone
 singlestoredb
 fastapi
-pydantic
-uvicorn
+pydantic==2.8.0
+uvicorn==0.30.0
 scikit-optimize
 pinecone-client
+pystemmer

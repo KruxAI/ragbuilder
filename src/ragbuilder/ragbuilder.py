@@ -9,6 +9,7 @@ import sqlite3
 import markdown
 import threading
 import webbrowser
+import ssl
 import time
 import json
 import os
@@ -62,7 +63,7 @@ def get_hashmap(db: sqlite3.Connection = Depends(get_db)):
     rows = cur.fetchall()
     return {row[0]: row[1] for row in rows}
 
-def insert_hashmap(hash: str, path: str, db: sqlite3.Connection = Depends(get_db)):
+def insert_hashmap(hash: str, path: str, db: sqlite3.Connection):
     logger.info(f"Saving hashmap for synthetic data: {path} ...")
     insert_query = """
         INSERT INTO synthetic_data_hashmap (hash, test_data_path) 
@@ -396,8 +397,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
             logger.error(f'Synthetic test data generation failed: {e}')
             raise
         # Insert generated into hashmap 
-        insert_hashmap(get_hash(src_path), f_name)
-        g._hashmap=None # To refresh hashmap
+        insert_hashmap(get_hash(src_path), f_name, db)
+        # g._hashmap=None # To refresh hashmap
         logger.info(f"Synthetic test data generation completed: {f_name}")
 
         
@@ -464,9 +465,26 @@ def parse_config(config: dict, db: sqlite3.Connection):
         }
     # return jsonify({'status':'success', 'f_name': f_name})
 
-def main():
-    threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-    uvicorn.run(app, host="127.0.0.1", port=8005)
+# def main():
+#     threading.Timer(1.25, lambda: webbrowser.open(url)).start()
+#     uvicorn.run(app, host="127.0.0.1", port=8005)
 
+# if __name__ == '__main__':
+#     main()
+
+# Function to open URL without SSL verification
+def open_url(url):
+    import urllib.request
+    context = ssl._create_unverified_context()
+    try:
+        urllib.request.urlopen(url, context=context)
+    except Exception as e:
+        print(f"Error opening URL: {e}")
+
+url = "http://localhost:8005"
+
+def main():
+    threading.Timer(1.25, lambda: open_url(url)).start()
+    uvicorn.run(app, host="0.0.0.0", port=8005)
 if __name__ == '__main__':
     main()

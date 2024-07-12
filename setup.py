@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 setup(
     name='ragbuilder',
-    version='0.0.3',
+    version='0.0.5',
     author='Ashwin Aravind, Aravind Parameswaran',
     author_email='ashwin@krux.ai, aravind@krux.ai',
     description='RagBuilder is a toolkit designed to help you create optimal Production-ready Retrieval-Augmented Generation (RAG) pipeline for your data',
@@ -76,11 +76,11 @@ setup(
         # 'pillow_heif',
         # 'opencv-python',
         # 'onnx==1.16.0',
-        # # 'pikepdf==8.0.0',
-        # # 'unstructured-inference',
+        # 'pikepdf==8.0.0',
+        # 'unstructured-inference',
         # 'pytesseract',
         # 'unstructured',
-        # # 'unstructured[all-docs]',
+        # 'unstructured[all-docs]',
         'mixpanel',
         'langchain_mistralai',
         'langchain_community',
@@ -92,9 +92,9 @@ setup(
         'markdown',
         'singlestoredb',
         'langchain_pinecone',
-        'scikit-optimize'
-        'pydantic',
-        'uvicorn',
+        'scikit-optimize',
+        'pydantic==2.8.0',
+        'uvicorn==0.30.0',
         'pinecone-client',
         'setuptools'
         # other dependencies
