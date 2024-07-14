@@ -40,7 +40,11 @@ from operator import itemgetter
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
+import singlestoredb as s2
+load_dotenv()
 
+# Get the database URL from the environment variable
+SINGLESTOREDB_URL = os.getenv("SINGLESTOREDB_URL")
 import dotenv
 from langchain_community.document_loaders import *
 from langchain_text_splitters import *

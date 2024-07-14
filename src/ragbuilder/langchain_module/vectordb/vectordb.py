@@ -38,11 +38,17 @@ def getVectorDB(db_type,embedding_model):
         code_string= f"""c=FAISS.from_documents(documents=splits, embedding=embedding)"""
         import_string = f"""from langchain_community.vectorstores import FAISS"""
     elif db_type == "singleStoreDB":
-        index_name = "testindex_ragbuilder_" + timestamp
+        index_name = "testindex_ragbuilder"
         logger.info("Singlestore DB Loaded")
         logger.info(f"Singlestore DB Index Created {index_name}")
         code_string= f"""
 index_name='{index_name}'
+import singlestoredb as s2
+conn = s2.connect(SINGLESTOREDB_URL)
+with conn:
+    conn.autocommit(True)
+    with conn.cursor() as cur:
+        cur.execute('DROP TABLE IF EXISTS {index_name}')
 c=SingleStoreDB.from_documents(documents=splits, embedding=embedding,table_name='{index_name}')""" 
         import_string= f"""from langchain_community.vectorstores import SingleStoreDB"""
     elif db_type == "pineconeDB":
