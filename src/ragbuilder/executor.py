@@ -89,7 +89,7 @@ def rag_builder_bayes_optmization(**kwargs):
     # Define the configuration space
     lc_templates.set_vectorDB(vectorDB)
     lc_templates.set_arr_chunk_size(min_chunk_size, max_chunk_size)
-    space = lc_templates.generate_config_space(exclude_elements=disabled_opts)
+    space = lc_templates.generate_config_space(vectorDB, exclude_elements=disabled_opts)
     logger.info(f"Config space={space}")
     configs_evaluated=dict()
     
@@ -187,7 +187,7 @@ def rag_builder(**kwargs):
     if kwargs['include_granular_combos']:
         print(f"vectorDB={kwargs['vectorDB']}")
         lc_templates.set_arr_chunk_size(min_chunk_size, max_chunk_size)
-        for key,val in lc_templates.nuancedCombos(vectorDB,disabled_opts).items():
+        for key,val in lc_templates.nuancedCombos(vectorDB, disabled_opts).items():
                 logger.info(f"Combination Templates: {key}")
                 val['loader_kwargs']=src_data
                 val['run_id']=run_id

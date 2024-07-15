@@ -21,7 +21,7 @@ chunk_overlap = 200
 chunk_step_size=100
 no_chunk_req_loaders = ['SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter']
 chunk_req_loaders = ['RecursiveCharacterTextSplitter','CharacterTextSplitter']
-vectorDB="chromaDB" #[P0] TODO: Replace hardcoded value with user-selected value
+vectorDB="chromaDB" # Default fallback value
 
 def _filter_exclusions(exclude_elements):
     global arr_chunking_strategy, arr_chunk_size, arr_embedding_model, arr_retriever, arr_llm, arr_contextual_compression, arr_compressors, arr_search_kwargs
@@ -50,14 +50,6 @@ def _filter_exclusions(exclude_elements):
     if set(arr_chunking_strategy).issubset(no_chunk_req_loaders):
         arr_chunk_size=[0] # Default value - will be irrelevant since we only have loaders that don't require chunk_size
 
-    # arr_chunk_size = []
-    # if 'chunk1000' not in exclude_elements:
-    #     arr_chunk_size.append(1000)
-    # if 'chunk2000' not in exclude_elements:
-    #     arr_chunk_size.append(2000)
-    # if 'chunk3000' not in exclude_elements:
-    #     arr_chunk_size.append(3000)
-    
     # Handle contextual compression exclusion
     if 'contextualCompression' in exclude_elements:
         arr_contextual_compression = [False]
@@ -80,9 +72,9 @@ def count_combos():
                 ], 1
     )
 
-def set_vectorDB(vecDB):
+def set_vectorDB(db):
     global vectorDB 
-    vectorDB = vecDB
+    vectorDB = db
 
 def _get_arr_chunk_size(min, max, step_size):
     if min==max:
@@ -110,7 +102,7 @@ def _generate_combinations(options):
             combos.append(multi)
     return tuple(combos)
 
-def generate_config_space(exclude_elements=None):
+def generate_config_space(vectorDB, exclude_elements=None):
     global retriever_combinations, compressor_combinations
     logger.info(f"Filtering exclusions...")
     _filter_exclusions(exclude_elements)
@@ -120,13 +112,14 @@ def generate_config_space(exclude_elements=None):
     logger.debug(f"arr_compressors = {arr_compressors}")
     retriever_combinations = _generate_combinations(arr_retriever)
     compressor_combinations = _generate_combinations(arr_compressors)
+    set_vectorDB(vectorDB)
     cnt_combos=count_combos()
     logger.info(f"Number of RAG combinations : {cnt_combos}")
     logger.debug(f"retriever_combinations = {retriever_combinations}")
     logger.debug(f"compressor_combinations = {compressor_combinations}")
     logger.debug(f"chunking_strategy = {Categorical(tuple(arr_chunking_strategy), name='chunking_strategy')}")
     # logger.debug(f"chunk_size = {Integer(min(arr_chunk_size), max(arr_chunk_size), name='chunk_size')}")
-    logger.info(f"chunk_size = {Categorical(tuple(arr_chunk_size), name='chunk_size')}")
+    logger.debug(f"chunk_size = {Categorical(tuple(arr_chunk_size), name='chunk_size')}")
     logger.debug(f"embedding_model = {Categorical(tuple(arr_embedding_model), name='embedding_model')}")
     logger.debug(f"retrievers = {Categorical(retriever_combinations, name='retrievers')}")
     logger.debug(f"llm = {Categorical(tuple(arr_llm), name='llm')}")
