@@ -58,7 +58,7 @@ def _filter_exclusions(exclude_elements):
         arr_contextual_compression = [True, False]
 
 def count_combos():
-    reduce(lambda x, y: 
+    return reduce(lambda x, y: 
                 x * len(y), 
                 [
                     arr_chunking_strategy, 
@@ -84,7 +84,6 @@ def _get_arr_chunk_size(min, max, step_size):
     chunk_sizes=[]
     for i in range(min, max+1, step_size):
         if max-i<step_size and max-i>25:
-            print(i, max)
             chunk_sizes.extend([i, max])
             break
         chunk_sizes.append(i)
@@ -95,9 +94,9 @@ def set_arr_chunk_size(min, max, step_size=chunk_step_size):
     arr_chunk_size = _get_arr_chunk_size(min, max, step_size)
 
 def _generate_combinations(options):
-    combos = options
-    for i in range(2, len(options)):
-        for item in itertools.combinations(options, i):
+    combos = options[:]
+    for i in range(1, len(options)):
+        for item in itertools.combinations(options, i+1):
             multi="|".join(item)
             combos.append(multi)
     return tuple(combos)

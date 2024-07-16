@@ -168,8 +168,6 @@ def rag_builder(**kwargs):
                 logger.info(f" Top N Templates:{key}:{val['description']}:{val['retrieval_model']}")
                 val['loader_kwargs']=src_data
                 val['run_id']=run_id
-                # print(f"val={val}")
-                # print(f"val[retrieval_model]={val['retrieval_model']}")
                 rag_builder=RagBuilder(val)
                 run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
                 logger.info(f"{repr(run_config)}")
@@ -185,14 +183,11 @@ def rag_builder(**kwargs):
                 result=rageval.evaluate()
         # return result
     if kwargs['include_granular_combos']:
-        print(f"vectorDB={kwargs['vectorDB']}")
         lc_templates.set_arr_chunk_size(min_chunk_size, max_chunk_size)
         for key,val in lc_templates.nuancedCombos(vectorDB, disabled_opts).items():
                 logger.info(f"Combination Templates: {key}")
                 val['loader_kwargs']=src_data
                 val['run_id']=run_id
-                # print(f"val={val}")
-                # print(f"val[retrieval_model]={val['retrieval_model']}")
                 rag_builder=RagBuilder(val)
                 run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
                 logger.info(f"{repr(run_config)}")
@@ -224,7 +219,6 @@ class RagBuilder:
         self.embedding_kwargs=val['embedding_kwargs']
         self.retriever_kwargs=val['retriever_kwargs']
         # self.prompt_text =  val['prompt_text'] 
-        print(f"retrieval model: {self.retrieval_model}")
 
         # self.router(Configs) # Calls appropriate code generator calls codeGen Within returns Code string
         # namespace={}
@@ -274,7 +268,7 @@ class RagBuilder:
             json_config=json.dumps(self.config)
         except Exception as e:
             logger.error(f"Error serializing RAG config as JSON: {e}")
-            logger.info(f"self.config = {self.config}")
+            logger.debug(f"self.config = {self.config}")
             raw_config=str(self.config).replace("'", '"')
             return json.dumps({"msg": "Failed to serialize RAG config", "raw_config": raw_config})
         return json_config
