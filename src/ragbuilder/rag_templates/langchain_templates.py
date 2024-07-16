@@ -8,7 +8,7 @@ from ragbuilder.langchain_module.common import setup_logging
 setup_logging()
 logger = logging.getLogger("ragbuilder")
 
-# Define the arrays
+# RAG Config parameter option values
 arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
 arr_chunk_size = [1000, 2000, 3000]
 arr_embedding_model = ['text-embedding-3-small','text-embedding-3-large','text-embedding-ada-002']
@@ -17,11 +17,27 @@ arr_llm = ['gpt-3.5-turbo','gpt-4o','gpt-4-turbo']
 arr_contextual_compression = [True, False]
 compressor_combinations = arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
 arr_search_kwargs = ['5', '10', '20']
+vectorDB="chromaDB" # Default fallback value
+
+# Other static parameters
 chunk_overlap = 200
 chunk_step_size=100
 no_chunk_req_loaders = ['SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHeaderTextSplitter']
 chunk_req_loaders = ['RecursiveCharacterTextSplitter','CharacterTextSplitter']
-vectorDB="chromaDB" # Default fallback value
+
+
+def init(db, min, max):
+    global arr_chunking_strategy, arr_chunk_size, arr_embedding_model, retriever_combinations, arr_retriever, arr_llm, arr_contextual_compression, \
+        compressor_combinations, arr_compressors, arr_search_kwargs, vectorDB
+    arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
+    arr_chunk_size = _get_arr_chunk_size(min, max, step_size=chunk_step_size)
+    arr_embedding_model = ['text-embedding-3-small','text-embedding-3-large','text-embedding-ada-002']
+    retriever_combinations = arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
+    arr_llm = ['gpt-3.5-turbo','gpt-4o','gpt-4-turbo']
+    arr_contextual_compression = [True, False]
+    compressor_combinations = arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
+    arr_search_kwargs = ['5', '10', '20']
+    vectorDB = db
 
 def _filter_exclusions(exclude_elements):
     global arr_chunking_strategy, arr_chunk_size, arr_embedding_model, arr_retriever, arr_llm, arr_contextual_compression, arr_compressors, arr_search_kwargs
@@ -72,9 +88,9 @@ def count_combos():
                 ], 1
     )
 
-def set_vectorDB(db):
-    global vectorDB 
-    vectorDB = db
+# def set_vectorDB(db):
+#     global vectorDB 
+#     vectorDB = db
 
 def _get_arr_chunk_size(min, max, step_size):
     if min==max:
@@ -101,7 +117,7 @@ def _generate_combinations(options):
             combos.append(multi)
     return tuple(combos)
 
-def generate_config_space(vectorDB, exclude_elements=None):
+def generate_config_space(exclude_elements=None):
     global retriever_combinations, compressor_combinations
     logger.info(f"Filtering exclusions...")
     _filter_exclusions(exclude_elements)
@@ -111,9 +127,7 @@ def generate_config_space(vectorDB, exclude_elements=None):
     logger.debug(f"arr_compressors = {arr_compressors}")
     retriever_combinations = _generate_combinations(arr_retriever)
     compressor_combinations = _generate_combinations(arr_compressors)
-    set_vectorDB(vectorDB)
-    cnt_combos=count_combos()
-    logger.info(f"Number of RAG combinations : {cnt_combos}")
+    # cnt_combos=count_combos()
     logger.debug(f"retriever_combinations = {retriever_combinations}")
     logger.debug(f"compressor_combinations = {compressor_combinations}")
     logger.debug(f"chunking_strategy = {Categorical(tuple(arr_chunking_strategy), name='chunking_strategy')}")
@@ -210,7 +224,7 @@ def generate_config_from_params(params):
     }
     return config
 
-def nuancedCombos(vectorDB, exclude_elements=None):
+def nuancedCombos(exclude_elements=None):
     logger.info(f"Filtering exclusions...")
 
     _filter_exclusions(exclude_elements)
@@ -326,7 +340,7 @@ def nuancedCombos(vectorDB, exclude_elements=None):
         }
         start_index += 1
 
-    logger.info(f"RAG Builder: Number of RAG combinations : {len(combination_configs)}")
+    # logger.info(f"RAG Builder: Number of RAG combinations : {len(combination_configs)}")
     return combination_configs
 
 

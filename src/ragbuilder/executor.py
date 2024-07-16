@@ -4,7 +4,7 @@ import ragbuilder.rag_templates.langchain_templates as lc_templates
 # from ragbuilder.langchain_module.rag import mergerag as rag
 from ragbuilder.langchain_module.rag import getCode as rag
 # from ragbuilder.router import router 
-from ragbuilder.langchain_module.common import setup_logging
+from ragbuilder.langchain_module.common import setup_logging, progress_state
 import logging
 import json
 from skopt import gp_minimize
@@ -35,6 +35,7 @@ chat_model = ChatOpenAI(
     temperature=0.2,
     verbose=True
 )
+BAYESIAN_RUNS=20
 #Import needed for Executing the Generated Code
 from operator import itemgetter
 from langchain import hub
@@ -87,12 +88,50 @@ def rag_builder_bayes_optmization(**kwargs):
     disabled_opts=kwargs['disabled_opts']
     result=None
     # Define the configuration space
-    lc_templates.set_vectorDB(vectorDB)
-    lc_templates.set_arr_chunk_size(min_chunk_size, max_chunk_size)
-    space = lc_templates.generate_config_space(vectorDB, exclude_elements=disabled_opts)
+    lc_templates.init(vectorDB, min_chunk_size, max_chunk_size)
+    # lc_templates.set_arr_chunk_size(min_chunk_size, max_chunk_size)
+    configs_to_run=dict()
+
+    if kwargs['compare_templates']:
+        configs_to_run.update(top_n_templates)
+
+    space = lc_templates.generate_config_space(exclude_elements=disabled_opts)
     logger.info(f"Config space={space}")
+    cnt_combos=lc_templates.count_combos() + len(configs_to_run)
+    logger.info(f"Number of RAG combinations : {cnt_combos}")
     configs_evaluated=dict()
     
+    if cnt_combos < BAYESIAN_RUNS:
+        total_runs=cnt_combos
+    else:
+        total_runs = BAYESIAN_RUNS + len(configs_to_run)
+    progress_state.set_total_runs(total_runs)
+
+    # Run Templates first if templates have been selected
+    for key, val in configs_to_run.items():
+        progress_state.increment_progress()
+        logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['current_run']}")
+        logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
+        val['loader_kwargs']=src_data
+        val['run_id']=run_id
+        rag_builder=RagBuilder(val)
+        run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+        logger.info(f"{repr(run_config)}")
+        # time.sleep(30)
+        # result=0
+        rageval=eval.RagEvaluator(
+            rag_builder, # code for rag function
+            test_ds, 
+            llm = chat_model, 
+            embeddings = OpenAIEmbeddings(model="text-embedding-3-large"),
+            #TODO: Fetch Run Config settings from advanced settings from front-end
+            run_config = run_config,
+            is_async = RUN_CONFIG_IS_ASYNC
+            )
+        result=rageval.evaluate()
+        logger.info(f'progress_state={progress_state.get_progress()}')
+    
+    # Objective function for Bayesian optimization on the custom RAG configurations
     @use_named_args(space)
     def objective(**params):
         config = lc_templates.generate_config_from_params(params)
@@ -104,9 +143,11 @@ def rag_builder_bayes_optmization(**kwargs):
         
         config['loader_kwargs'] = src_data
         config['run_id'] = run_id
-        logger.info(f"Config raw={config}\n\n")
+        # logger.info(f"Config raw={config}\n\n")
         # logger.info(f"Config={json.dumps(config, indent=4)}\n\n")
         
+        progress_state.increment_progress()
+        logger.info(f'progress_state={progress_state.get_progress()}')
         logger.info(f"Initializing RAG object...")
         rag_builder = RagBuilder(config)
         run_config = RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
@@ -117,9 +158,7 @@ def rag_builder_bayes_optmization(**kwargs):
         # try:
         #     score = scores[int(time.time())%100]
         # except:
-        #      return -1
-        # else:
-        #      return -score
+        #      score = -1
 
         rageval = eval.RagEvaluator(
             rag_builder,
@@ -133,15 +172,13 @@ def rag_builder_bayes_optmization(**kwargs):
         # if x.lower() != 'y':
         #      exit()
         score = rageval.evaluate()
-        # time.sleep(60)
         logger.info(f"Adding to configs evaluated...")
         configs_evaluated[str_config]=score
         return -score  # We negate the score because gp_minimize minimizes
     
     # Run Bayesian optimization
     logger.info(f"Running Bayesian optimization...")
-    # result = gp_minimize(objective, space, n_calls=20, random_state=42)
-    result = gp_minimize(objective, space, n_calls=20, random_state=42) #, callback=DeltaXStopper(1e-8))
+    result = gp_minimize(objective, space, n_calls=BAYESIAN_RUNS, random_state=42) #, callback=DeltaXStopper(1e-8))
     logger.info(f"Completed Bayesian optimization...")
 
     best_params = result.x
@@ -163,44 +200,39 @@ def rag_builder(**kwargs):
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None
+    configs_to_run=dict()
+
     if kwargs['compare_templates']:
-        for key,val in top_n_templates.items():
-                logger.info(f" Top N Templates:{key}:{val['description']}:{val['retrieval_model']}")
-                val['loader_kwargs']=src_data
-                val['run_id']=run_id
-                rag_builder=RagBuilder(val)
-                run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
-                logger.info(f"{repr(run_config)}")
-                rageval=eval.RagEvaluator(
-                    rag_builder, # code for rag function
-                    test_ds, 
-                    llm = chat_model, 
-                    embeddings = OpenAIEmbeddings(model="text-embedding-3-large"),
-                    #TODO: Fetch Run Config settings from advanced settings from front-end
-                    run_config = run_config,
-                    is_async = RUN_CONFIG_IS_ASYNC
-                    )
-                result=rageval.evaluate()
-        # return result
+        configs_to_run.update(top_n_templates)
     if kwargs['include_granular_combos']:
-        lc_templates.set_arr_chunk_size(min_chunk_size, max_chunk_size)
-        for key,val in lc_templates.nuancedCombos(vectorDB, disabled_opts).items():
-                logger.info(f"Combination Templates: {key}")
-                val['loader_kwargs']=src_data
-                val['run_id']=run_id
-                rag_builder=RagBuilder(val)
-                run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
-                logger.info(f"{repr(run_config)}")
-                rageval=eval.RagEvaluator(
-                    rag_builder, # rag function
-                    test_ds, 
-                    llm=chat_model, 
-                    embeddings=OpenAIEmbeddings(model="text-embedding-3-large"),
-                    #TODO: Fetch Run Config settings from advanced settings from front-end
-                    run_config = run_config,
-                    is_async = RUN_CONFIG_IS_ASYNC
-                    )
-                result=rageval.evaluate()
+        lc_templates.init(vectorDB, min_chunk_size, max_chunk_size)
+        configs_to_run.update(lc_templates.nuancedCombos(disabled_opts))
+
+    cnt_combos=len(configs_to_run)
+    logger.info(f"Number of RAG combinations : {cnt_combos}")
+    progress_state.set_total_runs(cnt_combos)
+
+    for val in configs_to_run.values():
+        progress_state.increment_progress()
+        logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['current_run']}")
+        val['loader_kwargs']=src_data
+        val['run_id']=run_id
+        rag_builder=RagBuilder(val)
+        run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+        logger.info(f"{repr(run_config)}")
+        # time.sleep(30)
+        # result=0
+        rageval=eval.RagEvaluator(
+            rag_builder, # code for rag function
+            test_ds, 
+            llm = chat_model, 
+            embeddings = OpenAIEmbeddings(model="text-embedding-3-large"),
+            #TODO: Fetch Run Config settings from advanced settings from front-end
+            run_config = run_config,
+            is_async = RUN_CONFIG_IS_ASYNC
+            )
+        result=rageval.evaluate()
+        logger.info(f'progress_state={progress_state.get_progress()}')
     return result
 
 

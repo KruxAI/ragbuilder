@@ -21,7 +21,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization
 from ragbuilder.langchain_module.loader import loader as l
-from ragbuilder.langchain_module.common import setup_logging
+from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
 from ragbuilder.analytics import track_event
 from ragbuilder.evaldb_dmls import *
@@ -187,6 +187,10 @@ def get_log_updates():
     with open(LOG_FILENAME, 'r') as log_file:
         log_content = log_file.read()
     return {"log_content": log_content}
+
+@app.get("/progress")
+def get_progress():
+    return progress_state.get_progress()
 
 class SourceDataCheck(BaseModel):
     sourceData: str
@@ -419,7 +423,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     _db_write(run_details, db)
 
     try:
-        if include_granular_combos and optimization=='bayesianOptimization':
+        if optimization=='bayesianOptimization':
             logger.info(f"Using Bayesian optimization to find optimal RAG configs...")
             res = rag_builder_bayes_optmization(
                 run_id=run_id, 
@@ -432,7 +436,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 max_chunk_size=max_chunk_size, 
                 disabled_opts=disabled_opts
             )
-        if compare_templates or (include_granular_combos  and optimization=='fullParameterSearch') :
+        elif optimization=='fullParameterSearch' :
             logger.info(f"Spawning RAG configs by invoking rag_builder...")
             res = rag_builder(
                 run_id=run_id, 
@@ -446,6 +450,12 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 disabled_opts=disabled_opts
             )
             logger.info(f"res = {res}")
+        else:
+            logger.error(f"Unknown optimization value.")
+            return {
+            "status": "error",
+            "message": "Unknown optimization value"
+        }, 400
     except Exception as e:
         logger.error(f'Failed to complete creation and evaluation of RAG configs: {e}')
         _update_status(run_id, 'Failed', db)
