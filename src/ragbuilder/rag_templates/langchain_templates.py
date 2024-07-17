@@ -64,7 +64,7 @@ def _filter_exclusions(exclude_elements):
 
     # Handle chunk size exclusion
     if set(arr_chunking_strategy).issubset(no_chunk_req_loaders):
-        arr_chunk_size=[0] # Default value - will be irrelevant since we only have loaders that don't require chunk_size
+        arr_chunk_size=arr_chunk_size[:1] # Trim to 1 value - will be irrelevant since we only have loaders that don't require chunk_size
 
     # Handle contextual compression exclusion
     if 'contextualCompression' in exclude_elements:
@@ -88,10 +88,6 @@ def count_combos():
                 ], 1
     )
 
-# def set_vectorDB(db):
-#     global vectorDB 
-#     vectorDB = db
-
 def _get_arr_chunk_size(min, max, step_size):
     if min==max:
         return [min]
@@ -105,10 +101,6 @@ def _get_arr_chunk_size(min, max, step_size):
         chunk_sizes.append(i)
     return chunk_sizes
 
-def set_arr_chunk_size(min, max, step_size=chunk_step_size):
-    global arr_chunk_size
-    arr_chunk_size = _get_arr_chunk_size(min, max, step_size)
-
 def _generate_combinations(options):
     combos = options[:]
     for i in range(1, len(options)):
@@ -121,6 +113,8 @@ def generate_config_space(exclude_elements=None):
     global retriever_combinations, compressor_combinations
     logger.info(f"Filtering exclusions...")
     _filter_exclusions(exclude_elements)
+    #TODO: If chunking strategy includes only ones from no_chunk_req_loaders, 
+    # and retrievers includes parentDoc retriever, then handle it here
 
     logger.info(f"Generating config space...")
     logger.debug(f"arr_retriever = {arr_retriever}")
@@ -187,9 +181,17 @@ def generate_config_from_params(params):
             'chunk_strategy': chunking_strategy
         }
 
-
     retrievers_lst=retrievers.split('|') if '|' in retrievers else [retrievers]
     compressors_lst=compressors.split('|') if '|' in compressors else [compressors]
+
+    # TODO: Re-think and re-do this ugly piece of shit below
+    # For parentDoc retrievers, change chunking strategy to RecursiveCharacterTextSplitter if it's not already a RecursiveCharacterTextSplitter or CharacterTextSplitter
+    if any(r in ['parentDocFullDoc', 'parentDocLargeChunk'] for r in retrievers_lst) and chunking_strategy not in chunk_req_loaders:
+        chunking_kwargs = {
+            'chunk_strategy': 'RecursiveCharacterTextSplitter',
+            'chunk_size': arr_chunk_size[0],
+            'chunk_overlap': chunk_overlap
+        }
 
     retriever_kwargs = {'retrievers': []}    
     for retriever in retrievers_lst:
@@ -249,7 +251,7 @@ def nuancedCombos(exclude_elements=None):
     for combination in combinations:
         for retrievers in itertools.combinations(arr_retriever, 1):
             chunking_strategy = combination[0]
-            if retrievers[0] in ['parentDocFullDoc', 'parentDocLargeChunk'] and chunking_strategy not in ['RecursiveCharacterTextSplitter', 'CharacterTextSplitter']:
+            if retrievers[0] in ['parentDocFullDoc', 'parentDocLargeChunk'] and chunking_strategy not in chunk_req_loaders:
                 continue
             
             if arr_compressors:
@@ -264,7 +266,7 @@ def nuancedCombos(exclude_elements=None):
                     all_combinations.append(combination + (list(retrievers), [], search_kwargs))
         for retrievers in itertools.combinations(arr_retriever, 2):
             chunking_strategy = combination[0]
-            if any(r in ['parentDocFullDoc', 'parentDocLargeChunk'] for r in retrievers) and chunking_strategy not in ['RecursiveCharacterTextSplitter', 'CharacterTextSplitter']:
+            if any(r in ['parentDocFullDoc', 'parentDocLargeChunk'] for r in retrievers) and chunking_strategy not in chunk_req_loaders:
                 continue
 
             if arr_compressors:

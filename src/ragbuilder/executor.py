@@ -89,7 +89,6 @@ def rag_builder_bayes_optmization(**kwargs):
     result=None
     # Define the configuration space
     lc_templates.init(vectorDB, min_chunk_size, max_chunk_size)
-    # lc_templates.set_arr_chunk_size(min_chunk_size, max_chunk_size)
     configs_to_run=dict()
 
     if kwargs['compare_templates']:
