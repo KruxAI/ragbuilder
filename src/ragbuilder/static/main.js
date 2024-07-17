@@ -19,6 +19,9 @@ function validateSourceData() {
     });
 }
 
+let progressInterval;
+let smoothInterval;
+
 // Show modal to capture user inputs and send it to backend.
 $(document).ready(function () {
     $('#newProject').click(function () {
@@ -306,6 +309,8 @@ $(document).ready(function () {
                 }
             },
             error: function(error) {
+                clearInterval(progressInterval);
+                clearInterval(smoothInterval);
                 var errorMsg = "An error occurred. Please try again.";
                 if (error.responseJSON && error.responseJSON.message) {
                     errorMsg = error.responseJSON.message;
@@ -323,7 +328,6 @@ $(document).ready(function () {
     });
 
     let lastKnownRun = -1;
-    let smoothInterval;
     let lastUpdateTime = Date.now();
 
     function fetchProgressUpdates() {
