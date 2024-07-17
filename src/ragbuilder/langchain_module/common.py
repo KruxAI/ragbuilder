@@ -4,6 +4,33 @@ from datetime import datetime
 import sys
 import re
 
+class ProgressState:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.progress_info = {
+                'current_run': 0,
+                'total_runs': 1
+            }
+        return cls._instance
+
+    def get_progress(self):
+        return self.progress_info
+
+    def set_total_runs(self, n):
+        self.progress_info['total_runs'] = n
+
+    def increment_progress(self):
+        self.progress_info['current_run'] += 1
+
+    def reset(self):
+        self.progress_info['current_run'] = 0
+        self.progress_info['total_runs'] = 0
+
+progress_state = ProgressState()
+
 class CustomFormatter(logging.Formatter):
     """
     Custom logging formatter to include filename and function name in log messages.

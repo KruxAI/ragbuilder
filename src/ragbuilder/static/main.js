@@ -19,6 +19,9 @@ function validateSourceData() {
     });
 }
 
+let progressInterval;
+let smoothInterval;
+
 // Show modal to capture user inputs and send it to backend.
 $(document).ready(function () {
     $('#newProject').click(function () {
@@ -285,6 +288,7 @@ $(document).ready(function () {
         $('#progressSection').show();
 
         fetchLogUpdates();
+        fetchProgressUpdates();
 
         $.ajax({
             type: "POST",
@@ -305,6 +309,8 @@ $(document).ready(function () {
                 }
             },
             error: function(error) {
+                clearInterval(progressInterval);
+                clearInterval(smoothInterval);
                 var errorMsg = "An error occurred. Please try again.";
                 if (error.responseJSON && error.responseJSON.message) {
                     errorMsg = error.responseJSON.message;
@@ -320,6 +326,73 @@ $(document).ready(function () {
             $(this).next('.tooltip').hide();
         });
     });
+
+    let lastKnownRun = -1;
+    let lastUpdateTime = Date.now();
+
+    function fetchProgressUpdates() {
+        const progressInterval = setInterval(function () {
+            $.ajax({
+                type: "GET",
+                url: "/progress",
+                success: function (response) {
+                    console.log(JSON.stringify(response));
+                    const currentRun = response.current_run;
+                    const totalRuns = response.total_runs;
+
+                    if (currentRun > lastKnownRun) {
+                        lastKnownRun = currentRun;
+                        const progressPercentage = Math.min((currentRun / totalRuns) * 100, 100);
+                        console.log('ProgressPercentage: ', progressPercentage);
+                        $('#progressText').text(`Running ${currentRun}/${totalRuns}...`);
+
+                        if (smoothInterval) {
+                            clearInterval(smoothInterval);
+                        }
+                        smoothProgressUpdate(progressPercentage, currentRun, totalRuns);
+                        lastUpdateTime = Date.now();
+                    }
+
+                    if (Date.now() - lastUpdateTime > 180000) { // In case there's no progress for the last 120 secs since smoothProgressUpdate stopped (60 secs ago)
+                        $('#progressText').text(`Running ${currentRun}/${totalRuns}... (Current run is taking longer than expected)`);
+                    }
+
+                    if (currentRun >= totalRuns) {
+                        clearInterval(progressInterval);
+                    }
+                },
+                error: function (error) {
+                    console.error(error);
+                }
+            });
+
+        }, 20000); // Update every 20 seconds
+    }
+
+    function smoothProgressUpdate(progressPercentage, currentRun, totalRuns) {
+        const duration = 60 * 1000; // 60 seconds
+        const interval = 2000; // 2 seconds
+        const steps = duration / interval;
+        const increment = (1 / totalRuns) * 100 / steps;
+        console.log('currentRun: ', currentRun);
+        console.log('totalRuns: ', totalRuns);
+        console.log('duration: ', duration);
+        console.log('interval: ', interval);
+        console.log('steps: ', steps);
+        console.log('Increment: ', increment);
+        let currentProgress = progressPercentage;
+        let targetProgress = Math.min(((currentRun + 1) / totalRuns) * 100, 100);
+
+        smoothInterval = setInterval(function () {
+            if (currentProgress >= targetProgress) {
+                clearInterval(smoothInterval);
+            } else {
+                currentProgress += increment;
+                console.log('currentProgress += increment: ', currentProgress);
+                $('#progressBar').css('width', `${currentProgress - 0.1}%`).attr('aria-valuenow', currentProgress);
+            }
+        }, interval);
+    }
     
     function fetchLogUpdates() {
         $.ajax({
@@ -333,19 +406,18 @@ $(document).ready(function () {
                         url: "/get_log_updates",
                         success: function (response) {
                             $('#logOutput').text(response.log_content);
-                            const logContent = response.log_content;
+                            const logOutputElement = $('#logOutput');
+                            logOutputElement.text(response.log_content);
 
-                            // Example: If the log content includes "Processing finished successfully." stop the interval
+                            // Automatically scroll to the bottom of the log output
+                            logOutputElement.scrollTop(logOutputElement[0].scrollHeight);
+                            
+                            const logContent = response.log_content;
                             if (logContent.includes("Processing finished successfully.")) {
                                 clearInterval(logInterval);
                                 $('#progressSection').hide();
                                 $('#completionSection').show();
                             }
-
-                            // Update progress bar (this is just a simple example, you can enhance it as needed)
-                            const progressText = logContent.split("\n").length;
-                            const progressPercentage = Math.min((progressText / 200) * 100, 100);
-                            $('#progressBar').css('width', progressPercentage + '%').attr('aria-valuenow', progressPercentage);
                         },
                         error: function (error) {
                             console.error(error);
