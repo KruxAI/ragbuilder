@@ -297,6 +297,8 @@ $(document).ready(function () {
             data: JSON.stringify(projectData),
             success: function(response) {
                 if (response.status === "success") {
+                    fetchLogUpdates();
+                    fetchProgressUpdates();
                     alert(response.message);
                     // Redirect to the summary page
                     window.location.href = "/summary/" + response.run_id;

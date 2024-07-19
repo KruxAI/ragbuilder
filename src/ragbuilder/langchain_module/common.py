@@ -36,8 +36,10 @@ class CustomFormatter(logging.Formatter):
     Custom logging formatter to include filename and function name in log messages.
     """
     def format(self, record):
-        format_str = '[%(levelname)s] %(asctime)s - %(filename)s - %(funcName)s - %(message)s'
+        # format_str = '[%(levelname)s] %(asctime)s - %(filename)s - %(funcName)s - %(message)s'
+        format_str = '[%(levelname)s] %(asctime)s - %(filename)s - %(message)s'
         self._style._fmt = format_str
+        self.datefmt='%Y-%m-%d %H:%M:%S'
         return super().format(record)
 
 class ExcludeFilter(logging.Filter):
@@ -68,7 +70,7 @@ def setup_logging():
         os.makedirs('logs')
 
     if not logger.handlers:
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
 
         # Create a custom formatter to define the log format
         formatter = CustomFormatter()
@@ -76,7 +78,7 @@ def setup_logging():
         # Create a file handler to write logs to a file
         log_filename = f"logs/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
         file_handler = logging.FileHandler(log_filename)
-        file_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(logging.INFO)
         file_handler.setFormatter(formatter)
 
         # Create a stream handler to print logs to the console
@@ -95,9 +97,8 @@ def setup_logging():
 
         # Redirect stdout and stderr to the logger
         sys.stdout = LoggerWriter(logger, logging.INFO)
-        sys.stderr = LoggerWriter(logger, logging.ERROR)
+        sys.stderr = LoggerWriter(logger, logging.INFO)
 
-        print(log_filename)
         return log_filename
 
 class LoggerWriter:
@@ -111,12 +112,14 @@ class LoggerWriter:
         if self._is_logging:
             return
 
+        dt_time=datetime.now().strftime("%Y-%m-%d")
+        skip_log_pattern=f"GET /get_log_updates|GET /progress|{dt_time}.*INFO|{dt_time}.*ERROR|^\s*$"
         self._buffer += message
         while '\n' in self._buffer:
             line, self._buffer = self._buffer.split('\n', 1)
             if line.rstrip():  # Avoid extra blank lines
                 # Ignore lines with "GET /get_log_updates" or "common.py - flush -"
-                if re.search(r"GET /get_log_updates|common.py - flush -", line):
+                if re.search(skip_log_pattern, line):
                     continue
 
                 self._is_logging = True

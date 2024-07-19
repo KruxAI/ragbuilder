@@ -25,7 +25,7 @@ def getVectorDB(db_type,embedding_model):
     Raises:
     - ValueError: If db_type is not supported.
     """
-    logger.info(f"getVectorDB:{db_type}{embedding_model}")
+    logger.debug(f"getVectorDB:{db_type}{embedding_model}")
     timestamp = str(int(time.time()))
     index_name = "testindex-ragbuilder-" + timestamp
     if db_type == "chromaDB":

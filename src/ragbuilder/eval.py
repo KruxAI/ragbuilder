@@ -64,10 +64,6 @@ OPENAI_PRICING = {
 }
 
 
-class LogStream(object):
-    def write(self, data):
-        logger.info(data)
-
 class RagEvaluator:
     def __init__(
             self, 
@@ -150,36 +146,35 @@ class RagEvaluator:
         # Prepare eval dataset
         self.prepare_eval_dataset()
 
-        with contextlib.redirect_stdout(LogStream()):
         # Evaluate RAG retrieval precision/recall & generation accuracy metrics
-            result = evaluate(
-                self.eval_dataset,
-                metrics=[
-                    # TODO: Add flexibility to choose metrics. Current set is not exhaustive
-                    answer_correctness,
-                    faithfulness,
-                    answer_relevancy,
-                    context_precision,
-                    context_recall,
-                ],
-                raise_exceptions=False, 
-                llm=self.llm,
-                embeddings=self.embeddings,
-                is_async=self.is_async,
-                run_config=self.run_config
-            )
-            
-            self.result_df = result.to_pandas()
-            logger.info(f"Eval: Evaluation complete for {self.id}")
+        result = evaluate(
+            self.eval_dataset,
+            metrics=[
+                # TODO: Add flexibility to choose metrics. Current set is not exhaustive
+                answer_correctness,
+                faithfulness,
+                answer_relevancy,
+                context_precision,
+                context_recall,
+            ],
+            raise_exceptions=False, 
+            llm=self.llm,
+            embeddings=self.embeddings,
+            is_async=self.is_async,
+            run_config=self.run_config
+        )
+        
+        self.result_df = result.to_pandas()
+        logger.info(f"Eval: Evaluation complete for {self.id}")
 
-            # Transform "contexts" array to string to save to DB properly
-            self.result_df['contexts'] = self.result_df['contexts'].apply(lambda x: x[0])
-            
-            # Save everything to DB
-            self._db_write()
-            # return result
-            return result['answer_correctness']
-            # return self.result_df['answer_correctness'].mean() # TODO: OR result['answer_correctness'] maybe?
+        # Transform "contexts" array to string to save to DB properly
+        self.result_df['contexts'] = self.result_df['contexts'].apply(lambda x: x[0])
+        
+        # Save everything to DB
+        self._db_write()
+        # return result
+        return result['answer_correctness']
+        # return self.result_df['answer_correctness'].mean() # TODO: OR result['answer_correctness'] maybe?
     
     def _db_write(self):
         db = sqlite3.connect(DATABASE)
