@@ -222,7 +222,7 @@ def rag_builder(**kwargs):
         # logger.info(f"{repr(run_config)}")
         # time.sleep(30)
         # result=0
-        logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... \n(this may take a while)")
+        logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... (this may take a while)")
         rageval=eval.RagEvaluator(
             rag_builder, # code for rag function
             test_ds, 
@@ -274,6 +274,7 @@ class RagBuilder:
         locals_dict={}
         globals_dict = globals()
 
+        logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
         #execution os string
             exec(self.router,globals_dict,locals_dict)
