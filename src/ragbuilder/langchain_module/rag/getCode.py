@@ -86,7 +86,7 @@ def codeGen(**kwargs):
         for cmp in kwargs['retriever_kwargs']['document_compressor_pipeline']:
             kwargs['compressor'] = cmp
             compressor_code = getCompressors(**kwargs)
-            print(compressor_code)
+            # print(compressor_code)
             code_strings.append(compressor_code['code_string'])
             imports.append(compressor_code['import_string'])
         code_strings.append("pipeline_compressor = DocumentCompressorPipeline(transformers=arr_comp)")
