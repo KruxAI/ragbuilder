@@ -19,9 +19,9 @@ top_n_templates= {
     },
     'hybrid_rag_langchain_v2': {
       'framework': 'langchain',
-      'description': 'Hybrid RAG using Langchain with SemanticChunker using Contextual Compression with bm25Retriever and LongContextReorder',
+      'description': 'Hybrid RAG using Langchain with RecursiveCharacterTextSplitter using Contextual Compression with bm25Retriever and LongContextReorder',
       'retrieval_model': 'gpt-3.5-turbo',
-      'chunking_kwargs': {'chunk_strategy': 'SemanticChunker'},
+      'chunking_kwargs': {'chunk_strategy': 'RecursiveCharacterTextSplitter', 'chunk_size': 1000, 'chunk_overlap': 200},
       'vectorDB_kwargs': {'vectorDB': 'chromaDB'},
       'embedding_kwargs': {'embedding_model': 'text-embedding-3-large'},
       'retriever_kwargs': {

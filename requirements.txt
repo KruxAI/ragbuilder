@@ -52,7 +52,7 @@ opencv-python
 unstructured
 # unstructured[all-docs]
 mixpanel
-langchain_mistralai
+langchain-mistralai==0.1.9
 langchain_community
 huggingface_hub
 datasets
