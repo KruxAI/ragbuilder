@@ -32,7 +32,7 @@ logger = logging.getLogger("ragbuilder")
 LOG_FILENAME = logger.handlers[0].baseFilename
 LOG_DIRNAME = Path(LOG_FILENAME).parent
 BASE_DIR = Path(__file__).resolve().parent
-print(f"LOG_FILENAME = {LOG_FILENAME}")
+logger.info(f"LOG_FILENAME = {LOG_FILENAME}")
 
 url = "http://localhost:8005"
 
@@ -170,7 +170,7 @@ def docs(request: Request):
 @app.get('/view_log/{filename}', response_class=HTMLResponse)
 async def view_log(request: Request, filename: str):
     log_filepath = os.path.join(LOG_DIRNAME, filename)
-    print(f"Accessing log file at: {log_filepath}")
+    logger.info(f"Accessing log file at: {log_filepath}")
     try:
         with open(log_filepath, 'r') as file:
             log_content = file.read()
@@ -311,7 +311,7 @@ def _get_disabled_opts(config: dict):
     return disabled_opts
 
 def _db_write(run_details: tuple, db: sqlite3.Connection):
-    logger.info(f"Logging run config details in db...")
+    logger.info(f"Saving run config details in db...")
     insert_query=f"""
             INSERT INTO run_details(
                 run_id,
@@ -347,7 +347,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     # Replace jsonify with direct dictionary returns
     # ...
     enable_analytics = os.getenv('ENABLE_ANALYTICS', 'True').lower() == 'true'
-    logger.info(f"enable_analytics= {enable_analytics}")
+    logger.info(f"enable_analytics = {enable_analytics}")
     if enable_analytics:
         track_event(config)
     logger.info(f"Initiating parsing config: {config}")
@@ -489,7 +489,7 @@ def open_url(url):
     try:
         urllib.request.urlopen(url, context=context)
     except Exception as e:
-        print(f"Error opening URL: {e}")
+        logger.error(f"Error opening URL: {e}")
 
 url = "http://localhost:8005"
 

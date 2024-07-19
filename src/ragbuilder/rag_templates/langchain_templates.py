@@ -48,7 +48,6 @@ def _filter_exclusions(exclude_elements):
     # Filter out excluded elements from arrays
     arr_chunking_strategy = [elem for elem in arr_chunking_strategy if elem not in exclude_elements]
     arr_embedding_model = [elem for elem in arr_embedding_model if elem not in exclude_elements]
-    logger.info(f"arr_embedding_model={arr_embedding_model}\n\n")
     arr_retriever = [elem for elem in arr_retriever if elem not in exclude_elements]
     arr_llm = [elem for elem in arr_llm if elem not in exclude_elements]
     arr_compressors = [elem for elem in arr_compressors if elem not in exclude_elements and 'contextualCompression' not in exclude_elements]
@@ -161,7 +160,7 @@ def generate_config_from_params(params):
     compressors=params['compressors']
     llm=params['llm']
     logger.debug(f"chunking_strategy={chunking_strategy}")
-    logger.info(f"chunk_size={chunk_size}")
+    logger.debug(f"chunk_size={chunk_size}")
     logger.debug(f"search_k={search_kwargs}")
     logger.debug(f"embedding_model={embedding_model}")
     logger.debug(f"retrievers={retrievers}")
