@@ -118,7 +118,7 @@ def rag_builder_bayes_optmization(**kwargs):
         # logger.info(f"{repr(run_config)}")
         # time.sleep(30)
         # result=0
-        logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... \n(this may take a while)")
+        logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... (this may take a while)")
         rageval=eval.RagEvaluator(
             rag_builder, # code for rag function
             test_ds, 
@@ -131,61 +131,62 @@ def rag_builder_bayes_optmization(**kwargs):
         result=rageval.evaluate()
         logger.info(f'progress_state={progress_state.get_progress()}')
     
-    # Objective function for Bayesian optimization on the custom RAG configurations
-    @use_named_args(space)
-    def objective(**params):
-        config = lc_templates.generate_config_from_params(params)
-        str_config=json.dumps(config)
-        score = configs_evaluated.get(str_config, None)
-        if score:
-            logger.info(f"Config already evaluated with score: {score}: {config}")
-            return score
+    if kwargs['include_granular_combos']:
+        # Objective function for Bayesian optimization on the custom RAG configurations
+        @use_named_args(space)
+        def objective(**params):
+            config = lc_templates.generate_config_from_params(params)
+            str_config=json.dumps(config)
+            score = configs_evaluated.get(str_config, None)
+            if score:
+                logger.info(f"Config already evaluated with score: {score}: {config}")
+                return score
+            
+            config['loader_kwargs'] = src_data
+            config['run_id'] = run_id
+            # logger.info(f"Config raw={config}\n\n")
+            # logger.info(f"Config={json.dumps(config, indent=4)}\n\n")
+            
+            progress_state.increment_progress()
+            logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
+            logger.info(f"Initializing RAG object...")
+            rag_builder = RagBuilder(config)
+            run_config = RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+            # logger.info(f"{repr(run_config)}")
+
+            # Dummy run to test config structures
+            # scores=[0.5890422913, 0.7656478429, 0.5935820215, 0.6100727287, 0.7904418542, 0.8966577465, 0.6205320374, 0.5581511382, 0.5966923152, 0.6609632653, 0.550011964, 0.5402692061, 0.5755822793, 0.6234577837, 0.5905206211, 0.5864179955, 0.6062351971, 0.570672658, 0.7500015656, 0.7747984829, 0.7993104194, 0.781805689, 0.5710751929, 0.6645166332, 0.622714199, 0.6356301621, 0.6241188896, 0.8153687664, 0.6827077848, 0.6959527751, 0.8423843881, 0.9609655913, 0.6698080329, 0.5912493806, 0.7359742148, 0.7080427047, 0.6899119678, 0.6105474717, 0.7208188469, 0.695968622, 0.6869681458, 0.7269693914, 0.7424575424, 0.7011177759, 0.8697962711, 0.8088942748, 0.9005903531, 0.8688290896, 0.6666808804, 0.666883309, 0.6888392867, 0.7296173512, 0.6497820307, 0.9349375798, 0.6906564857, 0.7924750533, 0.8931411951, 0.9462395027, 0.881902146, 0.6423630407, 0.7474532458, 0.8388990762, 0.6705516029, 0.7747971947, 0.7218534451, 0.8823771379, 0.8505055572, 0.6567467535, 0.7043667001, 0.6939435603, 0.8808846607, 0.9005438973, 0.8691391629, 0.9763763024, 0.6278870244, 0.7355142518, 0.7633544088, 0.5913903849, 0.626892352, 0.6987860021, 0.6456495151, 0.7416265216, 0.6446452076, 0.7546382667, 0.800226133, 0.9454843785, 0.9280627528, 0.6740895569, 0.7741376011, 0.7247380601, 0.6472672733, 0.8251968841, 0.9085414624, 0.8238757897, 0.6880305725, 0.6632702383, 0.8470425157, 0.6590755791, 0.7576560761, 0.7567810953]
+            # try:
+            #     score = scores[int(time.time())%100]
+            # except:
+            #      score = -1
+            logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... \n(this may take a while)")
+            rageval = eval.RagEvaluator(
+                rag_builder,
+                test_ds, 
+                llm=chat_model, 
+                embeddings=OpenAIEmbeddings(model="text-embedding-3-large"),
+                run_config=run_config,
+                is_async=RUN_CONFIG_IS_ASYNC
+            )
+            # x=input("Continue? ")
+            # if x.lower() != 'y':
+            #      exit()
+            score = rageval.evaluate()
+            logger.info(f"Completed evaluation. Adding to configs evaluated...")
+            configs_evaluated[str_config]=score
+            return -score  # We negate the score because gp_minimize minimizes
         
-        config['loader_kwargs'] = src_data
-        config['run_id'] = run_id
-        # logger.info(f"Config raw={config}\n\n")
-        # logger.info(f"Config={json.dumps(config, indent=4)}\n\n")
-        
-        progress_state.increment_progress()
-        logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
-        logger.info(f"Initializing RAG object...")
-        rag_builder = RagBuilder(config)
-        run_config = RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
-        # logger.info(f"{repr(run_config)}")
+        # Run Bayesian optimization
+        logger.info(f"Running Bayesian optimization...")
+        result = gp_minimize(objective, space, n_calls=BAYESIAN_RUNS, random_state=42) #, callback=DeltaXStopper(1e-8))
+        logger.info(f"Completed Bayesian optimization...")
 
-        # Dummy run to test config structures
-        # scores=[0.5890422913, 0.7656478429, 0.5935820215, 0.6100727287, 0.7904418542, 0.8966577465, 0.6205320374, 0.5581511382, 0.5966923152, 0.6609632653, 0.550011964, 0.5402692061, 0.5755822793, 0.6234577837, 0.5905206211, 0.5864179955, 0.6062351971, 0.570672658, 0.7500015656, 0.7747984829, 0.7993104194, 0.781805689, 0.5710751929, 0.6645166332, 0.622714199, 0.6356301621, 0.6241188896, 0.8153687664, 0.6827077848, 0.6959527751, 0.8423843881, 0.9609655913, 0.6698080329, 0.5912493806, 0.7359742148, 0.7080427047, 0.6899119678, 0.6105474717, 0.7208188469, 0.695968622, 0.6869681458, 0.7269693914, 0.7424575424, 0.7011177759, 0.8697962711, 0.8088942748, 0.9005903531, 0.8688290896, 0.6666808804, 0.666883309, 0.6888392867, 0.7296173512, 0.6497820307, 0.9349375798, 0.6906564857, 0.7924750533, 0.8931411951, 0.9462395027, 0.881902146, 0.6423630407, 0.7474532458, 0.8388990762, 0.6705516029, 0.7747971947, 0.7218534451, 0.8823771379, 0.8505055572, 0.6567467535, 0.7043667001, 0.6939435603, 0.8808846607, 0.9005438973, 0.8691391629, 0.9763763024, 0.6278870244, 0.7355142518, 0.7633544088, 0.5913903849, 0.626892352, 0.6987860021, 0.6456495151, 0.7416265216, 0.6446452076, 0.7546382667, 0.800226133, 0.9454843785, 0.9280627528, 0.6740895569, 0.7741376011, 0.7247380601, 0.6472672733, 0.8251968841, 0.9085414624, 0.8238757897, 0.6880305725, 0.6632702383, 0.8470425157, 0.6590755791, 0.7576560761, 0.7567810953]
-        # try:
-        #     score = scores[int(time.time())%100]
-        # except:
-        #      score = -1
-        logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... \n(this may take a while)")
-        rageval = eval.RagEvaluator(
-            rag_builder,
-            test_ds, 
-            llm=chat_model, 
-            embeddings=OpenAIEmbeddings(model="text-embedding-3-large"),
-            run_config=run_config,
-            is_async=RUN_CONFIG_IS_ASYNC
-        )
-        # x=input("Continue? ")
-        # if x.lower() != 'y':
-        #      exit()
-        score = rageval.evaluate()
-        logger.info(f"Completed evaluation. Adding to configs evaluated...")
-        configs_evaluated[str_config]=score
-        return -score  # We negate the score because gp_minimize minimizes
-    
-    # Run Bayesian optimization
-    logger.info(f"Running Bayesian optimization...")
-    result = gp_minimize(objective, space, n_calls=BAYESIAN_RUNS, random_state=42) #, callback=DeltaXStopper(1e-8))
-    logger.info(f"Completed Bayesian optimization...")
+        best_params = result.x
+        best_score = -result.fun
 
-    best_params = result.x
-    best_score = -result.fun
-
-    logger.info(f"Best Configuration: {best_params}")
-    logger.info(f"Best Score: {best_score}")
+        logger.info(f"Best Configuration: {best_params}")
+        logger.info(f"Best Score: {best_score}")
     return 0
 
 

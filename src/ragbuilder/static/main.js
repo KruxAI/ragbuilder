@@ -397,40 +397,30 @@ $(document).ready(function () {
     }
     
     function fetchLogUpdates() {
-        $.ajax({
-            type: "GET",
-            url: "/get_log_filename",
-            success: function (response) {
-                const logFilename = response.log_filename;
-                const logInterval = setInterval(function () {
-                    $.ajax({
-                        type: "GET",
-                        url: "/get_log_updates",
-                        success: function (response) {
-                            $('#logOutput').text(response.log_content);
-                            const logOutputElement = $('#logOutput');
-                            logOutputElement.text(response.log_content);
+        const logInterval = setInterval(function () {
+            $.ajax({
+                type: "GET",
+                url: "/get_log_updates",
+                success: function (response) {
+                    $('#logOutput').text(response.log_content);
+                    const logOutputElement = $('#logOutput');
+                    logOutputElement.text(response.log_content);
 
-                            // Automatically scroll to the bottom of the log output
-                            logOutputElement.scrollTop(logOutputElement[0].scrollHeight);
-                            
-                            const logContent = response.log_content;
-                            if (logContent.includes("Processing finished successfully.")) {
-                                clearInterval(logInterval);
-                                $('#progressSection').hide();
-                                $('#completionSection').show();
-                            }
-                        },
-                        error: function (error) {
-                            console.error(error);
-                        }
-                    });
-                }, 2000); // Update every 2 seconds
-            },
-            error: function (error) {
-                console.error(error);
-            }
-        });
+                    // Automatically scroll to the bottom of the log output
+                    logOutputElement.scrollTop(logOutputElement[0].scrollHeight);
+                    
+                    const logContent = response.log_content;
+                    if (logContent.includes("Processing finished successfully.")) {
+                        clearInterval(logInterval);
+                        $('#progressSection').hide();
+                        $('#completionSection').show();
+                    }
+                },
+                error: function (error) {
+                    console.error(error);
+                }
+            });
+        }, 2000); // Update every 2 seconds
     }
 });
 

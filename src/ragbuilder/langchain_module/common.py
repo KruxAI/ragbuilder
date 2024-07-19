@@ -4,6 +4,9 @@ from datetime import datetime
 import sys
 import re
 
+#TODO: Fetch level from command arguments to ragbuilder. For now, using this global variable
+LOG_LEVEL = logging.INFO
+
 class ProgressState:
     _instance = None
 
@@ -70,7 +73,7 @@ def setup_logging():
         os.makedirs('logs')
 
     if not logger.handlers:
-        logger.setLevel(logging.INFO)
+        logger.setLevel(LOG_LEVEL)
 
         # Create a custom formatter to define the log format
         formatter = CustomFormatter()
@@ -78,12 +81,12 @@ def setup_logging():
         # Create a file handler to write logs to a file
         log_filename = f"logs/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
         file_handler = logging.FileHandler(log_filename)
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(LOG_LEVEL)
         file_handler.setFormatter(formatter)
 
         # Create a stream handler to print logs to the console
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)  # You can set the desired log level for console output
+        console_handler.setLevel(LOG_LEVEL)  # You can set the desired log level for console output
         console_handler.setFormatter(formatter)
 
         # Create and add the exclude filter to both handlers
@@ -97,7 +100,11 @@ def setup_logging():
 
         # Redirect stdout and stderr to the logger
         sys.stdout = LoggerWriter(logger, logging.INFO)
-        sys.stderr = LoggerWriter(logger, logging.INFO)
+        #TODO: The stdout that we want to capture is currently being captured under stderr for some reason
+        # This is because in the below line if we make it logging.ERROR, all the stdout stuff that we want
+        # comes with the tag of [ERROR] instead of [INFO]. Or maybe there's a different issue? 
+        # Anyhow, keeping even stderr as INFO logging in the below line for sanity. 
+        sys.stderr = LoggerWriter(logger, logging.INFO) 
 
         return log_filename
 
@@ -107,19 +114,19 @@ class LoggerWriter:
         self.level = level
         self._buffer = ''
         self._is_logging = False  # Flag to avoid recursion
+        dt_time=datetime.now().strftime("%Y-%m-%d")
+        self.skip_log_pattern=f"GET /get_log_updates|GET /progress|{dt_time}.*INFO|{dt_time}.*ERROR|{dt_time}.*DEBUG|^\s*$"
 
     def write(self, message):
         if self._is_logging:
             return
 
-        dt_time=datetime.now().strftime("%Y-%m-%d")
-        skip_log_pattern=f"GET /get_log_updates|GET /progress|{dt_time}.*INFO|{dt_time}.*ERROR|^\s*$"
         self._buffer += message
         while '\n' in self._buffer:
             line, self._buffer = self._buffer.split('\n', 1)
             if line.rstrip():  # Avoid extra blank lines
                 # Ignore lines with "GET /get_log_updates" or "common.py - flush -"
-                if re.search(skip_log_pattern, line):
+                if re.search(self.skip_log_pattern, line):
                     continue
 
                 self._is_logging = True
@@ -138,7 +145,7 @@ class LoggerWriter:
 
         if self._buffer:
             # Ignore lines with "GET /get_log_updates" or "common.py - flush -"
-            if not re.search(r"GET /get_log_updates|common.py - flush -", self._buffer):
+            if not re.search(self.skip_log_pattern, self._buffer):
                 self._is_logging = True
                 try:
                     self.logger.log(self.level, self._buffer.rstrip())
