@@ -1,3 +1,6 @@
 # .dockerignore
 *.log
 *.env
+*.csv
+*.log
+*.pyc
