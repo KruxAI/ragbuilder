@@ -4,3 +4,9 @@
 *.csv
 *.log
 *.pyc
+*.db
+
+
+!.env-Sample
+!.README.md
+!.LICENSE

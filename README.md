@@ -21,11 +21,24 @@ RagBuilder is a toolkit designed to help you create optimal Production-ready Ret
 
 ## Installation
 
-### Option 1: Install using pip:
+### Option 1: Install using install script:
+#### Mac
 
 ```
-pip install ragbuilder
+curl -fsSL https://raw.githubusercontent.com/KruxAI/ragbuilder-readme/main/install.sh |bash
 ```
+
+#### Windows
+```
+curl -fsSL https://raw.githubusercontent.com/KruxAI/ragbuilder-readme/main/install.bat
+```
+
+Run Install.bat from command prompt
+```
+install.bat
+```
+
+
 
 #### Set your OpenAI API key
 
@@ -49,9 +62,14 @@ docker pull ashwinzyx/ragbuilder:latest
 ```
 
 Run the Docker Container.
-Create .env as below and use it while running the container
+Create .env as below and use it while running the container. The env file must be in the same directory where the docker command is being run
+#### Mac
 ```
-docker run --env-file .env -p 55003:8005 ragbuilder
+docker run -it -v "$(pwd):/ragbuilder" --env-file .env -p 55003:8005 ashwinzyx/ragbuilder:latest
+```
+#### Windows
+```
+docker run -d -v %cd%:/ragbuilder --env-file .env -p 55003:8005 ashwinzyx/ragbuilder
 ```
 
 OR
@@ -62,6 +80,8 @@ docker run  -p 55003:8005  -e OPENAI_API_KEY=sk-....
 ```
 
 Open Ragbuilder [http://localhost:55003/](http://localhost:55003/)
+
+If you are crearting your own synthetic dataset for evaluation, save the csv file in the same directory where the docker run command is being executed and provide the file name only
 
 ## Quickstart Guide
 

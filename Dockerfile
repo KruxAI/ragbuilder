@@ -33,7 +33,7 @@ RUN pip install dist/*.gz
 WORKDIR /
 
 # Optionally, you can delete hidden files and directories as well
-RUN rm -rf ragbuilder
+RUN rm -rf ragbuilder/src
 WORKDIR /ragbuilder
 
 

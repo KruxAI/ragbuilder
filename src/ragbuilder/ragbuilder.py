@@ -494,7 +494,7 @@ def open_url(url):
 url = "http://localhost:8005"
 
 def main():
-    threading.Timer(1.25, lambda: open_url(url)).start()
+    threading.Timer(4, lambda: open_url(url)).start()
     uvicorn.run(app, host="0.0.0.0", port=8005)
 if __name__ == '__main__':
     main()

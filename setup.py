@@ -4,13 +4,15 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 setup(
     name='ragbuilder',
-    version='0.0.5',
+    version='0.0.6',
     author='Ashwin Aravind, Aravind Parameswaran',
     author_email='ashwin@krux.ai, aravind@krux.ai',
     description='RagBuilder is a toolkit designed to help you create optimal Production-ready Retrieval-Augmented Generation (RAG) pipeline for your data',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/kruxai/ragbuilder',
+    license='Apache 2.0',
+    license_files=('LICENSE',),
     package_dir={'': 'src'},
     packages=find_packages(where='src'),
     include_package_data=True,

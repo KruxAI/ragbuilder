@@ -1,9 +1,3 @@
-# Brewfile
-
-# Taps
-tap "homebrew/core"
-
-# Core libraries
 brew "ca-certificates"
 brew "cairo"
 brew "fontconfig"
@@ -70,3 +64,4 @@ brew "unbound"
 brew "xorgproto"
 brew "xz"
 brew "zstd"
+brew "libheif"
