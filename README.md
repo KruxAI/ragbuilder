@@ -1,6 +1,6 @@
 # RagBuilder
 
-RagBuilder is a toolkit designed to help you create optimal Production-ready Retrieval-Augmented Generation (RAG) pipeline for your data. Ragbuilder performs hyperparameter tuning on the different RAG parameters (Eg: chunking strategy: semantic, character etc.; chunk size 1000, 2000 etc.), and evaluates them against a test data set, and shows what RAG configurations worked best for your source data. RagBuilder also includes several pre-defined state-of-the-art RAG templates that have shown strong performance across various other datasets.
+RagBuilder is a toolkit that helps you create optimal Production-ready Retrieval-Augmented-Generation (RAG) setup for your data automatically. By performing hyperparameter tuning on various RAG parameters (Eg: chunking strategy: semantic, character etc., chunk size: 1000, 2000 etc.), RagBuilder evaluates these configurations against a test dataset to identify the best-performing setup for your data. Additionally, RagBuilder includes several state-of-the-art, pre-defined RAG templates that have shown strong performance across diverse datasets. So just bring your data, and RagBuilder will generate a production-grade RAG setup in just minutes.
 
 ## Table of Contents
 
