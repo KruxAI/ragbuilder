@@ -483,6 +483,14 @@ def parse_config(config: dict, db: sqlite3.Connection):
 #     main()
 
 # Function to open URL without SSL verification
+
+def is_docker():
+    """Check if the code is running inside a Docker container."""
+    path = '/.dockerenv'
+    if os.path.exists(path):
+        return True
+    return False
+
 def open_url(url):
     import urllib.request
     context = ssl._create_unverified_context()
@@ -491,10 +499,20 @@ def open_url(url):
     except Exception as e:
         logger.error(f"Error opening URL: {e}")
 
-url = "http://localhost:8005"
+
 
 def main():
-    threading.Timer(4, lambda: open_url(url)).start()
-    uvicorn.run(app, host="0.0.0.0", port=8005)
+    if is_docker():
+        url = "http://localhost:55003"
+        logging.info("Running inside Docker container")
+        logging.info("Open http://localhost:55003 in your browser. Please open with appropriate port number if you have mapped another port.")
+        threading.Timer(1.25, lambda: webbrowser.open(url)).start()
+        uvicorn.run(app, host="localhost", port=8005)
+    else:
+        url = "http://127.0.0.1:8005"
+        logging.info("Opening URL in browser")
+        threading.Timer(1.25, lambda: webbrowser.open(url)).start()
+        uvicorn.run(app, host="127.0.0.1", port=8005)
+
 if __name__ == '__main__':
     main()
