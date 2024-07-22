@@ -1,11 +1,11 @@
 # .dockerignore
 *.log
-*.env
+.env
 *.csv
 *.log
 *.pyc
 *.db
-
+venv/
 
 !.env-Sample
 !.README.md
