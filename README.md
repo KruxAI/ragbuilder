@@ -7,15 +7,12 @@ RagBuilder is a toolkit that helps you create optimal Production-ready Retrieval
 
 https://github.com/user-attachments/assets/8b4a5013-b1b7-40ee-820b-32c46fd99a2a
 
-[Watch on Youtube](https://www.youtube.com/watch?v=VZSbhTXLD9U)
-
 ## Table of Contents
 
 - [Features](#features)
 - [Installation](#installation)
 - [Set your OpenAI API key](#set-your-openai-api-key)
 - [Quickstart Guide](#quickstart-guide)
-- [License](#license)
 
 ## Features
     
