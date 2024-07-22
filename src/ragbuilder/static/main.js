@@ -23,24 +23,6 @@ let progressInterval;
 let smoothInterval;
 
 $(document).ready(function () {
-    // Initialize Bootstrap tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-
-    // Initialize column resizing
-    $('#ragTable').colResizable({
-        resizeMode: 'overflow',
-        liveDrag: true,
-        minWidth: 60,
-        marginLeft: '8px'
-    });
-
-    $('#runTable').colResizable({
-        resizeMode: 'overflow',
-        liveDrag: true,
-        minWidth: 60,
-        marginLeft: '8px'
-    });
-
     // Show modal to capture user inputs and send it to backend.
     $('#newProject').click(function () {
         $('#newProjectModal').modal('show')

@@ -138,6 +138,17 @@
 <!-- Script to show RAG Config as a exandable/ collapsable text. -->
 <script>
     $(document).ready(function() {
+        // Initialize Bootstrap tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+
+        // Initialize column resizing
+        $('#ragTable').colResizable({
+            resizeMode: 'overflow',
+            liveDrag: true,
+            minWidth: 60,
+            marginLeft: '8px'
+        });
+        
         $('.toggle-text').click(function() {
             var expandableText = $(this).siblings('.expandable-text');
             var fullText = $(this).siblings('.full-text');
