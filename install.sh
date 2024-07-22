@@ -5,7 +5,7 @@ set -e
 
 # Download the Brewfile
 echo "Downloading Brewfile..."
-curl -fsSL https://raw.githubusercontent.com/KruxAI/ragbuilder-readme/main/Brewfile -o Brewfile
+curl -fsSL https://raw.githubusercontent.com/KruxAI/ragbuilder/main/Brewfile -o Brewfile
 
 # Install Homebrew packages using Brewfile
 echo "Installing Homebrew packages..."
