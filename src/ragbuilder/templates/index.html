@@ -32,8 +32,8 @@
     </div>
     <div class="row">
         <div class="col">
-            <table class="table table-hover table-sm">
-                <thead class="table-light">
+            <table class="table table-hover table-sm" id="runTable">
+                <thead class="thead-light">
                 <tr>
                     <th>Run ID</th>
                     <th>Status</th>
@@ -41,7 +41,7 @@
                     <th>Source Data</th>
                     <th>Run Config</th>
                     <th>Disabled Options</th>
-                    <th>Timestamp</th>
+                    <th class="timestamp">Timestamp</th>
                     <th>Results</th>
                     <th>Log</th>
                 </tr>
@@ -52,27 +52,33 @@
                         <td>{{ run.run_id }}</td>
                         <td>{{ run.status }}</td>
                         <td>{{ run.description }}</td>
-                        <td>{{ run.src_data }}</td>
-                        <!-- <td>
-                            <span class="expandable-text">{{ run.run_config[:30] }}<span class="ellipsis">...</span></span>
-                            <span class="full-text" style="display: none;">{{ run.src_data }}</span>
-                            <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
-                        </td> -->
-                        <!-- <td>{{ run.run_config }}</td> -->
+                        <!-- <td>{{ run.src_data }}</td> -->
                         <td>
-                            <span class="expandable-text">{{ run.run_config[:30] }}<span class="ellipsis">...</span></span>
+                            <span class="expandable-text" data-toggle="tooltip" title="{{ run.src_data }}">
+                                {% if run.src_data|length > 55 %}
+                                    {{ run.src_data[:55] }}<span class="ellipsis">...</span>
+                                {% else %}
+                                    {{ run.src_data }}
+                                {% endif %}
+                            </span>
+                            {% if run.src_data|length > 55 %}
+                                <pre class="full-text" style="display: none;">{{ run.src_data }}</pre>
+                                <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="expandable-text" data-toggle="tooltip" title="{{ run.run_config }}">{{ run.run_config[:30] }}<span class="ellipsis">...</span></span>
                             <pre class="full-text" style="display: none;">{{ run.run_config }}</pre>
                             <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
                         </td>
-                        <!-- <td>{{ run.disabled_opts }}</td> -->
                         <td>
-                            <span class="expandable-text">{{ run.disabled_opts[:30] }}<span class="ellipsis">...</span></span>
+                            <span class="expandable-text" data-toggle="tooltip" title="{{ run.disabled_opts }}">{{ run.disabled_opts[:30] }}<span class="ellipsis">...</span></span>
                             <pre class="full-text" style="display: none;">{{ run.disabled_opts }}</pre>
                             <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
                         </td>
                         <td>{{ run.run_ts }}</td>
-                        <td><a href="/summary/{{ run.run_id }}" class="btn btn-link btn-sm">View Results</a></td>
-                        <td><a href="/view_log/{{ run.log_path | basename }}" class="btn btn-link btn-sm">View Log</a></td>
+                        <td><a href="/summary/{{ run.run_id }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Results</span></a></td>
+                        <td><a href="/view_log/{{ run.log_path | basename }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Log</span></a></td>
                     </tr>
                 {% endfor %}
                 </tbody>

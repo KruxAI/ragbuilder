@@ -62,20 +62,19 @@
     </div>
     <div class="row">
         <div class="col">
-    
-            <table class="table table-hover table-sm">
-                <thead class="table-light">
+            <table class="table table-hover table-sm" id="ragTable">
+                <thead class="thead-light">
                 <tr>
                     <th>Run ID</th>
                     <th>Eval ID</th>
                     <th>RAG Config</th>
-                    <th>Answer Correctness</th>
-                    <th>Context Precision</th>
-                    <th>Context Recall</th>
-                    <th>Tokens</th>
-                    <th>Cost per Query</th>
-                    <th>Latency</th>
-                    <th>Timestamp</th>
+                    <th class="text-right">Answer Correctness</th>
+                    <th class="text-right">Context Precision</th>
+                    <th class="text-right">Context Recall</th>
+                    <th class="text-right">Tokens</th>
+                    <th class="text-right">Cost per Query</th>
+                    <th class="text-center">Latency</th>
+                    <th class="timestamp">Timestamp</th>
                     <th>Details</th>
                     <th>Code Snippet</th>
                 </tr>
@@ -85,21 +84,20 @@
                     <tr>
                         <td>{{ eval.run_id }}</td>
                         <td>{{ eval.eval_id }}</td>
-                        <!-- <td>{{ eval.rag_config }}</td> -->
                         <td>
-                            <span class="expandable-text">{{ eval.rag_config[:20] }}<span class="ellipsis">...</span></span>
+                            <span class="expandable-text" data-toggle="tooltip" title="{{ eval.rag_config }}">{{ eval.rag_config[:20] }}<span class="ellipsis">...</span></span>
                             <pre class="full-text" style="display: none;">{{ eval.rag_config }}</pre>
                             <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
                         </td>
-                        <td>{{ eval.avg_answer_correctness }}</td>
-                        <td>{{ eval.avg_context_precision }}</td>
-                        <td>{{ eval.avg_context_recall }}</td>
-                        <td>{{ eval.avg_tokens }}</td>
-                        <td>${{ eval.avg_cost_per_query }}</td>
-                        <td>🕓 {{ eval.avg_latency }}s</td>
+                        <td class="text-right">{{ eval.avg_answer_correctness }}</td>
+                        <td class="text-right">{{ eval.avg_context_precision }}</td>
+                        <td class="text-right">{{ eval.avg_context_recall }}</td>
+                        <td class="text-right">{{ eval.avg_tokens }}</td>
+                        <td class="text-right">${{ eval.avg_cost_per_query }}</td>
+                        <td class="text-center">🕓 {{ eval.avg_latency }}s</td>
                         <td>{{ eval.eval_ts }}</td>
-                        <td><a href="/details/{{ eval.eval_id }}" class="btn btn-link btn-sm">View Details</a></td>
-                        <td><a href="#" class="btn btn-link btn-sm view-code-snippet" data-code="{{ eval.code_snippet }}">View Code snippet</a></td>
+                        <td><a href="/details/{{ eval.eval_id }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Details</span></a></td>
+                        <td><a href="#" class="btn btn-outline-success btn-sm view-code-snippet" data-code="{{ eval.code_snippet }}"><span style="font-size:smaller;">View Code snippet</span></a></td>
                     </tr>
                 {% endfor %}
                 </tbody>
@@ -133,6 +131,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/colresizable@1.6.0/colResizable-1.6.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
 <script src="{{ url_for('static', path='main.js') }}"></script>

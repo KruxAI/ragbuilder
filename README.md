@@ -1,5 +1,7 @@
-# RagBuilder
+![RagBuilder logo](./img/ragbuilder_dark.png#gh-dark-mode-only)
+![RagBuilder logo](./img/ragbuilder_light.png#gh-light-mode-only)
 
+# 
 RagBuilder is a toolkit that helps you create optimal Production-ready Retrieval-Augmented-Generation (RAG) setup for your data automatically. By performing hyperparameter tuning on various RAG parameters (Eg: chunking strategy: semantic, character etc., chunk size: 1000, 2000 etc.), RagBuilder evaluates these configurations against a test dataset to identify the best-performing setup for your data. Additionally, RagBuilder includes several state-of-the-art, pre-defined RAG templates that have shown strong performance across diverse datasets. So just bring your data, and RagBuilder will generate a production-grade RAG setup in just minutes.
 
 ## Table of Contents
@@ -24,13 +26,13 @@ RagBuilder is a toolkit that helps you create optimal Production-ready Retrieval
 ### Option 1: Install using install script:
 #### Mac
 
-```
-curl -fsSL https://raw.githubusercontent.com/KruxAI/ragbuilder-readme/main/install.sh |bash
+``` sh
+curl -fsSL https://install.ragbuilder.io/mac | bash
 ```
 
 #### Windows
-```
-curl -fsSL https://raw.githubusercontent.com/KruxAI/ragbuilder-readme/main/install.bat
+``` sh
+curl -fsSL https://install.ragbuilder.io/win
 ```
 
 Run Install.bat from command prompt
@@ -53,6 +55,14 @@ and on Windows it is
 ```
 set OPENAI_API_KEY=XXXXX
 ```
+
+Now, run ragbuilder on your command line:
+
+``` sh
+ragbuilder
+```
+
+This will start the Ragbuilder Uvicorn app and open the browser. If the browser window doesn't open automatically, go to [http://localhost:8005/](http://localhost:8005/) in your browser to access the RagBuilder dashboard.
 
 ### Option 2: Using Prebuilt Docker Image
 
@@ -79,19 +89,14 @@ Provide env variables using command line
 docker run  -p 55003:8005  -e OPENAI_API_KEY=sk-....
 ```
 
-Open Ragbuilder [http://localhost:55003/](http://localhost:55003/)
+This will start the Ragbuilder Uvicorn app and open the browser. If the browser window doesn't open automatically, go to [http://localhost:55003/](http://localhost:55003/) in your browser to access the RagBuilder dashboard.
 
-If you are crearting your own synthetic dataset for evaluation, save the csv file in the same directory where the docker run command is being executed and provide the file name only
+*Note: If you are crearting your own synthetic dataset for evaluation, save the csv file in the same directory where the docker run command is being executed and provide the file name only*
 
 ## Quickstart Guide
 
-Now, run ragbuilder on your command line:
-
-```
-ragbuilder
-```
-
-This will start the Ragbuilder Uvicorn app and open the browser. If the browser window doesn't open automatically, go to http://localhost:8005/ in your browser to access the RagBuilder dashboard.
+Getting started is super easy. 
+To create a new project,
 
 1. Click **New Project** to start building your RAG.
 2. **Description:** Describe your use-case. Let's specify "Q&A Chatbot" as the description for our demo.
