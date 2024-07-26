@@ -3,11 +3,12 @@ import itertools
 import time
 from skopt.space import Categorical, Integer
 from functools import reduce
-from ragbuilder.langchain_module.common import setup_logging
+from ragbuilder.langchain_module.common import setup_logging, progress_state
 
 setup_logging()
 logger = logging.getLogger("ragbuilder")
 
+MAX_MULTI_RETRIEVER_COMBOS=3
 # RAG Config parameter option values
 arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
 arr_chunk_size = [1000, 2000, 3000]
@@ -38,6 +39,7 @@ def init(db, min, max):
     compressor_combinations = arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
     arr_search_kwargs = ['5', '10', '20']
     vectorDB = db
+    progress_state.reset()
 
 def _filter_exclusions(exclude_elements):
     global arr_chunking_strategy, arr_chunk_size, arr_embedding_model, arr_retriever, arr_llm, arr_contextual_compression, arr_compressors, arr_search_kwargs
@@ -102,7 +104,7 @@ def _get_arr_chunk_size(min, max, step_size):
 
 def _generate_combinations(options):
     combos = options[:]
-    for i in range(1, len(options)):
+    for i in range(1, MAX_MULTI_RETRIEVER_COMBOS):
         for item in itertools.combinations(options, i+1):
             multi="|".join(item)
             combos.append(multi)

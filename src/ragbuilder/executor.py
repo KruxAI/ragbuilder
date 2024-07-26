@@ -35,7 +35,7 @@ chat_model = ChatOpenAI(
     temperature=0.2,
     verbose=True
 )
-BAYESIAN_RUNS=20
+BAYESIAN_RUNS=50
 #Import needed for Executing the Generated Code
 from operator import itemgetter
 from langchain import hub

@@ -355,7 +355,7 @@ $(document).ready(function () {
                         lastUpdateTime = Date.now();
                     }
 
-                    if (Date.now() - lastUpdateTime > 180000) { // In case there's no progress for the last 120 secs since smoothProgressUpdate stopped (60 secs ago)
+                    if (Date.now() - lastUpdateTime > 300000) { // In case there's no progress for the last 120 secs since smoothProgressUpdate stopped (60 secs ago)
                         $('#progressText').text(`Running ${currentRun}/${totalRuns}... (Current run is taking longer than expected)`);
                     }
 
@@ -372,7 +372,7 @@ $(document).ready(function () {
     }
 
     function smoothProgressUpdate(progressPercentage, currentRun, totalRuns) {
-        const duration = 60 * 1000; // 60 seconds
+        const duration = 240 * 1000; // 60 seconds
         const interval = 2000; // 2 seconds
         const steps = duration / interval;
         const increment = (1 / totalRuns) * 100 / steps;

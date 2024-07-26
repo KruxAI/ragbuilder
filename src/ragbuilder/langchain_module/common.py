@@ -30,7 +30,7 @@ class ProgressState:
 
     def reset(self):
         self.progress_info['current_run'] = 0
-        self.progress_info['total_runs'] = 0
+        self.progress_info['total_runs'] = 1
 
 progress_state = ProgressState()
 
