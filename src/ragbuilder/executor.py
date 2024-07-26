@@ -1,4 +1,6 @@
 from ragbuilder.rag_templates.top_n_templates import top_n_templates
+#use below for testing templates
+# from ragbuilder.rag_templates.template_testing import top_n_templates
 # from ragbuilder.rag_templates.langchain_templates import nuancedCombos
 import ragbuilder.rag_templates.langchain_templates as lc_templates
 # from ragbuilder.langchain_module.rag import mergerag as rag

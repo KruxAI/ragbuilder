@@ -64,8 +64,8 @@ from langchain.storage import InMemoryStore"""
         
         logger.info("Parent Document (Large Chunk) Retriever Invoked")
         parent_kwargs = kwargs.copy()
-        parent_kwargs['chunk_size'] = kwargs["chunking_kwargs"]["chunk_size"]*3
-        parent_kwargs['chunk_overlap'] = kwargs["chunking_kwargs"]["chunk_overlap"]*3
+        parent_kwargs["chunking_kwargs"]["chunk_size"] = kwargs["chunking_kwargs"]["chunk_size"]*3
+        parent_kwargs["chunking_kwargs"]["chunk_overlap"] = kwargs["chunking_kwargs"]["chunk_overlap"]*3
         parent_kwargs['splitter_name']="parent_splitter"
         parent_chunk_strategy=getChunkingStrategy(**parent_kwargs)
         print('parent_chunk_strategy',parent_chunk_strategy)
