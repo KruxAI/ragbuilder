@@ -395,7 +395,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 # _update_status(run_id, 'Failed')
                 return {
                     "status": "error",
-                    "message": str(e)
+                    # "message": str(e)
                 }, 400
         except Exception as e:
             logger.error(f'Synthetic test data generation failed: {e}')
@@ -477,7 +477,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
 
 # def main():
 #     threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-#     uvicorn.run(app, host="127.0.0.1", port=8005)
+#     uvicorn.run(app, host="0.0.0.0", port=8005)
 
 # if __name__ == '__main__':
 #     main()
@@ -503,16 +503,16 @@ def open_url(url):
 
 def main():
     if is_docker():
-        url = "http://localhost:55003"
+        url = "http://0.0.0.0:55003"
         logging.info("Running inside Docker container")
-        logging.info("Open http://localhost:55003 in your browser. Please open with appropriate port number if you have mapped another port.")
+        logging.info("Open http://0.0.0.0:55003 in your browser. Please open with appropriate port number if you have mapped another port.")
         threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-        uvicorn.run(app, host="localhost", port=8005)
+        uvicorn.run(app, host="0.0.0.0", port=8005)
     else:
         url = "http://127.0.0.1:8005"
         logging.info("Opening URL in browser")
         threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-        uvicorn.run(app, host="127.0.0.1", port=8005)
+        uvicorn.run(app, host="0.0.0.0", port=8005)
 
 if __name__ == '__main__':
     main()

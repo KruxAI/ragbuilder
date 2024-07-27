@@ -5,6 +5,7 @@ FROM python:3.12.3-slim
 RUN apt-get update && apt-get install -y \
     build-essential \
     libjpeg-dev \
+    libmagic-dev \
     zlib1g-dev \
     libopenjp2-7-dev \
     libpng-dev \
@@ -38,7 +39,7 @@ WORKDIR /ragbuilder
 
 
 # Make port 80 available to the world outside this container
-EXPOSE 8085
+EXPOSE 8005
 
 # Run app.py when the container launches
 CMD ["ragbuilder"]
