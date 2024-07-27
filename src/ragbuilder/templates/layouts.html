@@ -119,6 +119,16 @@
                                     <input type="checkbox" class="form-check-input" id="embeddingAda" unchecked>
                                     <label class="form-check-label" for="embeddingAda">text-embedding-ada-002</label>
                                 </div>
+                                <div class="form-group form-check form-switch mx-3">
+                                    <input type="checkbox" class="form-check-input" id="embeddingHuggingFace">
+                                    <label class="form-check-label" for="embeddingHuggingFace">HuggingFace</label>
+                                </div>
+                                <div class="form-group row mx-3" id="embeddingHuggingFaceModelDiv" style="display: none;">
+                                    <label for="embeddingHuggingFaceModel" class="col-sm-2 col-form-label">Model Name:</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" id="embeddingHuggingFaceModel" placeholder="e.g., sentence-transformers/all-MiniLM-L6-v2">
+                                    </div>
+                                </div>
 
                                 <h6 class="mt-4">Vector DB</h6>
                                 <div class="form-group form-check form-switch mx-3">
@@ -220,6 +230,16 @@
                                 <div class="form-group form-check form-switch mx-3">
                                     <input type="checkbox" class="form-check-input" id="gpt4Turbo" unchecked>
                                     <label class="form-check-label" for="gpt4Turbo">GPT-4 Turbo</label>
+                                </div>
+                                <div class="form-group form-check form-switch mx-3">
+                                    <input type="checkbox" class="form-check-input" id="llmHuggingFace">
+                                    <label class="form-check-label" for="llmHuggingFace">HuggingFace</label>
+                                </div>
+                                <div class="form-group row mx-3" id="llmHuggingFaceModelDiv" style="display: none;">
+                                    <label for="llmHuggingFaceModel" class="col-sm-2 col-form-label">Model Name:</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" id="llmHuggingFaceModel" placeholder="e.g., meta-llama/Meta-Llama-3.1-405B">
+                                    </div>
                                 </div>
                                 
                                 <h5 class="mt-5">Advanced Optimization Settings</h5>
