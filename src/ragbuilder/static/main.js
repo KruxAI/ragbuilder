@@ -251,7 +251,7 @@ $(document).ready(function () {
                 "OpenAI:text-embedding-ada-002": $('#embeddingAda').is(':checked'),
                 "HuggingFace": $('#embeddingHuggingFace').is(':checked')
             },
-            huggingfaceEmbeddingModel: 'HF:'+$('#embeddingHuggingFaceModel').val(),
+            huggingfaceEmbeddingModel: $('#embeddingHuggingFace').is(':checked') ? 'HF:'+$('#embeddingHuggingFaceModel').val() : $('#embeddingHuggingFaceModel').val(),
             vectorDB: $('input[name="vectorDB"]:checked').attr('id'),
             // {
             //     "chromaDB": $('#chromaDB').is(':checked'),
@@ -279,7 +279,7 @@ $(document).ready(function () {
                 "OpenAI:gpt-4-turbo": $('#gpt4Turbo').is(':checked'),
                 "HuggingFace": $('#llmHuggingFace').is(':checked')
             },
-            huggingfaceLLMModel: 'HF:'+$('#llmHuggingFaceModel').val(),
+            huggingfaceLLMModel: $('#llmHuggingFace').is(':checked') ? 'HF:'+$('#llmHuggingFaceModel').val() : $('#llmHuggingFaceModel').val(),
             generateSyntheticData: $('#generateSynthetic').is(':checked'),
             optimization: $('input[name="optimization"]:checked').attr('id')
         };
