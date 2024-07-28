@@ -35,6 +35,24 @@ $(document).ready(function () {
         validateSourceData();
     });
 
+    $('#embeddingHuggingFace').change(function () {
+        if (this.checked) {
+            $('#embeddingHuggingFaceModelDiv').show();
+        } else {
+            $('#embeddingHuggingFaceModelDiv').hide();
+            $('#embeddingHuggingFaceModel').val('');
+        }
+    });
+
+    $('#llmHuggingFace').change(function () {
+        if (this.checked) {
+            $('#llmHuggingFaceModelDiv').show();
+        } else {
+            $('#llmHuggingFaceModelDiv').hide();
+            $('#llmHuggingFaceModel').val('');
+        }
+    });
+
     // Disable Compressors if contextualCompression is unselected
     $('#contextualCompression').change(function() {
         if (!this.checked) {
@@ -123,6 +141,7 @@ $(document).ready(function () {
                     <li>text-embedding-3-small: ${$('#embeddingSmall').is(':checked')? '✔' : '☐'}</li>
                     <li>text-embedding-3-large: ${$('#embeddingLarge').is(':checked')? '✔' : '☐'}</li>
                     <li>text-embedding-ada-002: ${$('#embeddingAda').is(':checked')? '✔' : '☐'}</li>
+                    <li>HuggingFace: ${$('#embeddingHuggingFace').is(':checked')? '✔' : '☐'} - ${$('#embeddingHuggingFaceModel').val()}</li>
                 </ul>
                 <p><strong>Vector DB:</strong> ${$('input[name="vectorDB"]:checked').attr('id')}</p>
                 <p><strong>Retriever:</strong></p>
@@ -156,6 +175,7 @@ $(document).ready(function () {
                     <li>GPT-3.5 Turbo: ${$('#gpt35').is(':checked')? '✔' : '☐'}</li>
                     <li>GPT-4o: ${$('#gpt4o').is(':checked')? '✔' : '☐'}</li>
                     <li>GPT-4 Turbo: ${$('#gpt4Turbo').is(':checked')? '✔' : '☐'}</li>
+                    <li>HuggingFace: ${$('#llmHuggingFace').is(':checked')? '✔' : '☐'} - ${$('#llmHuggingFaceModel').val()}</li>
                 </ul>
             `
         }
@@ -226,10 +246,12 @@ $(document).ready(function () {
                 max: $('#chunkMax').val()
             },
             embeddingModel: {
-                "text-embedding-3-small": $('#embeddingSmall').is(':checked'),
-                "text-embedding-3-large": $('#embeddingLarge').is(':checked'),
-                "text-embedding-ada-002": $('#embeddingAda').is(':checked')
+                "OpenAI:text-embedding-3-small": $('#embeddingSmall').is(':checked'),
+                "OpenAI:text-embedding-3-large": $('#embeddingLarge').is(':checked'),
+                "OpenAI:text-embedding-ada-002": $('#embeddingAda').is(':checked'),
+                "HuggingFace": $('#embeddingHuggingFace').is(':checked')
             },
+            huggingfaceEmbeddingModel: $('#embeddingHuggingFace').is(':checked') ? 'HF:'+$('#embeddingHuggingFaceModel').val() : $('#embeddingHuggingFaceModel').val(),
             vectorDB: $('input[name="vectorDB"]:checked').attr('id'),
             // {
             //     "chromaDB": $('#chromaDB').is(':checked'),
@@ -252,10 +274,12 @@ $(document).ready(function () {
             },
             contextualCompression: $('#contextualCompression').is(':checked'),
             llm: {
-                "gpt-3.5-turbo": $('#gpt35').is(':checked'),
-                "gpt-4o": $('#gpt4o').is(':checked'),
-                "gpt-4-turbo": $('#gpt4Turbo').is(':checked')
+                "OpenAI:gpt-3.5-turbo": $('#gpt35').is(':checked'),
+                "OpenAI:gpt-4o": $('#gpt4o').is(':checked'),
+                "OpenAI:gpt-4-turbo": $('#gpt4Turbo').is(':checked'),
+                "HuggingFace": $('#llmHuggingFace').is(':checked')
             },
+            huggingfaceLLMModel: $('#llmHuggingFace').is(':checked') ? 'HF:'+$('#llmHuggingFaceModel').val() : $('#llmHuggingFaceModel').val(),
             generateSyntheticData: $('#generateSynthetic').is(':checked'),
             optimization: $('input[name="optimization"]:checked').attr('id')
         };

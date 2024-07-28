@@ -84,13 +84,15 @@ def rag_builder_bayes_optmization(**kwargs):
     vectorDB=kwargs['vectorDB']
     min_chunk_size=kwargs.get('min_chunk_size', 1000)
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
+    hf_embedding=kwargs.get('hf_embedding')
+    hf_llm=kwargs.get('hf_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None
     # Define the configuration space
-    lc_templates.init(vectorDB, min_chunk_size, max_chunk_size)
+    lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, hf_embedding, hf_llm)
     configs_to_run=dict()
 
     if kwargs['compare_templates']:
@@ -198,6 +200,8 @@ def rag_builder(**kwargs):
     vectorDB=kwargs['vectorDB']
     min_chunk_size=kwargs.get('min_chunk_size', 1000)
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
+    hf_embedding=kwargs.get('hf_embedding')
+    hf_llm=kwargs.get('hf_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
@@ -208,7 +212,7 @@ def rag_builder(**kwargs):
     if kwargs['compare_templates']:
         configs_to_run.update(top_n_templates)
     if kwargs['include_granular_combos']:
-        lc_templates.init(vectorDB, min_chunk_size, max_chunk_size)
+        lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, hf_embedding, hf_llm)
         configs_to_run.update(lc_templates.nuancedCombos(disabled_opts))
 
     cnt_combos=len(configs_to_run)

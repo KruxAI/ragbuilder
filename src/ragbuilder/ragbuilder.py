@@ -274,11 +274,13 @@ class ProjectData(BaseModel):
     chunkingStrategy: dict[str, bool]
     chunkSize: dict[str, str]
     embeddingModel: dict[str, bool]
+    huggingfaceEmbeddingModel: str
     vectorDB: str
     retriever: dict[str, bool]
     topK: dict[str, bool]
     contextualCompression: bool
     llm: dict[str, bool]
+    huggingfaceLLMModel: str
     generateSyntheticData: bool
     optimization: str
     compressors: Optional[dict[str, bool]] = Field(default=None)
@@ -363,6 +365,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
     syntheticDataGenerationOpts=config.get("syntheticDataGeneration", None)
     existingSynthDataPath=config.get("existingSynthDataPath", None)
     vectorDB=config.get("vectorDB", None)
+    hf_embedding=config.get("huggingfaceEmbeddingModel", None)
+    hf_llm=config.get("huggingfaceLLMModel", None)
     min_chunk_size=int(config["chunkSize"]["min"])
     max_chunk_size=int(config["chunkSize"]["max"])
     optimization=config.get("optimization", 'fullParameterSearch')
@@ -421,7 +425,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
         run_id
     )
     _db_write(run_details, db)
-
+    # return json.dumps({'status':'success', 'f_name': f_name})
     try:
         if optimization=='bayesianOptimization':
             logger.info(f"Using Bayesian optimization to find optimal RAG configs...")
@@ -434,6 +438,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 vectorDB=vectorDB,
                 min_chunk_size=min_chunk_size, 
                 max_chunk_size=max_chunk_size, 
+                hf_embedding=hf_embedding,
+                hf_llm=hf_llm,
                 disabled_opts=disabled_opts
             )
         elif optimization=='fullParameterSearch' :
@@ -447,6 +453,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 vectorDB=vectorDB,
                 min_chunk_size=min_chunk_size,
                 max_chunk_size=max_chunk_size,
+                hf_embedding=hf_embedding,
+                hf_llm=hf_llm,
                 disabled_opts=disabled_opts
             )
             logger.info(f"res = {res}")
