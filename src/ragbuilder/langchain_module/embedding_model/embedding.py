@@ -10,31 +10,33 @@ logger = logging.getLogger("ragbuilder")
 
 def getEmbedding(**kwargs):
     try:
+
         # Ensure 'embedding_model' key exists in kwargs
         if 'embedding_model' not in kwargs:
             raise KeyError("The key 'embedding_model' is missing from the arguments.")
         
         embedding_model = kwargs['embedding_model']
-        
+        model_owner= embedding_model.split(":")[0]
+        model= embedding_model.split(":")[1]
         # Validate the embedding model type
         if not isinstance(embedding_model, str):
             raise TypeError("The 'embedding_model' must be a string.")
         
         logger.info("getEmbedding Invoked")
         
-        if embedding_model in ["text-embedding-3-small","text-embedding-3-large","text-embedding-ada-002"]:
+        if model_owner == "OpenAI":
             logger.info(f"OpenAIEmbeddings Invoked: {embedding_model}")
-            code_string= f"""embedding=OpenAIEmbeddings(model='{embedding_model}')"""
+            code_string= f"""embedding=OpenAIEmbeddings(model='{model}')"""
             import_string = f"""from langchain_openai import OpenAIEmbeddings"""
             return {'code_string':code_string,'import_string':import_string}
-        elif embedding_model == "mistral-embed":
+        elif model_owner == "Mistral":
             logger.info(f"MistralAIEmbeddings Invoked: {embedding_model}")
             code_string= f"""embedding=MistralAIEmbeddings(api_key=os.environ.get("MISTRAL_API_KEY"))"""
             import_string = f"""from langchain_mistralai import MistralAIEmbeddings"""
             return {'code_string':code_string,'import_string':import_string}
-        elif embedding_model == "sentence-transformers/all-MiniLM-l6-v2":
+        elif model_owner == "HF":
             logger.info(f"HuggingFaceInferenceAPIEmbeddings Invoked: {embedding_model}")
-            code_string= f"""embedding=HuggingFaceInferenceAPIEmbeddings(api_key=os.environ.get("HUGGINGFACEHUB_API_TOKEN"), model_name="{embedding_model}")"""
+            code_string= f"""embedding=HuggingFaceInferenceAPIEmbeddings(api_key=os.environ.get("HUGGINGFACEHUB_API_TOKEN"), model_name="{model}")"""
             import_string = f"""from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings"""
             return {'code_string':code_string,'import_string':import_string}
         else:
