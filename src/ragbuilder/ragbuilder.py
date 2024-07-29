@@ -291,6 +291,7 @@ class ProjectData(BaseModel):
     criticLLM: Optional[str] = Field(default=None)
     generatorLLM: Optional[str] = Field(default=None)
     embedding: Optional[str] = Field(default=None)
+    numRuns: Optional[str] = Field(default=None)
 
 @app.post("/rbuilder")
 def rbuilder_route(project_data: ProjectData, db: sqlite3.Connection = Depends(get_db)):
@@ -429,6 +430,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     try:
         if optimization=='bayesianOptimization':
             logger.info(f"Using Bayesian optimization to find optimal RAG configs...")
+            num_runs = int(config.get("numRuns", 50))
             res = rag_builder_bayes_optmization(
                 run_id=run_id, 
                 compare_templates=compare_templates, 
@@ -440,6 +442,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 max_chunk_size=max_chunk_size, 
                 hf_embedding=hf_embedding,
                 hf_llm=hf_llm,
+                num_runs=num_runs,
                 disabled_opts=disabled_opts
             )
         elif optimization=='fullParameterSearch' :
