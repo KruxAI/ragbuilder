@@ -68,3 +68,5 @@ uvicorn==0.30.0
 scikit-optimize
 pinecone-client
 pystemmer
+langchain_groq
+langchain-google-genai

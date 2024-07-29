@@ -98,7 +98,9 @@ setup(
         'pydantic==2.8.0',
         'uvicorn==0.30.0',
         'pinecone-client',
-        'setuptools'
+        'setuptools',
+        'langchain_groq',
+        'langchain-google-genai'
         # other dependencies
     ],
 )
