@@ -62,6 +62,15 @@ $(document).ready(function () {
         }
     });
 
+    // Show or hide the number of runs input based on the selected optimization option
+    $('input[name="optimization"]').change(function () {
+        if ($('#bayesianOptimization').is(':checked')) {
+            $('#numRunsContainer').show();
+        } else {
+            $('#numRunsContainer').hide();
+        }
+    });
+
     $('#nextStep1').click(function () {
         const sourceData = $('#sourceData').val();
         $.ajax({
@@ -304,6 +313,10 @@ $(document).ready(function () {
                 generatorLLM: $('#generatorLLM').val(),
                 embedding: $('#embedding').val()
             };
+        }
+
+        if (projectData.optimization === "bayesianOptimization") {
+            projectData.numRuns = $('#numRuns').val();
         }
     
         console.log(JSON.stringify(projectData));

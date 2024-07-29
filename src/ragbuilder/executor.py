@@ -86,6 +86,7 @@ def rag_builder_bayes_optmization(**kwargs):
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
     hf_embedding=kwargs.get('hf_embedding')
     hf_llm=kwargs.get('hf_llm')
+    num_runs=kwargs.get('num_runs')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
@@ -104,10 +105,10 @@ def rag_builder_bayes_optmization(**kwargs):
     logger.info(f"Number of RAG combinations : {cnt_combos}")
     configs_evaluated=dict()
     
-    if cnt_combos < BAYESIAN_RUNS:
+    if cnt_combos < num_runs:
         total_runs=cnt_combos
     else:
-        total_runs = BAYESIAN_RUNS + len(configs_to_run)
+        total_runs = num_runs + len(configs_to_run)
     progress_state.set_total_runs(total_runs)
 
     # Run Templates first if templates have been selected
@@ -183,7 +184,7 @@ def rag_builder_bayes_optmization(**kwargs):
         
         # Run Bayesian optimization
         logger.info(f"Running Bayesian optimization...")
-        result = gp_minimize(objective, space, n_calls=BAYESIAN_RUNS, random_state=42) #, callback=DeltaXStopper(1e-8))
+        result = gp_minimize(objective, space, n_calls=num_runs, random_state=42) #, callback=DeltaXStopper(1e-8))
         logger.info(f"Completed Bayesian optimization...")
 
         best_params = result.x

@@ -247,12 +247,16 @@
                                     Ragbuilder uses Bayesian optimization for efficient hyperparameter tuning. Alternatively, you can generate and assess all parameter combinations for exhaustive insights, but this approach is long-running, costly, and computationally intensive.
                                 </p>
                                 <div class="form-group mx-3">
-                                    <input type="radio" class="form-check-input" id="bayesianOptimization" name="optimization" checked>
+                                    <input type="radio" class="form-check-input me-2" id="bayesianOptimization" name="optimization" checked>
                                     <label class="form-check-label" for="bayesianOptimization">Use Bayesian Optimization (Recommended)</label>
+                                    <div id="numRunsContainer" class="ms-5">
+                                        <label for="numRuns" class="form-label me-2">Number of Runs:</label>
+                                        <input type="number" class="form-control d-inline-block" id="numRuns" value="50" min="1" style="width: 80px;">
+                                    </div>
                                 </div>
                                 <div class="form-group mx-3">
-                                    <input type="radio" class="form-check-input" id="fullParameterSearch" name="optimization">
-                                    <label class="form-check-label" for="fullParameterSearch">Evaluate All Possible Combinations </label>
+                                    <input type="radio" class="form-check-input me-2" id="fullParameterSearch" name="optimization">
+                                    <label class="form-check-label" for="fullParameterSearch">Evaluate All Possible Combinations</label>
                                 </div>
                             </div>
                             <div class="d-grid gap-2 pt-2 d-md-flex justify-content-md-end">
