@@ -65,6 +65,9 @@ from langchain_chroma import Chroma
 from langchain_community.vectorstores import *
 from langchain_pinecone import PineconeVectorStore
 from langchain.storage import InMemoryStore
+from langchain_groq import ChatGroq
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
