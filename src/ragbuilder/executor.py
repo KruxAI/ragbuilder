@@ -68,6 +68,7 @@ from langchain.storage import InMemoryStore
 from langchain_groq import ChatGroq
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
+from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
@@ -288,8 +289,8 @@ class RagBuilder:
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
         #execution os string
+            # logger.info(f"Generated Code\n{self.router}")
             exec(self.router,globals_dict,locals_dict)
-            logger.debug(f"Generated Code\n{self.router}")
 
             #old rag func hooked to eval
             self.rag = locals_dict['rag_pipeline']()

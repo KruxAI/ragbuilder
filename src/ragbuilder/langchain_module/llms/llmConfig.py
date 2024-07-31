@@ -23,6 +23,10 @@ def getLLM(**kwargs):
         logger.info(f"LLM Code Gen Invoked:Google")
         import_string = f"""from langchain_google_genai import ChatGoogleGenerativeAI""" 
         code_string = f"""llm = ChatGoogleGenerativeAI(model='{model}')"""
+    elif model_owner == "GoogleVertexAI":
+        logger.info(f"LLM Code Gen Invoked:GoogleVertexAI")
+        import_string = f"""from langchain_google_vertexai import ChatVertexAI""" 
+        code_string = f"""llm = ChatVertexAI(model_name='{model}')"""
     elif model_owner == "OpenAI":
         logger.info(f"LLM Code Gen Invoked: {retrieval_model}")
         import_string = f"""from langchain_openai import ChatOpenAI""" 

@@ -100,7 +100,8 @@ setup(
         'pinecone-client',
         'setuptools',
         'langchain_groq',
-        'langchain-google-genai'
+        'langchain-google-genai',
+        'langchain-google-vertexai'
         # other dependencies
     ],
 )
