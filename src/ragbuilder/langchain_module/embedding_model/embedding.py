@@ -15,6 +15,7 @@ def getEmbedding(**kwargs):
             raise KeyError("The key 'embedding_model' is missing from the arguments.")
         
         embedding_model = kwargs['embedding_model']
+
         model_owner= embedding_model.split(":")[0]
         model= embedding_model.split(":")[1]
         # Validate the embedding model type
@@ -38,6 +39,10 @@ def getEmbedding(**kwargs):
         elif model_owner == "Google":
             logger.info(f"Google Embedding Invoked: {embedding_model}")
             code_string= f"""embedding = GoogleGenerativeAIEmbeddings(model='{model}')"""
+            import_string = f"""from langchain_google_genai import GoogleGenerativeAIEmbeddings"""
+        elif model_owner == "GoogleVertexAI":
+            logger.info(f"GoogleVertexAI Embedding Invoked: {embedding_model}")
+            code_string= f"""embedding =  VertexAIEmbeddings(model_name='{model}') """
             import_string = f"""from langchain_google_genai import GoogleGenerativeAIEmbeddings"""
         elif model_owner == "Azure":
             logger.info(f"Azure Embedding Invoked: {embedding_model}")

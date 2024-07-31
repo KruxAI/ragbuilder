@@ -70,3 +70,4 @@ pinecone-client
 pystemmer
 langchain_groq
 langchain-google-genai
+langchain-google-vertexai
