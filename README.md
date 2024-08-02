@@ -81,7 +81,7 @@ docker run -it --env-file .env -p 55003:8005 ashwinzyx/ragbuilder:latest
 ```
 #### Windows
 ```
-docker run -d -v %cd%:/ragbuilder --env-file .env -p 55003:8005 ashwinzyx/ragbuilder
+docker run -d --env-file .env -p 55003:8005 ashwinzyx/ragbuilder
 ```
 
 OR
