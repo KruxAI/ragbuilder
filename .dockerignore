@@ -5,8 +5,15 @@
 *.log
 *.pyc
 *.db
+.DS_Store
+.dockerignore
+.git
+.gitignore
 venv/
 
+
+
 !.env-Sample
-!.README.md
-!.LICENSE
+!README.md
+!LICENSE
+!assets/

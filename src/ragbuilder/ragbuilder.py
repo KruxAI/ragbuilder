@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.logger import logger 
@@ -160,12 +161,15 @@ async def details(request: Request, eval_id: int, db: sqlite3.Connection = Depen
     db.close()
     return templates.TemplateResponse(request=request, name='details.html', context={"details": details})
 
-@app.get("/read_docs", response_class=HTMLResponse)
-def docs(request: Request):
-    with open("README.md", "r") as f:
-        markdown_text = f.read()
-    html = markdown.markdown(markdown_text)
-    return templates.TemplateResponse(request=request, name='docs.html', context={"content": html})
+# @app.get("/read_docs", response_class=HTMLResponse)
+# def docs(request: Request):
+#     with open("README.md", "r") as f:
+#         markdown_text = f.read()
+#     html = markdown.markdown(markdown_text)
+#     return templates.TemplateResponse(request=request, name='docs.html', context={"content": html})
+@app.get("/read_docs", response_class=RedirectResponse)
+def docs():
+    return RedirectResponse(url="https://github.com/KruxAI/ragbuilder/blob/main/README.md")
 
 @app.get('/view_log/{filename}', response_class=HTMLResponse)
 async def view_log(request: Request, filename: str):

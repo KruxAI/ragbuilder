@@ -34,12 +34,19 @@ RUN pip install dist/*.gz
 WORKDIR /
 
 # Optionally, you can delete hidden files and directories as well
-RUN rm -rf ragbuilder/src
+RUN rm -rf /ragbuilder/*
+
 WORKDIR /ragbuilder
+
+COPY LICENSE /ragbuilder/LICENSE
+COPY .env-Sample /ragbuilder/.env-Sample
+COPY README.md /ragbuilder/README.md
+
 
 
 # Make port 80 available to the world outside this container
 EXPOSE 8005
+
 
 # Run app.py when the container launches
 CMD ["ragbuilder"]
