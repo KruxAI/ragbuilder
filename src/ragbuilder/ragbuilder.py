@@ -276,7 +276,7 @@ class ProjectData(BaseModel):
     compareTemplates: bool
     includeNonTemplated: bool
     chunkingStrategy: dict[str, bool]
-    chunkSize: dict[str, str]
+    chunkSize: dict[str, int]
     embeddingModel: dict[str, bool]
     huggingfaceEmbeddingModel: str
     vectorDB: str
