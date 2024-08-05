@@ -275,12 +275,17 @@ class ProjectData(BaseModel):
     chunkSize: dict[str, int]
     embeddingModel: dict[str, bool]
     huggingfaceEmbeddingModel: str
+    azureOAIEmbeddingModel: str
+    googleVertexAIEmbeddingModel: str
     vectorDB: str
     retriever: dict[str, bool]
     topK: dict[str, bool]
     contextualCompression: bool
     llm: dict[str, bool]
     huggingfaceLLMModel: str
+    groqLLMModel: str
+    azureOAILLMModel: str
+    googleVertexAILLMModel: str
     generateSyntheticData: bool
     optimization: str
     compressors: Optional[dict[str, bool]] = Field(default=None)

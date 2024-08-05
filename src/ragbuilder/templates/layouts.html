@@ -317,6 +317,24 @@
                                                             <input type="text" class="form-control" id="embeddingHuggingFaceModel" placeholder="e.g., sentence-transformers/all-MiniLM-L6-v2">
                                                         </div>
                                                     </div>
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="embeddingAzureOAI" unchecked> Azure OpenAI
+                                                    </li>
+                                                    <div class="form-group row mx-3" id="embeddingAzureOAIModelDiv" style="display: none;">
+                                                        <label for="embeddingAzureOAIModel" class="col-sm-2 col-form-label">Model:</label>
+                                                        <div class="col-sm-10">
+                                                            <input type="text" class="form-control" id="embeddingAzureOAIModel" placeholder="e.g., text-embedding-ada-002">
+                                                        </div>
+                                                    </div>
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="embeddingGoogleVertexAI" unchecked> Google Vertex AI
+                                                    </li>
+                                                    <div class="form-group row mx-3" id="embeddingGoogleVertexAIModelDiv" style="display: none;">
+                                                        <label for="embeddingGoogleVertexAIModel" class="col-sm-2 col-form-label">Model:</label>
+                                                        <div class="col-sm-10">
+                                                            <input type="text" class="form-control" id="embeddingGoogleVertexAIModel" placeholder="e.g., textembedding-gecko@001">
+                                                        </div>
+                                                    </div>
                                                     <!-- Other embedding model options here -->
                                                 </ul>
                                             </li>
@@ -472,6 +490,33 @@
                                                         <label for="llmHuggingFaceModel" class="col-sm-2 col-form-label">Model:</label>
                                                         <div class="col-sm-10">
                                                             <input type="text" class="form-control" id="llmHuggingFaceModel" placeholder="e.g., meta-llama/Meta-Llama-3.1-405B">
+                                                        </div>
+                                                    </div>
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmGroq" unchecked> Groq
+                                                    </li>
+                                                    <div class="form-group row mx-2" id="llmGroqModelDiv" style="display: none;">
+                                                        <label for="llmGroqModel" class="col-sm-2 col-form-label">Model:</label>
+                                                        <div class="col-sm-10">
+                                                            <input type="text" class="form-control" id="llmGroqModel" placeholder="e.g., meta-llama/Meta-Llama-3.1-405B">
+                                                        </div>
+                                                    </div>
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmAzureOAI" unchecked> Azure OpenAI
+                                                    </li>
+                                                    <div class="form-group row mx-2" id="llmAzureOAIModelDiv" style="display: none;">
+                                                        <label for="llmAzureOAIModel" class="col-sm-2 col-form-label">Model:</label>
+                                                        <div class="col-sm-10">
+                                                            <input type="text" class="form-control" id="llmAzureOAIModel" placeholder="e.g., gpt-35-turbo">
+                                                        </div>
+                                                    </div>
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmGoogleVertexAI" unchecked> Google Vertex AI
+                                                    </li>
+                                                    <div class="form-group row mx-2" id="llmGoogleVertexAIModelDiv" style="display: none;">
+                                                        <label for="llmGoogleVertexAIModel" class="col-sm-2 col-form-label">Model:</label>
+                                                        <div class="col-sm-10">
+                                                            <input type="text" class="form-control" id="llmGoogleVertexAIModel" placeholder="e.g., gemini-1.5-pro-001">
                                                         </div>
                                                     </div>
                                                     <!-- Other LLM options here -->
