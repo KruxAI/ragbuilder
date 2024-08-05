@@ -100,12 +100,57 @@ $(document).ready(function () {
         }
     });
 
+    $('#embeddingAzureOAI').change(function () {
+        if (this.checked) {
+            $('#embeddingAzureOAIModelDiv').show();
+        } else {
+            $('#embeddingAzureOAIModelDiv').hide();
+            $('#embeddingAzureOAIModel').val('');
+        }
+    });
+
+    $('#embeddingGoogleVertexAI').change(function () {
+        if (this.checked) {
+            $('#embeddingGoogleVertexAIModelDiv').show();
+        } else {
+            $('#embeddingGoogleVertexAIModelDiv').hide();
+            $('#embeddingGoogleVertexAIModel').val('');
+        }
+    });
+
     $('#llmHuggingFace').change(function () {
         if (this.checked) {
             $('#llmHuggingFaceModelDiv').show();
         } else {
             $('#llmHuggingFaceModelDiv').hide();
             $('#llmHuggingFaceModel').val('');
+        }
+    });
+
+    $('#llmGroq').change(function () {
+        if (this.checked) {
+            $('#llmGroqModelDiv').show();
+        } else {
+            $('#llmGroqModelDiv').hide();
+            $('#llmGroqModel').val('');
+        }
+    });
+
+    $('#llmAzureOAI').change(function () {
+        if (this.checked) {
+            $('#llmAzureOAIModelDiv').show();
+        } else {
+            $('#llmAzureOAIModelDiv').hide();
+            $('#llmAzureOAIModel').val('');
+        }
+    });
+
+    $('#llmGoogleVertexAI').change(function () {
+        if (this.checked) {
+            $('#llmGoogleVertexAIModelDiv').show();
+        } else {
+            $('#llmGoogleVertexAIModelDiv').hide();
+            $('#llmGoogleVertexAIModel').val('');
         }
     });
 
@@ -337,9 +382,13 @@ $(document).ready(function () {
                 "OpenAI:text-embedding-3-small": $('#embeddingSmall').is(':checked'),
                 "OpenAI:text-embedding-3-large": $('#embeddingLarge').is(':checked'),
                 "OpenAI:text-embedding-ada-002": $('#embeddingAda').is(':checked'),
-                "HuggingFace": $('#embeddingHuggingFace').is(':checked')
+                "HuggingFace": $('#embeddingHuggingFace').is(':checked'),
+                "AzureOAI": $('#embeddingAzureOAI').is(':checked'),
+                "GoogleVertexAI": $('#embeddingGoogleVertexAI').is(':checked')
             },
             huggingfaceEmbeddingModel: $('#embeddingHuggingFace').is(':checked') ? 'HF:'+$('#embeddingHuggingFaceModel').val() : $('#embeddingHuggingFaceModel').val(),
+            azureOAIEmbeddingModel: $('#embeddingAzureOAI').is(':checked') ? 'Azure:'+$('#embeddingAzureOAIModel').val() : $('#embeddingAzureOAIModel').val(),
+            googleVertexAIEmbeddingModel: $('#embeddingGoogleVertexAI').is(':checked') ? 'GoogleVertexAI:'+$('#embeddingGoogleVertexAIModel').val() : $('#embeddingGoogleVertexAIModel').val(),
             vectorDB: $('input[name="vectorDB"]:checked').attr('id'),
             // {
             //     "chromaDB": $('#chromaDB').is(':checked'),
@@ -365,9 +414,15 @@ $(document).ready(function () {
                 "OpenAI:gpt-3.5-turbo": $('#gpt35').is(':checked'),
                 "OpenAI:gpt-4o": $('#gpt4o').is(':checked'),
                 "OpenAI:gpt-4-turbo": $('#gpt4Turbo').is(':checked'),
-                "HuggingFace": $('#llmHuggingFace').is(':checked')
+                "HuggingFace": $('#llmHuggingFace').is(':checked'),
+                "Groq": $('#llmGroq').is(':checked'),
+                "AzureOAI": $('#llmAzureOAI').is(':checked'),
+                "GoogleVertexAI": $('#llmGoogleVertexAI').is(':checked')
             },
             huggingfaceLLMModel: $('#llmHuggingFace').is(':checked') ? 'HF:'+$('#llmHuggingFaceModel').val() : $('#llmHuggingFaceModel').val(),
+            groqLLMModel: $('#llmGroq').is(':checked') ? 'Groq:'+$('#llmGroqModel').val() : $('#llmGroqModel').val(),
+            azureOAILLMModel: $('#llmAzureOAI').is(':checked') ? 'HF:'+$('#llmAzureOAIModel').val() : $('#llmAzureOAIModel').val(),
+            googleVertexAILLMModel: $('#llmGoogleVertexAI').is(':checked') ? 'HF:'+$('#llmGoogleVertexAIModel').val() : $('#llmGoogleVertexAIModel').val(),
             generateSyntheticData: $('#generateSynthetic').is(':checked'),
             optimization: $('input[name="optimization"]:checked').attr('id')
         };
