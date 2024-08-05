@@ -371,10 +371,17 @@ def parse_config(config: dict, db: sqlite3.Connection):
     existingSynthDataPath=config.get("existingSynthDataPath", None)
     vectorDB=config.get("vectorDB", None)
     hf_embedding=config.get("huggingfaceEmbeddingModel", None)
+    azureoai_embedding=config.get("azureOAIEmbeddingModel", None)
+    googlevertexai_embedding=config.get("googleVertexAILLMModel", None)
     hf_llm=config.get("huggingfaceLLMModel", None)
+    groq_llm=config.get("groqLLMModel", None)
+    azureoai_llm=config.get("azureOAILLMModel", None)
+    googlevertexai_llm=config.get("googleVertexAILLMModel", None)
     min_chunk_size=int(config["chunkSize"]["min"])
     max_chunk_size=int(config["chunkSize"]["max"])
     optimization=config.get("optimization", 'fullParameterSearch')
+    other_embedding = [emb for emb in [hf_embedding, azureoai_embedding, googlevertexai_embedding] if emb is not None and emb != ""]
+    other_llm = [llm for llm in [hf_llm, groq_llm, azureoai_llm, googlevertexai_llm] if llm is not None and llm != ""]
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath
@@ -443,8 +450,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 vectorDB=vectorDB,
                 min_chunk_size=min_chunk_size, 
                 max_chunk_size=max_chunk_size, 
-                hf_embedding=hf_embedding,
-                hf_llm=hf_llm,
+                other_embedding=other_embedding,
+                other_llm=other_llm,
                 disabled_opts=disabled_opts
             )
         elif optimization=='fullParameterSearch' :
@@ -500,9 +507,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
 def is_docker():
     """Check if the code is running inside a Docker container."""
     path = '/.dockerenv'
-    if os.path.exists(path):
-        return True
-    return False
+    return os.path.exists(path)
 
 def open_url(url):
     import urllib.request
