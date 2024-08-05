@@ -421,8 +421,8 @@ $(document).ready(function () {
             },
             huggingfaceLLMModel: $('#llmHuggingFace').is(':checked') ? 'HF:'+$('#llmHuggingFaceModel').val() : $('#llmHuggingFaceModel').val(),
             groqLLMModel: $('#llmGroq').is(':checked') ? 'Groq:'+$('#llmGroqModel').val() : $('#llmGroqModel').val(),
-            azureOAILLMModel: $('#llmAzureOAI').is(':checked') ? 'HF:'+$('#llmAzureOAIModel').val() : $('#llmAzureOAIModel').val(),
-            googleVertexAILLMModel: $('#llmGoogleVertexAI').is(':checked') ? 'HF:'+$('#llmGoogleVertexAIModel').val() : $('#llmGoogleVertexAIModel').val(),
+            azureOAILLMModel: $('#llmAzureOAI').is(':checked') ? 'Azure:'+$('#llmAzureOAIModel').val() : $('#llmAzureOAIModel').val(),
+            googleVertexAILLMModel: $('#llmGoogleVertexAI').is(':checked') ? 'GoogleVertexAI:'+$('#llmGoogleVertexAIModel').val() : $('#llmGoogleVertexAIModel').val(),
             generateSyntheticData: $('#generateSynthetic').is(':checked'),
             optimization: $('input[name="optimization"]:checked').attr('id')
         };
