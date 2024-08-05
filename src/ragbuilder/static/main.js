@@ -312,12 +312,12 @@ $(document).ready(function () {
         // Fill the review section with selections from all steps
         const selections = `
             <div class="row row-cols-2">
-                <div class="col-md-5"><strong>Description:</strong></div><div class="col-md-7">${$('#description').val()}</div>
-                <div class="col-md-5"><strong>Source data:</strong></div><div class="col-md-7">${$('#sourceData').val()}</div>
-                <div class="col-md-5"><strong>Use Pre-defined RAG Templates:</strong></div>
-                <div class="col-md-7">${$('#compareTemplates').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
-                <div class="col-md-5"><strong>Create Custom RAG Configurations:</strong></div>
-                <div class="col-md-7">${$('#includeNonTemplated').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
+                <div class="col-md-4"><strong>Description:</strong></div><div class="col-md-8">${$('#description').val()}</div>
+                <div class="col-md-4"><strong>Source data:</strong></div><div class="col-md-8">${$('#sourceData').val()}</div>
+                <div class="col-md-4"><strong>Use Pre-defined RAG Templates:</strong></div>
+                <div class="col-md-8">${$('#compareTemplates').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
+                <div class="col-md-4"><strong>Create Custom RAG Configurations:</strong></div>
+                <div class="col-md-8">${$('#includeNonTemplated').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
             </div>
             ${customSelections}
             ${testDataHtml}

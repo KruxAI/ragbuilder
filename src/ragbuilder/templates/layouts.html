@@ -56,194 +56,8 @@
                                     To tailor your RAG configurations, you can unselect any specific options you wish to exclude (e.g., "Chunking Strategy: Character"). For best results, leave all settings unchanged and click "Next."
                                 </p>
                             </div>
-                            <!-- <div id="nonTemplatedOptions" class="mt-3">
-                                <h6 class="mt-4">Chunking Strategy</h6>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="markdown" checked>
-                                    <label class="form-check-label" for="markdown">Markdown</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="html" checked>
-                                    <label class="form-check-label" for="html">HTML</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="semantic" checked>
-                                    <label class="form-check-label" for="semantic">Semantic</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="recursive" checked>
-                                    <label class="form-check-label" for="recursive">Recursive</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="character" checked>
-                                    <label class="form-check-label" for="character">Character</label>
-                                </div>
-
-                                <h6 class="mt-4">Chunk Size</h6>
-                                <div class="form-group row mx-3">
-                                    <label for="chunkMin" class="col-sm-2 col-form-label">Min:</label>
-                                    <div class="col-sm-4">
-                                        <input type="number" class="form-control" id="chunkMin" value="1000">
-                                    </div>
-                                </div>
-                                <div class="form-group row mx-3">
-                                    <label for="chunkMax" class="col-sm-2 col-form-label">Max:</label>
-                                    <div class="col-sm-4">
-                                        <input type="number" class="form-control" id="chunkMax" value="3000">
-                                    </div>
-                                </div>
-
-                                <h6 class="mt-4">Embedding Model</h6>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="embeddingSmall" unchecked>
-                                    <label class="form-check-label" for="embeddingSmall">text-embedding-3-small</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="embeddingLarge" checked>
-                                    <label class="form-check-label" for="embeddingLarge">text-embedding-3-large</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="embeddingAda" unchecked>
-                                    <label class="form-check-label" for="embeddingAda">text-embedding-ada-002</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="embeddingHuggingFace">
-                                    <label class="form-check-label" for="embeddingHuggingFace">HuggingFace</label>
-                                </div>
-                                <div class="form-group row mx-3" id="embeddingHuggingFaceModelDiv" style="display: none;">
-                                    <label for="embeddingHuggingFaceModel" class="col-sm-2 col-form-label">Model Name:</label>
-                                    <div class="col-sm-10">
-                                        <input type="text" class="form-control" id="embeddingHuggingFaceModel" placeholder="e.g., sentence-transformers/all-MiniLM-L6-v2">
-                                    </div>
-                                </div>
-
-                                <h6 class="mt-4">Vector DB</h6>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="radio" class="form-check-input" name="vectorDB" id="chromaDB" checked>
-                                    <label class="form-check-label" for="chromaDB">Chroma DB</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="radio" class="form-check-input" name="vectorDB" id="faissDB" unchecked>
-                                    <label class="form-check-label" for="faissDB">FAISS DB</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="radio" class="form-check-input" name="vectorDB" id="singleStoreDB" unchecked>
-                                    <label class="form-check-label" for="singleStoreDB">Singlestore DB</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="radio" class="form-check-input" name="vectorDB" id="pineconeDB" unchecked>
-                                    <label class="form-check-label" for="pineconeDB">Pinecone DB</label>
-                                </div>
-
-                                <h6 class="mt-4">Retriever</h6>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="vectorSimilarity" checked>
-                                    <label class="form-check-label" for="vectorSimilarity">Vector DB - Similarity Search</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="vectorMMR" checked>
-                                    <label class="form-check-label" for="vectorMMR">Vector DB - MMR</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="bm25Retriever" checked>
-                                    <label class="form-check-label" for="bm25Retriever">BM25 Retriever</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="multiQuery" checked>
-                                    <label class="form-check-label" for="multiQuery">Multi Query Retriever</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="parentDocFullDoc" checked>
-                                    <label class="form-check-label" for="parentDocFullDoc">Parent Document Retriever - Full Documents</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="parentDocLargeChunk" checked>
-                                    <label class="form-check-label" for="parentDocLargeChunk">Parent Document Retriever - Large Chunks</label>
-                                </div>
-
-                                <h6 class="mt-4">Top k</h6>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="topK5" checked>
-                                    <label class="form-check-label" for="topK5">5</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="topK10" unchecked>
-                                    <label class="form-check-label" for="topK10">10</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="topK20" unchecked>
-                                    <label class="form-check-label" for="topK20">20</label>
-                                </div>
-
-                                <h6 class="mt-4">Compression</h6>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="contextualCompression" checked>
-                                    <label class="form-check-label" for="contextualCompression">Contextual Compression</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-5">
-                                    <input type="checkbox" class="form-check-input" id="longContextReorder" checked>
-                                    <label class="form-check-label" for="longContextReorder">Long Context Reorder</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-5">
-                                    <input type="checkbox" class="form-check-input" id="crossEncoderReranker" unchecked>
-                                    <label class="form-check-label" for="crossEncoderReranker">Cross Encoder Re-ranker</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-5">
-                                    <input type="checkbox" class="form-check-input" id="embeddingsRedundantFilter" unchecked>
-                                    <label class="form-check-label" for="embeddingsRedundantFilter">Embedding Redundant Filter</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-5">
-                                    <input type="checkbox" class="form-check-input" id="embeddingsClusteringFilter" unchecked>
-                                    <label class="form-check-label" for="embeddingsClusteringFilter">Embedding Clustering Filter</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-5">
-                                    <input type="checkbox" class="form-check-input" id="llmChainFilter" unchecked>
-                                    <label class="form-check-label" for="llmChainFilter">LLM Chain Filter</label>
-                                </div>
-
-                                <h6 class="mt-4">LLM</h6>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="gpt35" checked>
-                                    <label class="form-check-label" for="gpt35">GPT-3.5 Turbo</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="gpt4o" unchecked>
-                                    <label class="form-check-label" for="gpt4o">GPT-4o</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="gpt4Turbo" unchecked>
-                                    <label class="form-check-label" for="gpt4Turbo">GPT-4 Turbo</label>
-                                </div>
-                                <div class="form-group form-check form-switch mx-3">
-                                    <input type="checkbox" class="form-check-input" id="llmHuggingFace">
-                                    <label class="form-check-label" for="llmHuggingFace">HuggingFace</label>
-                                </div>
-                                <div class="form-group row mx-3" id="llmHuggingFaceModelDiv" style="display: none;">
-                                    <label for="llmHuggingFaceModel" class="col-sm-2 col-form-label">Model Name:</label>
-                                    <div class="col-sm-10">
-                                        <input type="text" class="form-control" id="llmHuggingFaceModel" placeholder="e.g., meta-llama/Meta-Llama-3.1-405B">
-                                    </div>
-                                </div>
-                                
-                                <h5 class="mt-5">Advanced Optimization Settings</h5>
-                                <p class="fw-light text-muted extra-small">
-                                    Ragbuilder uses Bayesian optimization for efficient hyperparameter tuning. Alternatively, you can generate and assess all parameter combinations for exhaustive insights, but this approach is long-running, costly, and computationally intensive.
-                                </p>
-                                <div class="form-group mx-3">
-                                    <input type="radio" class="form-check-input me-2" id="bayesianOptimization" name="optimization" checked>
-                                    <label class="form-check-label" for="bayesianOptimization">Use Bayesian Optimization (Recommended)</label>
-                                    <div id="numRunsContainer" class="ms-5">
-                                        <label for="numRuns" class="form-label me-2">Number of Runs:</label>
-                                        <input type="number" class="form-control d-inline-block" id="numRuns" value="50" min="1" style="width: 80px;">
-                                    </div>
-                                </div>
-                                <div class="form-group mx-3">
-                                    <input type="radio" class="form-check-input me-2" id="fullParameterSearch" name="optimization">
-                                    <label class="form-check-label" for="fullParameterSearch">Evaluate All Possible Combinations</label>
-                                </div>
-                            </div> -->
-                            <div class="row row-cols-2">
-                                <div class="col-md-6 mt-3">
+                            <div class="row row-cols-2 mx-3">
+                                <div class="col-md-6 mt-5">
                                     <div class="treeview treeview-primary" data-mdb-selectable="true">
                                         <ul role="tree">
                                             <li aria-level="1" role="tree-item">
@@ -253,19 +67,19 @@
                                                     Chunking Strategy
                                                 </a>
                                                 <ul class="collapse show" id="chunking-strategy" role="group">
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="markdown" checked> Markdown
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="html" checked> HTML
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="semantic" checked> Semantic
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="recursive" checked> Recursive
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="character" checked> Character
                                                     </li>
                                                 </ul>
@@ -274,17 +88,17 @@
                                     </div>
                                 </div>
                     
-                                <div class="col-md-6 mt-3 pt-1">
+                                <div class="col-md-6 mt-5 pt-1">
                                     <h6 class="h6">Chunk Size</h6>
                                     <br>
                                     <div class="slider-styled" id="chunk-size-multi-slider"></div>
-                                    <div id="chunk-size-multi-slider-value" class="mt-3 d-flex justify-content-between">
+                                    <div id="chunk-size-multi-slider-value" class="mt-3 d-flex justify-content-start">
                                         <span>Min: <span id="minValue">500</span></span>
-                                        <span class="me-5">Max: <span id="maxValue">2000</span></span>
+                                        <span style="padding-left: 220px;">Max: <span id="maxValue">2000</span></span>
                                     </div>
                                 </div>
                           
-                                <div class="col-md-6 mt-3">
+                                <div class="col-md-6 mt-5">
                                     <div class="treeview treeview-primary" data-mdb-selectable="true">
                                         <ul role="tree">
                                             <li aria-level="1" role="tree-item">
@@ -346,7 +160,7 @@
                                     </div>
                                 </div> 
                     
-                                <div class="col-md-6 mt-3">
+                                <div class="col-md-6 mt-5">
                                     <h6 class="h6">Vector DB</h6>
                                         <div class="form-group form-check mx-3">
                                             <input type="radio" class="form-check-input" name="vectorDB" id="chromaDB" checked>
@@ -366,7 +180,7 @@
                                         </div>
                                 </div>
                     
-                                <div class="col-md-6 mt-3">
+                                <div class="col-md-6 mt-5">
                                     <div class="treeview treeview-primary" data-mdb-selectable="true">
                                         <ul role="tree">
                                             <li aria-level="1" role="tree-item">
@@ -376,22 +190,22 @@
                                                     Retriever
                                                 </a>
                                                 <ul class="collapse show" id="retriever-opts" role="group">
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="vectorSimilarity" checked> Vector DB - Similarity Search
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="vectorMMR" checked> Vector DB - MMR
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="bm25Retriever" checked> BM25 Retriever
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="multiQuery" checked> Multi Query Retriever
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="parentDocFullDoc" checked> Parent Doc Retriever - Full Documents
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="parentDocLargeChunk" checked> Parent Doc Retriever - Large Chunks
                                                     </li>
                                                 </ul>
@@ -400,7 +214,7 @@
                                     </div>
                                 </div>
                     
-                                <div class="col-md-6 mt-3">
+                                <div class="col-md-6 mt-5">
                                     <div class="treeview treeview-primary" data-mdb-selectable="true">
                                         <ul role="tree">
                                             <li aria-level="1" role="tree-item">
@@ -425,32 +239,32 @@
                                     </div>
                                 </div>
                     
-                                <div class="col-md-6 mt-3">
+                                <div class="col-md-6 mt-5">
                                     <div class="treeview treeview-primary" data-mdb-selectable="true">
                                         <ul role="tree">
                                             <li aria-level="1" role="tree-item">
                                                 <a class="treeview-category h6" data-mdb-collapse-init data-mdb-target="#compression-opts" role="button" aria-expanded="true">
                                                     <i class="fas fa-angle-right chevron-icon mx-1"></i>
                                                     <input type="checkbox" class="mx-1 form-check-input" id="compression">
-                                                    Compression
+                                                    Re-ranking/ Compression
                                                 </a>
                                                 <ul class="collapse show" id="compression-opts" role="group">
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="contextualCompression" checked> Contextual Compression
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-3 form-check-input" id="longContextReorder" checked> Long Context Reorder
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-3 form-check-input" id="crossEncoderReranker" checked> Cross Encoder Re-ranker
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-3 form-check-input" id="embeddingsRedundantFilter" unchecked> Embedding Redundant Filter
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-3 form-check-input" id="embeddingsClusteringFilter" unchecked> Embedding Clustering Filter
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-3 form-check-input" id="llmChainFilter" unchecked> LLM Chain Filter
                                                     </li>
                                                 </ul>
@@ -459,7 +273,7 @@
                                     </div>
                                 </div>
                     
-                                <div class="col-md-6 mt-3">
+                                <div class="col-md-6 mt-5">
                                     <div class="treeview treeview-primary" data-mdb-selectable="true">
                                         <ul role="tree">
                                             <li aria-level="1" role="tree-item">
@@ -530,86 +344,94 @@
                                     </div>
                                 </div> 
                             </div> 
-                            <h5 class="mt-5">Advanced Optimization Settings</h5>
-                            <p class="fw-light text-muted extra-small">
-                                Ragbuilder uses Bayesian optimization for efficient hyperparameter tuning. Alternatively, you can generate and assess all parameter combinations for exhaustive insights, but this approach is long-running, costly, and computationally intensive.
-                            </p>
-                            <div class="form-group mx-3">
-                                <input type="radio" class="form-check-input" id="bayesianOptimization" name="optimization" checked>
-                                <label class="form-check-label" for="bayesianOptimization">Use Bayesian Optimization (Recommended)</label>
-                            </div>
-                            <div class="form-group mx-3">
-                                <input type="radio" class="form-check-input" id="fullParameterSearch" name="optimization">
-                                <label class="form-check-label" for="fullParameterSearch">Evaluate All Possible Combinations </label>
+                            <div class="mx-5">
+                                <h5 class="mt-5">Advanced Optimization Settings</h5>
+                                <p class="fw-light text-muted extra-small">
+                                    Ragbuilder uses Bayesian optimization for efficient hyperparameter tuning. Alternatively, you can generate and assess all parameter combinations for exhaustive insights, but this approach is long-running, costly, and computationally intensive.
+                                </p>
+                                <div class="form-group mx-3">
+                                    <input type="radio" class="form-check-input me-2" id="bayesianOptimization" name="optimization" checked>
+                                    <label class="form-check-label" for="bayesianOptimization">Use Bayesian Optimization (Recommended)</label>
+                                    <div id="numRunsContainer" class="ms-5">
+                                        <label for="numRuns" class="form-label me-2">Number of Runs:</label>
+                                        <input type="number" class="form-control d-inline-block" id="numRuns" value="50" min="1" style="width: 80px;">
+                                    </div>
+                                </div>
+                                <div class="form-group mx-3">
+                                    <input type="radio" class="form-check-input me-2" id="fullParameterSearch" name="optimization">
+                                    <label class="form-check-label" for="fullParameterSearch">Evaluate All Possible Combinations </label>
+                                </div>
                             </div>
                             <div class="d-grid gap-2 pt-2 d-md-flex justify-content-md-end">
                                 <button type="button" class="btn btn-secondary my-3 me-md-2" id="previousStep2">Back</button>
                                 <button type="button" class="btn btn-primary my-3 mx-2" id="nextStep2">Next</button>
                             </div>
                         </div>
-                        <div id="step3" style="display: none;">
+                        <div id="step3" class="container-fluid" style="display: none;">
                             <h5>RAG Evaluation Dataset Options</h5>
                             <div class="my-3">
                                 <p class="fw-light text-muted extra-small">
                                     You can either generate a synthetic test dataset or provide your own test dataset file (CSV format with at least 2 columns: "question" and "ground_truth"). If synthetic test data was previously generated for the specified source data, we will automatically re-use it.
                                 </p>
                             </div>
-                            <p id="hashLookupResult"></p>
-                            <div id="foundExistingSynthData" style="display: none;" class="form-check">
-                                <input class="form-check-input" type="radio" name="syntheticDataOptions" id="useExistingSynthData" value="reuse" checked>
-                                <label class="form-check-label" for="useExistingSynthData">
-                                    Use existing synthetic test data 
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="syntheticDataOptions" id="generateSynthetic" value="generate" checked>
-                                <label class="form-check-label" for="generateSynthetic">
-                                    Generate synthetic test data based on my dataset
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="syntheticDataOptions" id="existingTestData" value="existing">
-                                <label class="form-check-label" for="existingTestData">
-                                    I already have a manually created test data set
-                                </label>
-                            </div>
-                            <div id="existingTestDataPath" style="display: none;" class="mt-3">
-                                <label for="testDataPath" class="form-label">Test Data Path (csv):</label>
-                                <input type="text" class="form-control" id="testDataPath" placeholder="Enter path to your test data">
-                            </div>
-                            <div id="generateSyntheticSection" class="mt-3">
-                                <div id="advancedSettings" class="collapse">
-                                    <div class="accordion" id="advancedSettingsAccordion">
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header" id="headingOne">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdv" aria-expanded="false" aria-controls="collapseAdv">
-                                                    Advanced Settings
-                                                </button>
-                                            </h2>
-                                            <div id="collapseAdv" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#advancedSettingsAccordion">
-                                                <div class="accordion-body">
-                                                    <div class="mb-3 row">
-                                                        <label for="testSize" class="col-sm-3 col-form-label">Test size:</label>
-                                                        <div class="col-sm-8">
-                                                            <input type="number" class="form-control" id="testSize" value="20">
+                            <div class="mx-5">
+                                <p id="hashLookupResult"></p>
+                                <div id="foundExistingSynthData" style="display: none;" class="form-check">
+                                    <input class="form-check-input" type="radio" name="syntheticDataOptions" id="useExistingSynthData" value="reuse" checked>
+                                    <label class="form-check-label" for="useExistingSynthData">
+                                        Use existing synthetic test data 
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="syntheticDataOptions" id="generateSynthetic" value="generate" checked>
+                                    <label class="form-check-label" for="generateSynthetic">
+                                        Generate synthetic test data based on my dataset
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="syntheticDataOptions" id="existingTestData" value="existing">
+                                    <label class="form-check-label" for="existingTestData">
+                                        I already have a manually created test data set
+                                    </label>
+                                </div>
+                                <div id="existingTestDataPath" style="display: none;" class="mt-3">
+                                    <label for="testDataPath" class="form-label">Test Data Path (csv):</label>
+                                    <input type="text" class="form-control" id="testDataPath" placeholder="Enter path to your test data">
+                                </div>
+                                <div id="generateSyntheticSection" class="mt-3">
+                                    <div id="advancedSettings" class="collapse">
+                                        <div class="accordion" id="advancedSettingsAccordion">
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header" id="headingOne">
+                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdv" aria-expanded="false" aria-controls="collapseAdv">
+                                                        Advanced Settings
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseAdv" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#advancedSettingsAccordion">
+                                                    <div class="accordion-body">
+                                                        <div class="mb-3 row">
+                                                            <label for="testSize" class="col-sm-3 col-form-label">Test size:</label>
+                                                            <div class="col-sm-8">
+                                                                <input type="number" class="form-control" id="testSize" value="20">
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="mb-3 row">
-                                                        <label for="criticLLM" class="col-sm-3 col-form-label">Critic LLM:</label>
-                                                        <div class="col-sm-8">
-                                                            <input type="text" class="form-control" id="criticLLM" value="gpt-4o">
+                                                        <div class="mb-3 row">
+                                                            <label for="criticLLM" class="col-sm-3 col-form-label">Critic LLM:</label>
+                                                            <div class="col-sm-8">
+                                                                <input type="text" class="form-control" id="criticLLM" value="gpt-4o">
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="mb-3 row">
-                                                        <label for="generatorLLM" class="col-sm-3 col-form-label">Generator LLM:</label>
-                                                        <div class="col-sm-8">
-                                                            <input type="text" class="form-control" id="generatorLLM" value="gpt-4o">
+                                                        <div class="mb-3 row">
+                                                            <label for="generatorLLM" class="col-sm-3 col-form-label">Generator LLM:</label>
+                                                            <div class="col-sm-8">
+                                                                <input type="text" class="form-control" id="generatorLLM" value="gpt-4o">
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="mb-3 row">
-                                                        <label for="embedding" class="col-sm-3 col-form-label">Embedding:</label>
-                                                        <div class="col-sm-8">
-                                                            <input type="text" class="form-control" id="embedding" value="text-embedding-3-large">
+                                                        <div class="mb-3 row">
+                                                            <label for="embedding" class="col-sm-3 col-form-label">Embedding:</label>
+                                                            <div class="col-sm-8">
+                                                                <input type="text" class="form-control" id="embedding" value="text-embedding-3-large">
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -623,14 +445,14 @@
                                 <button type="button" class="btn btn-primary my-3 mx-2" id="nextStep3">Next</button>
                             </div>
                         </div>
-                        <div id="step4" style="display: none;">
+                        <div id="step4" class="container-fluid" style="display: none;">
                             <h5>Review Selections</h5>
                             <div class="my-3">
                                 <p class="fw-light text-muted small">
                                     Please review all your configuration selections below.
                                 </p>
                             </div>
-                            <div id="review"></div>
+                            <div class="m-5" id="review"></div>
                             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                                 <button type="button" class="btn btn-secondary my-3 me-md-2" id="previousStep4">Back</button>
                                 <button type="button" class="btn btn-success my-3 mx-2" id="confirmSelections">Confirm</button>
@@ -793,9 +615,10 @@
         .chevron-icon {
             cursor: pointer;
             transition: transform 0.2s ease;
+            transform: rotate(90deg);
         }
         .collapsed .chevron-icon {
-            transform: rotate(90deg);
+            transform: rotate(0deg);
         }
         .treeview ul {
             list-style: none;
@@ -811,6 +634,7 @@
         }
         #chunk-size-multi-slider {
             height: 10px;
+            width: 350px;
         }
         #chunk-size-multi-slider .noUi-connect {
             background: #4970C4;

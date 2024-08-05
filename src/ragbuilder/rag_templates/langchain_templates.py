@@ -27,7 +27,7 @@ no_chunk_req_loaders = ['SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHe
 chunk_req_loaders = ['RecursiveCharacterTextSplitter','CharacterTextSplitter']
 
 
-def init(db='ChromaDB', min=500, max=2000, hf_embedding=None, hf_llm=None):
+def init(db='ChromaDB', min=500, max=2000, other_embedding=[], other_llm=[]):
     global arr_chunking_strategy, arr_chunk_size, arr_embedding_model, retriever_combinations, arr_retriever, arr_llm, arr_contextual_compression, \
         compressor_combinations, arr_compressors, arr_search_kwargs, vectorDB
     arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
@@ -40,11 +40,11 @@ def init(db='ChromaDB', min=500, max=2000, hf_embedding=None, hf_llm=None):
     arr_search_kwargs = ['5', '10', '20']
     vectorDB = db
     
-    if hf_embedding:
-        arr_embedding_model.append(hf_embedding)
+    if other_embedding:
+        arr_embedding_model.extend(other_embedding)
 
-    if hf_llm:
-        arr_llm.append(hf_llm)
+    if other_llm:
+        arr_llm.extend(other_llm)
     
     progress_state.reset()
 
