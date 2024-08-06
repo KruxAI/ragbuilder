@@ -29,12 +29,68 @@ $(document).ready(function () {
     });
     var dataExists = "";
     var existingSynthDataPath = "";
+    var chunk_size_values = [500, 2000]
     
     // Check if source data path is valid
     $('#sourceData').on('blur', function() {
         validateSourceData();
     });
 
+    document.querySelectorAll('[data-mdb-toggle="collapse"]').forEach(element => {
+        new mdb.Collapse(element);
+    });
+
+    // Handle parent checkbox selection
+    $('.treeview-category > input[type="checkbox"]').change(function () {
+        var isChecked = $(this).prop('checked');
+        $(this).closest('li').find('input[type="checkbox"]').prop('checked', isChecked);
+    });
+
+    // Handle child checkbox selection
+    $('.treeview-category li input[type="checkbox"]').change(function () {
+        var allSiblings = $(this).closest('ul').find('> li > input[type="checkbox"]');
+        var allChecked = allSiblings.length === allSiblings.filter(':checked').length;
+        var parentCheckbox = $(this).closest('ul').siblings('input[type="checkbox"]');
+        parentCheckbox.prop('checked', allChecked);
+    });
+
+    // Handle chevron icon toggle and collapse/expand
+    $('.treeview-category > .chevron-icon').click(function () {
+        var $this = $(this);
+        var target = $this.closest('a').data('mdb-target');
+        $(target).collapse('toggle');
+        $this.closest('a').attr('aria-expanded', function (index, attr) {
+            return attr === 'true' ? 'false' : 'true';
+        });
+        $this.closest('a').toggleClass('collapsed');
+    });
+
+    // Initialize noUiSlider
+    const slider = document.getElementById('chunk-size-multi-slider');
+    noUiSlider.create(slider, {
+        start: [500, 2000],
+        connect: [false, true, false],
+        range: {
+            'min': 100,
+            'max': 5000
+        },
+        step: 100,
+        tooltips: true,
+        format: {
+            to: function (value) {
+                return Math.round(value);
+            },
+            from: function (value) {
+                return Number(value);
+            }
+        }
+    });
+
+    slider.noUiSlider.on('update', function (values, handle) {
+        document.getElementById('minValue').innerText = values[0];
+        document.getElementById('maxValue').innerText = values[1];
+    });
+    
     $('#embeddingHuggingFace').change(function () {
         if (this.checked) {
             $('#embeddingHuggingFaceModelDiv').show();
@@ -44,12 +100,75 @@ $(document).ready(function () {
         }
     });
 
+    $('#embeddingAzureOAI').change(function () {
+        if (this.checked) {
+            $('#embeddingAzureOAIModelDiv').show();
+        } else {
+            $('#embeddingAzureOAIModelDiv').hide();
+            $('#embeddingAzureOAIModel').val('');
+        }
+    });
+
+    $('#embeddingGoogleVertexAI').change(function () {
+        if (this.checked) {
+            $('#embeddingGoogleVertexAIModelDiv').show();
+        } else {
+            $('#embeddingGoogleVertexAIModelDiv').hide();
+            $('#embeddingGoogleVertexAIModel').val('');
+        }
+    });
+
+    $('#embeddingOllama').change(function () {
+        if (this.checked) {
+            $('#embeddingOllamaModelDiv').show();
+        } else {
+            $('#embeddingOllamaModelDiv').hide();
+            $('#embeddingOllamaModel').val('');
+        }
+    });
+
     $('#llmHuggingFace').change(function () {
         if (this.checked) {
             $('#llmHuggingFaceModelDiv').show();
         } else {
             $('#llmHuggingFaceModelDiv').hide();
             $('#llmHuggingFaceModel').val('');
+        }
+    });
+
+    $('#llmGroq').change(function () {
+        if (this.checked) {
+            $('#llmGroqModelDiv').show();
+        } else {
+            $('#llmGroqModelDiv').hide();
+            $('#llmGroqModel').val('');
+        }
+    });
+
+    $('#llmAzureOAI').change(function () {
+        if (this.checked) {
+            $('#llmAzureOAIModelDiv').show();
+        } else {
+            $('#llmAzureOAIModelDiv').hide();
+            $('#llmAzureOAIModel').val('');
+        }
+    });
+
+    $('#llmGoogleVertexAI').change(function () {
+        if (this.checked) {
+            $('#llmGoogleVertexAIModelDiv').show();
+        } else {
+            $('#llmGoogleVertexAIModelDiv').hide();
+            $('#llmGoogleVertexAIModel').val('');
+        }
+    });
+
+    $('#llmOllama').change(function () {
+        if (this.checked) {
+            $('#llmOllamaModelDiv').show();
+        } else {
+            $('#llmOllamaModelDiv').hide();
+            $('#llmOllamaModel').val('');
         }
     });
 
@@ -121,9 +240,9 @@ $(document).ready(function () {
         var selectedOption = $('input[name="syntheticDataOptions"]:checked').val();
 
         if (selectedOption === 'reuse') {
-            testDataHtml = `<p><strong>Re-use synthetic data:</strong> ${$('#useExistingSynthData').is(':checked')? '✔' : '☐'}</p>${dataExists}`;
+            testDataHtml = `<p><strong>Re-use synthetic data:</strong> ${$('#useExistingSynthData').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</p>${dataExists}`;
         } else if (selectedOption === 'generate') {
-            testDataHtml = `<p><strong>Generate synthetic data:</strong> ${$('#generateSynthetic').is(':checked')? '✔' : '☐'}</p>`;
+            testDataHtml = `<p><strong>Generate synthetic data:</strong> ${$('#generateSynthetic').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</p>`;
         } else {
             const testDataPath = $('#testDataPath').val();
             testDataHtml = `<p><strong>Test Data Path:</strong> ${testDataPath}</p>`;
@@ -131,70 +250,101 @@ $(document).ready(function () {
 
         if ($('#includeNonTemplated').is(':checked')) {
             // console.log(existingSynthDataPath);
+            chunk_size_values = slider.noUiSlider.get();
             customSelections=`
-                <p><strong>Chunking Strategy:</strong></p>
-                <ul>
-                    <li>Markdown: ${$('#markdown').is(':checked')? '✔' : '☐'}</li>
-                    <li>HTML: ${$('#html').is(':checked')? '✔' : '☐'}</li>
-                    <li>Semantic: ${$('#semantic').is(':checked')? '✔' : '☐'}</li>
-                    <li>Recursive: ${$('#recursive').is(':checked')? '✔' : '☐'}</li>
-                    <li>Character: ${$('#character').is(':checked')? '✔' : '☐'}</li>
-                </ul>
-                <p><strong>Chunk Size:</strong></p>
-                <ul>
-                    <li>Min: ${$('#chunkMin').val()}</li>
-                    <li>Max: ${$('#chunkMax').val()}</li>
-                </ul>
-                <p><strong>Embedding Model:</strong></p>
-                <ul>
-                    <li>text-embedding-3-small: ${$('#embeddingSmall').is(':checked')? '✔' : '☐'}</li>
-                    <li>text-embedding-3-large: ${$('#embeddingLarge').is(':checked')? '✔' : '☐'}</li>
-                    <li>text-embedding-ada-002: ${$('#embeddingAda').is(':checked')? '✔' : '☐'}</li>
-                    <li>HuggingFace: ${$('#embeddingHuggingFace').is(':checked')? '✔' : '☐'} - ${$('#embeddingHuggingFaceModel').val()}</li>
-                </ul>
-                <p><strong>Vector DB:</strong> ${$('input[name="vectorDB"]:checked').attr('id')}</p>
-                <p><strong>Retriever:</strong></p>
-                <ul>
-                    <li>Vector DB - Similarity Search: ${$('#vectorSimilarity').is(':checked')? '✔' : '☐'}</li>
-                    <li>Vector DB - MMR: ${$('#vectorMMR').is(':checked')? '✔' : '☐'}</li>
-                    <li>BM25 Retriever: ${$('#bm25Retriever').is(':checked')? '✔' : '☐'}</li>
-                    <li>Multi Query Retriever: ${$('#multiQuery').is(':checked')? '✔' : '☐'}</li>
-                    <li>Parent Document Retriever - Full Documents: ${$('#parentDocFullDoc').is(':checked')? '✔' : '☐'}</li>
-                    <li>Parent Document Retriever - Large Chunks: ${$('#parentDocLargeChunk').is(':checked')? '✔' : '☐'}</li>
-                </ul>
-                <p><strong>Top k:</strong></p>
-                <ul>
-                    <li>5: ${$('#topK5').is(':checked')? '✔' : '☐'}</li>
-                    <li>10: ${$('#topK10').is(':checked')? '✔' : '☐'}</li>
-                    <li>20: ${$('#topK20').is(':checked')? '✔' : '☐'}</li>
-                </ul>
-                <p><strong>Compression:</strong></p>
-                <ul>
-                    <li>Contextual Compression: ${$('#contextualCompression').is(':checked')? '✔' : '☐'}</li>
-                    <ul>
-                        <li>Long Context Reorder: ${$('#longContextReorder').is(':checked')? '✔' : '☐'}</li>
-                        <li>Cross Encoder Re-ranker: ${$('#crossEncoderReranker').is(':checked')? '✔' : '☐'}</li>
-                        <li>Embedding Redundant Filter: ${$('#embeddingsRedundantFilter').is(':checked')? '✔' : '☐'}</li>
-                        <li>Embedding Clustering Filter: ${$('#embeddingsClusteringFilter').is(':checked')? '✔' : '☐'}</li>
-                        <li>LLM Chain Filter: ${$('#llmChainFilter').is(':checked')? '✔' : '☐'}</li>
-                    </ul>        
-                </ul>
-                <p><strong>LLM:</strong></p>
-                <ul>
-                    <li>GPT-3.5 Turbo: ${$('#gpt35').is(':checked')? '✔' : '☐'}</li>
-                    <li>GPT-4o: ${$('#gpt4o').is(':checked')? '✔' : '☐'}</li>
-                    <li>GPT-4 Turbo: ${$('#gpt4Turbo').is(':checked')? '✔' : '☐'}</li>
-                    <li>HuggingFace: ${$('#llmHuggingFace').is(':checked')? '✔' : '☐'} - ${$('#llmHuggingFaceModel').val()}</li>
-                </ul>
+                <div class="row row-cols-2">
+                    <div class="col-md-6 mt-3">
+                        <p><strong>Chunking Strategy:</strong></p>
+                        <ul>
+                            <li><div class="row"><div class="col-8">Markdown: </div>${$('#markdown').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">HTML: </div>${$('#html').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Semantic: </div>${$('#semantic').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Recursive: </div>${$('#recursive').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Character: </div>${$('#character').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6 mt-3">
+                        <p><strong>Chunk Size:</strong></p>
+                        <ul>
+                            <li>Min: ${chunk_size_values[0]}</li>
+                            <li>Max: ${chunk_size_values[1]}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6 mt-3">
+                        <p><strong>Embedding Model:</strong></p>
+                        <ul>
+                            <li><div class="row"><div class="col-8">text-embedding-3-small: </div>${$('#embeddingSmall').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div</li>
+                            <li><div class="row"><div class="col-8">text-embedding-3-large: </div>${$('#embeddingLarge').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">text-embedding-ada-002: </div>${$('#embeddingAda').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">HuggingFace: </div>${$('#embeddingHuggingFace').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#embeddingHuggingFaceModel').val()}</li>
+                            <li><div class="row"><div class="col-8">Azure OpenAI: </div>${$('#embeddingAzureOAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#embeddingAzureOAIModel').val()}</li>
+                            <li><div class="row"><div class="col-8">Google Vertex AI: </div>${$('#embeddingGoogleVertexAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#embeddingGoogleVertexAIModel').val()}</li>
+                            <li><div class="row"><div class="col-8">Ollama: </div>${$('#embeddingOllama').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#embeddingOllamaModel').val()}</li>
+                        </ul>
+                    </div>    
+                    <div class="col-md-6 mt-3">
+                        <p><strong>Vector DB:</strong> ${$('input[name="vectorDB"]:checked').attr('id')}</p>
+                    </div>
+                    <div class="col-md-6 mt-3">
+                        <p><strong>Retriever:</strong></p>
+                        <ul>
+                            <li><div class="row"><div class="col-8">Vector DB - Similarity Search: </div>${$('#vectorSimilarity').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Vector DB - MMR: </div>${$('#vectorMMR').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">BM25 Retriever: </div>${$('#bm25Retriever').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Multi Query Retriever: </div>${$('#multiQuery').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Parent Doc Retriever - Full Documents: </div>${$('#parentDocFullDoc').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Parent Doc Retriever - Large Chunks: </div>${$('#parentDocLargeChunk').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                        </ul>
+                    </div>    
+                    <div class="col-md-6 mt-3">
+                        <p><strong>Top k:</strong></p>
+                        <ul>
+                            <li><div class="row"><div class="col-3">5: </div>${$('#topK5').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-3">10: </div>${$('#topK10').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-3">20: </div>${$('#topK20').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                        </ul>
+                    </div>    
+                    <div class="col-md-6 mt-3">
+                        <p><strong>Compression:</strong></p>
+                        <ul>
+                            <li><div class="row"><div class="col-8">Contextual Compression: </div>${$('#contextualCompression').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle mx-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <ul>
+                                <li><div class="row"><div class="col-8">Long Context Reorder: </div>${$('#longContextReorder').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                                <li><div class="row"><div class="col-8">Cross Encoder Re-ranker: </div>${$('#crossEncoderReranker').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                                <li><div class="row"><div class="col-8">Embedding Redundant Filter: </div>${$('#embeddingsRedundantFilter').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                                <li><div class="row"><div class="col-8">Embedding Clustering Filter: </div>${$('#embeddingsClusteringFilter').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                                <li><div class="row"><div class="col-8">LLM Chain Filter: </div>${$('#llmChainFilter').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            </ul>        
+                        </ul>
+                    </div>    
+                    <div class="col-md-6 mt-3">
+                        <p><strong>LLM:</strong></p>
+                        <ul>
+                            <li><div class="row"><div class="col-6">GPT-4o mini: </div>${$('#gpt4oMini').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>    
+                            <li><div class="row"><div class="col-6">GPT-4o: </div>${$('#gpt4o').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-6">GPT-3.5 Turbo: </div>${$('#gpt35').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-6">GPT-4 Turbo: </div>${$('#gpt4Turbo').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-6">HuggingFace: </div>${$('#llmHuggingFace').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmHuggingFaceModel').val()}</li>
+                            <li><div class="row"><div class="col-6">Groq: </div>${$('#llmGroq').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmGroqModel').val()}</li>
+                            <li><div class="row"><div class="col-6">Azure OpenAI: </div>${$('#llmAzureOAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmAzureOAIModel').val()}</li>
+                            <li><div class="row"><div class="col-6">Google Vertex AI: </div>${$('#llmGoogleVertexAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmGoogleVertexAIModel').val()}</li>
+                            <li><div class="row"><div class="col-6">Ollama: </div>${$('#llmOllama').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmOllamaModel').val()}</li>
+                        </ul>
+                    </div>
+                </div>    
             `
         }
 
         // Fill the review section with selections from all steps
         const selections = `
-            <p><strong>Description:</strong> ${$('#description').val()}</p>
-            <p><strong>Source data:</strong> ${$('#sourceData').val()}</p>
-            <p><strong>Use Pre-defined RAG Templates:</strong> ${$('#compareTemplates').is(':checked')? '✔' : '☐'}</p>
-            <p><strong>Create Custom RAG Configurations:</strong> ${$('#includeNonTemplated').is(':checked')? '✔' : '☐'}</p>
+            <div class="row row-cols-2">
+                <div class="col-md-4"><strong>Description:</strong></div><div class="col-md-8">${$('#description').val()}</div>
+                <div class="col-md-4"><strong>Source data:</strong></div><div class="col-md-8">${$('#sourceData').val()}</div>
+                <div class="col-md-4"><strong>Use Pre-defined RAG Templates:</strong></div>
+                <div class="col-md-8">${$('#compareTemplates').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
+                <div class="col-md-4"><strong>Create Custom RAG Configurations:</strong></div>
+                <div class="col-md-8">${$('#includeNonTemplated').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
+            </div>
             ${customSelections}
             ${testDataHtml}
         `;
@@ -251,23 +401,23 @@ $(document).ready(function () {
                 CharacterTextSplitter: $('#character').is(':checked')
             },
             chunkSize: {
-                min: $('#chunkMin').val(),
-                max: $('#chunkMax').val()
+                min: chunk_size_values[0],
+                max: chunk_size_values[1]
             },
             embeddingModel: {
                 "OpenAI:text-embedding-3-small": $('#embeddingSmall').is(':checked'),
                 "OpenAI:text-embedding-3-large": $('#embeddingLarge').is(':checked'),
                 "OpenAI:text-embedding-ada-002": $('#embeddingAda').is(':checked'),
-                "HuggingFace": $('#embeddingHuggingFace').is(':checked')
+                "HuggingFace": $('#embeddingHuggingFace').is(':checked'),
+                "AzureOAI": $('#embeddingAzureOAI').is(':checked'),
+                "GoogleVertexAI": $('#embeddingGoogleVertexAI').is(':checked'),
+                "Ollama": $('#embeddingOllama').is(':checked'),
             },
             huggingfaceEmbeddingModel: $('#embeddingHuggingFace').is(':checked') ? 'HF:'+$('#embeddingHuggingFaceModel').val() : $('#embeddingHuggingFaceModel').val(),
+            azureOAIEmbeddingModel: $('#embeddingAzureOAI').is(':checked') ? 'Azure:'+$('#embeddingAzureOAIModel').val() : $('#embeddingAzureOAIModel').val(),
+            googleVertexAIEmbeddingModel: $('#embeddingGoogleVertexAI').is(':checked') ? 'GoogleVertexAI:'+$('#embeddingGoogleVertexAIModel').val() : $('#embeddingGoogleVertexAIModel').val(),
+            ollamaEmbeddingModel: $('#embeddingOllama').is(':checked') ? 'Ollama:'+$('#embeddingOllamaModel').val() : $('#embeddingOllamaModel').val(),
             vectorDB: $('input[name="vectorDB"]:checked').attr('id'),
-            // {
-            //     "chromaDB": $('#chromaDB').is(':checked'),
-            //     "faissDB": $('#faissDB').is(':checked'),
-            //     "singleStoreDB": $('#singleStoreDB').is(':checked'),
-            //     "pineconeDB": $('#pineconeDB').is(':checked')
-            // },
             retriever: {
                 vectorSimilarity: $('#vectorSimilarity').is(':checked'),
                 vectorMMR: $('#vectorMMR').is(':checked'),
@@ -283,12 +433,21 @@ $(document).ready(function () {
             },
             contextualCompression: $('#contextualCompression').is(':checked'),
             llm: {
-                "OpenAI:gpt-3.5-turbo": $('#gpt35').is(':checked'),
+                "OpenAI:gpt-4o-mini": $('#gpt4oMini').is(':checked'),
                 "OpenAI:gpt-4o": $('#gpt4o').is(':checked'),
+                "OpenAI:gpt-3.5-turbo": $('#gpt35').is(':checked'),
                 "OpenAI:gpt-4-turbo": $('#gpt4Turbo').is(':checked'),
-                "HuggingFace": $('#llmHuggingFace').is(':checked')
+                "HuggingFace": $('#llmHuggingFace').is(':checked'),
+                "Groq": $('#llmGroq').is(':checked'),
+                "AzureOAI": $('#llmAzureOAI').is(':checked'),
+                "GoogleVertexAI": $('#llmGoogleVertexAI').is(':checked'),
+                "Ollama": $('#llmOllama').is(':checked'),
             },
             huggingfaceLLMModel: $('#llmHuggingFace').is(':checked') ? 'HF:'+$('#llmHuggingFaceModel').val() : $('#llmHuggingFaceModel').val(),
+            groqLLMModel: $('#llmGroq').is(':checked') ? 'Groq:'+$('#llmGroqModel').val() : $('#llmGroqModel').val(),
+            azureOAILLMModel: $('#llmAzureOAI').is(':checked') ? 'Azure:'+$('#llmAzureOAIModel').val() : $('#llmAzureOAIModel').val(),
+            googleVertexAILLMModel: $('#llmGoogleVertexAI').is(':checked') ? 'GoogleVertexAI:'+$('#llmGoogleVertexAIModel').val() : $('#llmGoogleVertexAIModel').val(),
+            ollamaLLMModel: $('#llmOllama').is(':checked') ? 'Ollama:'+$('#llmOllamaModel').val() : $('#llmOllamaModel').val(),
             generateSyntheticData: $('#generateSynthetic').is(':checked'),
             optimization: $('input[name="optimization"]:checked').attr('id')
         };

@@ -48,6 +48,8 @@ load_dotenv()
 
 # Get the database URL from the environment variable
 SINGLESTOREDB_URL = os.getenv("SINGLESTOREDB_URL")
+PGVECTOR_CONNECTION_STRING = os.getenv("PGVECTOR_CONNECTION_STRING")
+
 import dotenv
 from langchain_community.document_loaders import *
 from langchain_text_splitters import *
@@ -65,6 +67,13 @@ from langchain_chroma import Chroma
 from langchain_community.vectorstores import *
 from langchain_pinecone import PineconeVectorStore
 from langchain.storage import InMemoryStore
+from langchain_groq import ChatGroq
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
+from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
+from langchain_postgres.vectorstores import PGVector
+from langchain_ollama.llms import OllamaLLM
+from langchain_ollama import OllamaEmbeddings
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
@@ -84,16 +93,19 @@ def rag_builder_bayes_optmization(**kwargs):
     vectorDB=kwargs['vectorDB']
     min_chunk_size=kwargs.get('min_chunk_size', 1000)
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
-    hf_embedding=kwargs.get('hf_embedding')
-    hf_llm=kwargs.get('hf_llm')
     num_runs=kwargs.get('num_runs')
+    other_embedding=kwargs.get('other_embedding')
+    other_llm=kwargs.get('other_llm')
+    logger.info(f'other_embedding={other_embedding}')
+    logger.info(f'other_llm={other_llm}')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None
     # Define the configuration space
-    lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, hf_embedding, hf_llm)
+    logger.info(f"Initializing RAG parameter set...")
+    lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, other_embedding, other_llm)
     configs_to_run=dict()
 
     if kwargs['compare_templates']:
@@ -201,8 +213,8 @@ def rag_builder(**kwargs):
     vectorDB=kwargs['vectorDB']
     min_chunk_size=kwargs.get('min_chunk_size', 1000)
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
-    hf_embedding=kwargs.get('hf_embedding')
-    hf_llm=kwargs.get('hf_llm')
+    other_embedding=kwargs.get('other_embedding')
+    other_llm=kwargs.get('other_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
@@ -213,7 +225,8 @@ def rag_builder(**kwargs):
     if kwargs['compare_templates']:
         configs_to_run.update(top_n_templates)
     if kwargs['include_granular_combos']:
-        lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, hf_embedding, hf_llm)
+        logger.info(f"Initializing RAG parameter set...")
+        lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, other_embedding, other_llm)
         configs_to_run.update(lc_templates.nuancedCombos(disabled_opts))
 
     cnt_combos=len(configs_to_run)
@@ -285,28 +298,13 @@ class RagBuilder:
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
         #execution os string
+            logger.info(f"Generated Code\n{self.router}")
             exec(self.router,globals_dict,locals_dict)
-            logger.debug(f"Generated Code\n{self.router}")
 
             #old rag func hooked to eval
             self.rag = locals_dict['rag_pipeline']()
         except Exception as e:
             logger.error(f"Error invoking RAG. ERROR: {e}")
-
-    # def __repr__(self):
-    #     return (
-    #             "{"
-    #             # f"    run_id={self.run_id!r},\n"
-    #             # f"    framework={self.framework!r},\n"
-    #             # f"    description={self.description!r},\n"
-    #             f'"retrieval_model":{self.retrieval_model!r},'
-    #             f'"source":{self.loader_kwargs[1]["input_path"]!r},'
-    #             f'"chunking_strategy":{self.chunking_kwargs[1]!r},'
-    #             f'"vectorDB_kwargs":{self.vectorDB_kwargs[1]!r},'
-    #             f'"embedding_kwargs":{self.embedding_kwargs[1][0]["embedding_model"]!r},'
-    #             f'"retriever_kwargs":{self.retriever_kwargs!r}'
-    #             # f'"retriever_kwargs":{self.retriever_kwargs[1][self.retrieval_model]!r}'
-    #             "}")
     
     def __repr__(self):
         try:

@@ -90,20 +90,6 @@ class RagEvaluator:
         self.is_async = is_async
         self.eval_dataset = None   # TODO: We can invoke prepare_eval_dataset here itself. Currently going ahead with lazy call option.
         self.result_df = None
-        if model_name is None:
-            self.model_name=self._get_model_name()
-        else:
-            self.model_name=model_name
-        
-    
-    def _get_model_name(self):
-        _g=self.rag_fn.get_graph()
-        for node in _g.nodes.values():
-            node_name=graph.node_data_str(node)
-            if node_name == 'AzureChatOpenAI' or node_name == 'ChatOpenAI':
-                # TODO: Add support for other LLMs
-                return node.data.model_name
-        return None
 
     def prepare_eval_dataset(self, loops=1):
         #TODO: Validate that loops>=1. Raise exception if not.

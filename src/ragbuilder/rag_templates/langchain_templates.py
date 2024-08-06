@@ -14,7 +14,7 @@ arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter
 arr_chunk_size = [1000, 2000, 3000]
 arr_embedding_model = ['OpenAI:text-embedding-3-small','OpenAI:text-embedding-3-large','OpenAI:text-embedding-ada-002']
 retriever_combinations = arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
-arr_llm = ['OpenAI:gpt-3.5-turbo','OpenAI:gpt-4o','OpenAI:gpt-4-turbo']
+arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
 arr_contextual_compression = [True, False]
 compressor_combinations = arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
 arr_search_kwargs = ['5', '10', '20']
@@ -27,24 +27,24 @@ no_chunk_req_loaders = ['SemanticChunker', 'MarkdownHeaderTextSplitter', 'HTMLHe
 chunk_req_loaders = ['RecursiveCharacterTextSplitter','CharacterTextSplitter']
 
 
-def init(db='ChromaDB', min=500, max=2000, hf_embedding=None, hf_llm=None):
+def init(db='ChromaDB', min=500, max=2000, other_embedding=[], other_llm=[]):
     global arr_chunking_strategy, arr_chunk_size, arr_embedding_model, retriever_combinations, arr_retriever, arr_llm, arr_contextual_compression, \
         compressor_combinations, arr_compressors, arr_search_kwargs, vectorDB
     arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
     arr_chunk_size = _get_arr_chunk_size(min, max, step_size=chunk_step_size)
     arr_embedding_model = ['OpenAI:text-embedding-3-small','OpenAI:text-embedding-3-large','OpenAI:text-embedding-ada-002']
     retriever_combinations = arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
-    arr_llm = ['OpenAI:gpt-3.5-turbo','OpenAI:gpt-4o','OpenAI:gpt-4-turbo']
+    arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
     arr_contextual_compression = [True, False]
     compressor_combinations = arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
     arr_search_kwargs = ['5', '10', '20']
     vectorDB = db
     
-    if hf_embedding:
-        arr_embedding_model.append(hf_embedding)
+    if other_embedding:
+        arr_embedding_model.extend(other_embedding)
 
-    if hf_llm:
-        arr_llm.append(hf_llm)
+    if other_llm:
+        arr_llm.extend(other_llm)
     
     progress_state.reset()
 
