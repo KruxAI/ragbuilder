@@ -10,7 +10,7 @@ def getLLM(**kwargs):
     logger.info("LLM Invoked")
     retrieval_model=kwargs['retrieval_model']
     model_owner= retrieval_model.split(":")[0]
-    model= retrieval_model.split(":")[1]
+    model= ''.join(retrieval_model.split(":")[1:])
     if model_owner == "Groq":
         logger.info(f"LLM Code Gen Invoked:Groq")
         import_string = f"""from langchain_groq import ChatGroq""" 

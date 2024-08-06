@@ -379,7 +379,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     vectorDB=config.get("vectorDB", None)
     hf_embedding=config.get("huggingfaceEmbeddingModel", None)
     azureoai_embedding=config.get("azureOAIEmbeddingModel", None)
-    googlevertexai_embedding=config.get("googleVertexAILLMModel", None)
+    googlevertexai_embedding=config.get("googleVertexAIEmbeddingModel", None)
     ollama_embedding=config.get("ollamaEmbeddingModel", None)
     hf_llm=config.get("huggingfaceLLMModel", None)
     groq_llm=config.get("groqLLMModel", None)

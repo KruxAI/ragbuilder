@@ -320,8 +320,9 @@ $(document).ready(function () {
                     <div class="col-md-6 mt-3">
                         <p><strong>LLM:</strong></p>
                         <ul>
-                            <li><div class="row"><div class="col-6">GPT-3.5 Turbo: </div>${$('#gpt35').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-6">GPT-4o mini: </div>${$('#gpt4oMini').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>    
                             <li><div class="row"><div class="col-6">GPT-4o: </div>${$('#gpt4o').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-6">GPT-3.5 Turbo: </div>${$('#gpt35').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-6">GPT-4 Turbo: </div>${$('#gpt4Turbo').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-6">HuggingFace: </div>${$('#llmHuggingFace').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmHuggingFaceModel').val()}</li>
                             <li><div class="row"><div class="col-6">Groq: </div>${$('#llmGroq').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmGroqModel').val()}</li>
@@ -432,8 +433,9 @@ $(document).ready(function () {
             },
             contextualCompression: $('#contextualCompression').is(':checked'),
             llm: {
-                "OpenAI:gpt-3.5-turbo": $('#gpt35').is(':checked'),
+                "OpenAI:gpt-4o-mini": $('#gpt4oMini').is(':checked'),
                 "OpenAI:gpt-4o": $('#gpt4o').is(':checked'),
+                "OpenAI:gpt-3.5-turbo": $('#gpt35').is(':checked'),
                 "OpenAI:gpt-4-turbo": $('#gpt4Turbo').is(':checked'),
                 "HuggingFace": $('#llmHuggingFace').is(':checked'),
                 "Groq": $('#llmGroq').is(':checked'),
