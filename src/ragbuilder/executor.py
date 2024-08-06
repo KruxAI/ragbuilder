@@ -69,6 +69,9 @@ from langchain_groq import ChatGroq
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
 from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
+from langchain_postgres.vectorstores import PGVector
+from langchain_ollama.llms import OllamaLLM
+from langchain_ollama import OllamaEmbeddings
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *

@@ -15,7 +15,7 @@ def getEmbedding(**kwargs):
             raise KeyError("The key 'embedding_model' is missing from the arguments.")
         
         embedding_model = kwargs['embedding_model']
-
+        embedding_model='Ollama:llama3'
         model_owner= embedding_model.split(":")[0]
         model= embedding_model.split(":")[1]
         # Validate the embedding model type
@@ -48,6 +48,10 @@ def getEmbedding(**kwargs):
             logger.info(f"Azure Embedding Invoked: {embedding_model}")
             code_string= f"""embedding = AzureOpenAIEmbeddings(model='{model}')"""
             import_string = f"""from langchain_openai import AzureOpenAIEmbeddings"""
+        elif model_owner == "Ollama":
+            logger.info(f"Azure Embedding Invoked: {embedding_model}")
+            code_string= f"""embedding = OllamaEmbeddings(model='{embedding_model}')"""
+            import_string = f"""from langchain_ollama import OllamaEmbeddings"""
         else:
             raise ValueError(f"Invalid LLM: {embedding_model}")
         return {'code_string':code_string,'import_string':import_string}
