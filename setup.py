@@ -86,6 +86,7 @@ setup(
         'langchain-google-vertexai',
         'langchain-ollama',
         'langchain_postgres',
+        'psycopg[binary,pool]'
         # 'llama-index',
         # 'llama-index-vector-stores-chroma',
         # 'llama-index-readers-web',

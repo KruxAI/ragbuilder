@@ -73,3 +73,4 @@ langchain-google-genai
 langchain-google-vertexai
 langchain-ollama
 langchain_postgres
+psycopg[binary,pool]
