@@ -9,6 +9,7 @@ logger = logging.getLogger("ragbuilder")
 def getLLM(**kwargs):
     logger.info("LLM Invoked")
     retrieval_model=kwargs['retrieval_model']
+    retrieval_model='Ollama:llama3'
     model_owner= retrieval_model.split(":")[0]
     model= retrieval_model.split(":")[1]
     if model_owner == "Groq":
@@ -39,6 +40,11 @@ def getLLM(**kwargs):
         logger.info(f"LLM Code Gen Invoked: {retrieval_model}")
         import_string = f"""from langchain_huggingface import HuggingFaceEndpoint"""
         code_string = f"""llm=HuggingFaceEndpoint(repo_id='{model}',huggingfacehub_api_token=os.environ.get('HUGGINGFACEHUB_API_TOKEN'))"""
+    elif model_owner == "Olama":
+        logger.info(f"LLM Code Gen Invoked: {retrieval_model}")
+        import_string = f"""from langchain_ollama.llms import OllamaLLM"""
+        code_string = f"""llm = OllamaLLM(model='{model}')"""
+
     else:
         raise ValueError(f"Invalid LLM: {kwargs['retrieval_model']}")
     return {'code_string':code_string,'import_string':import_string}

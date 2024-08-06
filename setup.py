@@ -85,7 +85,7 @@ setup(
         'unstructured[all-docs]',
         'mixpanel',
         'langchain-mistralai==0.1.9',
-        'langchain_community',
+        'langchain_community==0.2.7',
         'huggingface_hub',
         'datasets',
         'langchain_text_splitters',
@@ -101,7 +101,9 @@ setup(
         'setuptools',
         'langchain_groq',
         'langchain-google-genai',
-        'langchain-google-vertexai'
+        'langchain-google-vertexai',
+        'langchain-ollama',
+        'langchain_postgres',
         # other dependencies
     ],
 )

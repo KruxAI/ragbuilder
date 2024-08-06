@@ -2,6 +2,7 @@ from ragbuilder.langchain_module.common import setup_logging
 import logging
 from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS, SingleStoreDB
+from langchain_postgres.vectorstores import PGVector
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone, ServerlessSpec
 import uuid
@@ -76,6 +77,12 @@ while not pc.describe_index(index_name).status["ready"]:
     time.sleep(1)
 c=PineconeVectorStore.from_documents(splits, embedding, index_name='{index_name}')"""
         import_string = f"""from langchain_pinecone import PineconeVectorStore"""
+    elif db_type == "pgvector":
+        code_string= f"""
+        connection = "os.environ.get('PGVECTOR_CONNECTION_STRING')"
+        collection_name = '{index_name}'
+        c = PGVector(embeddings=embedding,collection_name=collection_name,connection=connection,use_jsonb=True)"""
+        import_string = f"""from langchain_postgres.vectorstores import PGVector"""
     else:
         raise ValueError(f"Unsupported db_type: {db_type}. Supported types are singleStoreDB, 'chromaDB', 'pineconeDB' and 'faissDB'.")
     return {'code_string':code_string,'import_string':import_string}
