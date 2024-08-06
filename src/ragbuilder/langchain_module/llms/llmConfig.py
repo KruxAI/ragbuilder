@@ -9,6 +9,7 @@ logger = logging.getLogger("ragbuilder")
 def getLLM(**kwargs):
     logger.info("LLM Invoked")
     retrieval_model=kwargs['retrieval_model']
+    retrieval_model='Ollama:llama3'
     model_owner= retrieval_model.split(":")[0]
     model= retrieval_model.split(":")[1]
     if model_owner == "Groq":

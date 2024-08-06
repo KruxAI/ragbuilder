@@ -15,6 +15,7 @@ def getEmbedding(**kwargs):
             raise KeyError("The key 'embedding_model' is missing from the arguments.")
         
         embedding_model = kwargs['embedding_model']
+        embedding_model='Ollama:llama3'
         model_owner= embedding_model.split(":")[0]
         model= embedding_model.split(":")[1]
         # Validate the embedding model type
