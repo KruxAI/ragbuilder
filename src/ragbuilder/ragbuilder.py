@@ -476,8 +476,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 vectorDB=vectorDB,
                 min_chunk_size=min_chunk_size,
                 max_chunk_size=max_chunk_size,
-                hf_embedding=hf_embedding,
-                hf_llm=hf_llm,
+                other_embedding=other_embedding,
+                other_llm=other_llm,
                 disabled_opts=disabled_opts
             )
             logger.info(f"res = {res}")
