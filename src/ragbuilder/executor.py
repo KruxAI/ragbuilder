@@ -96,8 +96,8 @@ def rag_builder_bayes_optmization(**kwargs):
     num_runs=kwargs.get('num_runs')
     other_embedding=kwargs.get('other_embedding')
     other_llm=kwargs.get('other_llm')
-    print(f'other_embedding={other_embedding}')
-    print(f'other_llm={other_llm}')
+    logger.info(f'other_embedding={other_embedding}')
+    logger.info(f'other_llm={other_llm}')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
