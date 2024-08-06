@@ -298,7 +298,7 @@ class RagBuilder:
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
         #execution os string
-            logger.info(f"Generated Code\n{self.router}")
+            logger.debug(f"Generated Code\n{self.router}")
             exec(self.router,globals_dict,locals_dict)
 
             #old rag func hooked to eval
