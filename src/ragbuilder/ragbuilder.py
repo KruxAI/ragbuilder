@@ -281,6 +281,7 @@ class ProjectData(BaseModel):
     huggingfaceEmbeddingModel: str
     azureOAIEmbeddingModel: str
     googleVertexAIEmbeddingModel: str
+    ollamaEmbeddingModel: str
     vectorDB: str
     retriever: dict[str, bool]
     topK: dict[str, bool]
@@ -290,6 +291,7 @@ class ProjectData(BaseModel):
     groqLLMModel: str
     azureOAILLMModel: str
     googleVertexAILLMModel: str
+    ollamaLLMModel: str
     generateSyntheticData: bool
     optimization: str
     compressors: Optional[dict[str, bool]] = Field(default=None)
