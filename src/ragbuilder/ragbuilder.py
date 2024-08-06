@@ -378,15 +378,17 @@ def parse_config(config: dict, db: sqlite3.Connection):
     hf_embedding=config.get("huggingfaceEmbeddingModel", None)
     azureoai_embedding=config.get("azureOAIEmbeddingModel", None)
     googlevertexai_embedding=config.get("googleVertexAILLMModel", None)
+    ollama_embedding=config.get("ollamaEmbeddingModel", None)
     hf_llm=config.get("huggingfaceLLMModel", None)
     groq_llm=config.get("groqLLMModel", None)
     azureoai_llm=config.get("azureOAILLMModel", None)
     googlevertexai_llm=config.get("googleVertexAILLMModel", None)
+    ollama_llm=config.get("ollamaLLMModel", None)
     min_chunk_size=int(config["chunkSize"]["min"])
     max_chunk_size=int(config["chunkSize"]["max"])
     optimization=config.get("optimization", 'fullParameterSearch')
-    other_embedding = [emb for emb in [hf_embedding, azureoai_embedding, googlevertexai_embedding] if emb is not None and emb != ""]
-    other_llm = [llm for llm in [hf_llm, groq_llm, azureoai_llm, googlevertexai_llm] if llm is not None and llm != ""]
+    other_embedding = [emb for emb in [hf_embedding, azureoai_embedding, googlevertexai_embedding, ollama_embedding] if emb is not None and emb != ""]
+    other_llm = [llm for llm in [hf_llm, groq_llm, azureoai_llm, googlevertexai_llm, ollama_llm] if llm is not None and llm != ""]
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath

@@ -90,10 +90,10 @@ class RagEvaluator:
         self.is_async = is_async
         self.eval_dataset = None   # TODO: We can invoke prepare_eval_dataset here itself. Currently going ahead with lazy call option.
         self.result_df = None
-        if model_name is None:
-            self.model_name=self._get_model_name()
-        else:
-            self.model_name=model_name
+        # if model_name is None:
+        #     self.model_name=self._get_model_name()
+        # else:
+        #     self.model_name=model_name
         
     
     def _get_model_name(self):

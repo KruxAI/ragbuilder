@@ -48,6 +48,8 @@ load_dotenv()
 
 # Get the database URL from the environment variable
 SINGLESTOREDB_URL = os.getenv("SINGLESTOREDB_URL")
+PGVECTOR_CONNECTION_STRING = os.getenv("PGVECTOR_CONNECTION_STRING")
+
 import dotenv
 from langchain_community.document_loaders import *
 from langchain_text_splitters import *
@@ -303,21 +305,6 @@ class RagBuilder:
             self.rag = locals_dict['rag_pipeline']()
         except Exception as e:
             logger.error(f"Error invoking RAG. ERROR: {e}")
-
-    # def __repr__(self):
-    #     return (
-    #             "{"
-    #             # f"    run_id={self.run_id!r},\n"
-    #             # f"    framework={self.framework!r},\n"
-    #             # f"    description={self.description!r},\n"
-    #             f'"retrieval_model":{self.retrieval_model!r},'
-    #             f'"source":{self.loader_kwargs[1]["input_path"]!r},'
-    #             f'"chunking_strategy":{self.chunking_kwargs[1]!r},'
-    #             f'"vectorDB_kwargs":{self.vectorDB_kwargs[1]!r},'
-    #             f'"embedding_kwargs":{self.embedding_kwargs[1][0]["embedding_model"]!r},'
-    #             f'"retriever_kwargs":{self.retriever_kwargs!r}'
-    #             # f'"retriever_kwargs":{self.retriever_kwargs[1][self.retrieval_model]!r}'
-    #             "}")
     
     def __repr__(self):
         try:

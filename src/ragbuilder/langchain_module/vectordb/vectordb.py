@@ -79,9 +79,9 @@ c=PineconeVectorStore.from_documents(splits, embedding, index_name='{index_name}
         import_string = f"""from langchain_pinecone import PineconeVectorStore"""
     elif db_type == "pgvector":
         code_string= f"""
-        connection = "os.environ.get('PGVECTOR_CONNECTION_STRING')"
-        collection_name = '{index_name}'
-        c = PGVector(embeddings=embedding,collection_name=collection_name,connection=connection,use_jsonb=True)"""
+connection = PGVECTOR_CONNECTION_STRING
+collection_name = '{index_name}'
+c = PGVector(embeddings=embedding,collection_name=collection_name,connection=connection,use_jsonb=True)"""
         import_string = f"""from langchain_postgres.vectorstores import PGVector"""
     else:
         raise ValueError(f"Unsupported db_type: {db_type}. Supported types are singleStoreDB, 'chromaDB', 'pineconeDB' and 'faissDB'.")

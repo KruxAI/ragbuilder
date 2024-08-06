@@ -153,6 +153,15 @@
                                                             <input type="text" class="form-control" id="embeddingGoogleVertexAIModel" placeholder="e.g., textembedding-gecko@001">
                                                         </div>
                                                     </div>
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="embeddingOllama" unchecked> Ollama
+                                                    </li>
+                                                    <div class="form-group row mx-3" id="embeddingOllamaModelDiv" style="display: none;">
+                                                        <label for="embeddingOllamaModel" class="col-sm-2 col-form-label">Model:</label>
+                                                        <div class="col-sm-10">
+                                                            <input type="text" class="form-control" id="embeddingOllamaModel" placeholder="e.g., mxbai-embed-large:latest">
+                                                        </div>
+                                                    </div>
                                                     <!-- Other embedding model options here -->
                                                 </ul>
                                             </li>
@@ -339,6 +348,15 @@
                                                         <label for="llmGoogleVertexAIModel" class="col-sm-2 col-form-label">Model:</label>
                                                         <div class="col-sm-10">
                                                             <input type="text" class="form-control" id="llmGoogleVertexAIModel" placeholder="e.g., gemini-1.5-pro-001">
+                                                        </div>
+                                                    </div>
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmOllama" unchecked> Ollama
+                                                    </li>
+                                                    <div class="form-group row mx-2" id="llmOllamaModelDiv" style="display: none;">
+                                                        <label for="llmOllamaModel" class="col-sm-2 col-form-label">Model:</label>
+                                                        <div class="col-sm-10">
+                                                            <input type="text" class="form-control" id="llmOllamaModel" placeholder="e.g., llama3.1:latest">
                                                         </div>
                                                     </div>
                                                     <!-- Other LLM options here -->
