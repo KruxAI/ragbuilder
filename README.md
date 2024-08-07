@@ -82,7 +82,7 @@ curl -o .env https://raw.githubusercontent.com/KruxAI/ragbuilder/main/.env-Sampl
 
 3. Edit the .env file to add the necessary keys
 
-4. Sart RagBuilder App
+4. Start RagBuilder App
 
 ```
 docker-compose up -d
