@@ -67,13 +67,29 @@ ragbuilder
 This will start the Ragbuilder Uvicorn app and open the browser. If the browser window doesn't open automatically, go to [http://localhost:8005/](http://localhost:8005/) in your browser to access the RagBuilder dashboard.
 
 ### Option 2: Using Prebuilt Docker Image
+#### Using Docker Compose
+1. Pull the docker-compose.yml file
+```curl -o docker-compose.yml  https://raw.githubusercontent.com/KruxAI/ragbuilder/main/docker-compose.yml```
 
-Pull docker image from Docker hub
+2. Pull the .env-Sample file to .env File
+```curl -o .env https://raw.githubusercontent.com/KruxAI/ragbuilder/main/.env-Sample```
+
+3. Edit the .env file toe add the necessary keys
+
+4. Sart RagBuilder App
+```docker-compose up -d```
+
+5. Once the services are up, you can access your application via http://localhost:55003
+
+
+
+#### Using Docker Commands
+1. Pull docker image from Docker hub
 ```
 docker pull ashwinzyx/ragbuilder:latest
 ```
 
-Run the Docker Container.
+2. Run the Docker Container.
 Create .env as below and use it while running the container. The env file must be in the same directory where the docker command is being run
 #### Mac
 ```
