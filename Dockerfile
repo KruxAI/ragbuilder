@@ -27,8 +27,8 @@ COPY . /ragbuilder
 # Install pip and upgrade setuptools and wheel
 RUN pip install --upgrade pip setuptools wheel
 
-RUN pip install --use-pep517 -r requirements.txt
-RUN python3 -m build 
+# RUN pip install --use-pep517 -r requirements.txt
+# RUN python3 -m build 
 RUN pip install dist/*.gz
 # Delete all files in the current directory
 WORKDIR /

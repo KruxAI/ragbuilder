@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  ragbuilder:
+    image: ashwinzyx/ragbuilder:latest
+    ports:
+      - "55003:8005"
+    volumes:
+      - .:/ragbuilder
+    env_file:
+      - .env
+    command: ["ragbuilder"]
