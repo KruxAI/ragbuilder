@@ -33,7 +33,7 @@ RUN_CONFIG_MAX_WAIT = int(os.getenv('RUN_CONFIG_MAX_WAIT', '180'))
 RUN_CONFIG_MAX_RETRIES = int(os.getenv('RUN_CONFIG_MAX_RETRIES', '10'))
 RUN_CONFIG_IS_ASYNC = os.getenv('RUN_CONFIG_IS_ASYNC', 'true').lower() == 'true'
 chat_model = ChatOpenAI(
-    model="gpt-3.5-turbo-0125", 
+    model="gpt-4o-mini", 
     temperature=0.2,
     verbose=True
 )
@@ -53,7 +53,7 @@ PGVECTOR_CONNECTION_STRING = os.getenv("PGVECTOR_CONNECTION_STRING")
 import dotenv
 from langchain_community.document_loaders import *
 from langchain_text_splitters import *
-from langchain.retrievers import *
+# from langchain.retrievers import *
 from langchain.retrievers.document_compressors import *
 from langchain_community.document_transformers import *
 from langchain.retrievers.multi_query import *

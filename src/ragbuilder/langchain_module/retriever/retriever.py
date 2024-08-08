@@ -9,11 +9,9 @@ from langchain.retrievers.document_compressors import CrossEncoderReranker
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 
 from langchain.retrievers.multi_query import MultiQueryRetriever
-from langchain.retrievers import (
-    ContextualCompressionRetriever,
-    ParentDocumentRetriever,
-    BM25Retriever
-)
+from langchain.retrievers import ContextualCompressionRetriever, ParentDocumentRetriever
+from langchain_community.retrievers import BM25Retriever
+
 from langchain.storage import InMemoryStore
 from langchain.retrievers.document_compressors import *
 
@@ -81,7 +79,7 @@ from langchain.storage import InMemoryStore"""
     elif retriever_type == "bm25Retriever":
         logger.info("BM25Retriever Retriever Invoked")
         code_string= f"""retriever=BM25Retriever.from_documents(docs)"""
-        import_string = f"""from langchain.retrievers import  BM25Retriever"""
+        import_string = f"""from langchain_community.retrievers import  BM25Retriever"""
         return {'code_string':code_string,'import_string':import_string}
 
     else:
