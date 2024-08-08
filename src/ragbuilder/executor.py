@@ -53,7 +53,19 @@ PGVECTOR_CONNECTION_STRING = os.getenv("PGVECTOR_CONNECTION_STRING")
 import dotenv
 from langchain_community.document_loaders import *
 from langchain_text_splitters import *
-# from langchain.retrievers import *
+from langchain_community.retrievers import AmazonKendraRetriever
+from langchain.retrievers import (
+    ContextualCompressionRetriever,
+    EnsembleRetriever,
+    MergerRetriever,
+    MultiQueryRetriever,
+    MultiVectorRetriever,
+    ParentDocumentRetriever,
+    RePhraseQueryRetriever,
+    SelfQueryRetriever,
+    TimeWeightedVectorStoreRetriever
+)
+
 from langchain.retrievers.document_compressors import *
 from langchain_community.document_transformers import *
 from langchain.retrievers.multi_query import *
