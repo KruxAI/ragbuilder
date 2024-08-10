@@ -5,6 +5,7 @@ from langchain_community.vectorstores import FAISS, SingleStoreDB
 from langchain_postgres.vectorstores import PGVector
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone, ServerlessSpec
+from langchain_milvus import Milvus
 import uuid
 import time
 from getpass import getpass
@@ -12,6 +13,7 @@ setup_logging()
 logger = logging.getLogger("ragbuilder")
 
 def getVectorDB(db_type,embedding_model):
+    db_type= "milvusDB"
     """
     Initialize and return a vector database object based on the specified db_type.
 
@@ -38,6 +40,11 @@ def getVectorDB(db_type,embedding_model):
         logger.info("FAISS DB Loaded")
         code_string= f"""c=FAISS.from_documents(documents=splits, embedding=embedding)"""
         import_string = f"""from langchain_community.vectorstores import FAISS"""
+    elif db_type == "milvusDB":
+        logger.info("Milvus DB Loaded")
+        code_string= f"""c = Milvus.from_documents(splits,embedding,collection_name='test',connection_args={{"uri": MILVUS_CONNECTION_STRING}},)"""
+        print(code_string)
+        import_string = f"""from langchain_milvus import Milvus"""
     elif db_type == "singleStoreDB":
         index_name = "testindex_ragbuilder"
         logger.info("Singlestore DB Loaded")

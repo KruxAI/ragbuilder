@@ -74,3 +74,4 @@ langchain-google-vertexai
 langchain-ollama
 langchain_postgres
 psycopg[binary,pool]
+langchain_milvus
