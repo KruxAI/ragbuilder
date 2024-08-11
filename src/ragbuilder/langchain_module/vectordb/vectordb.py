@@ -13,7 +13,6 @@ setup_logging()
 logger = logging.getLogger("ragbuilder")
 
 def getVectorDB(db_type,embedding_model):
-    db_type= "milvusDB"
     """
     Initialize and return a vector database object based on the specified db_type.
 
