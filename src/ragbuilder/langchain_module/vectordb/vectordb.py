@@ -41,7 +41,7 @@ def getVectorDB(db_type,embedding_model):
         import_string = f"""from langchain_community.vectorstores import FAISS"""
     elif db_type == "milvusDB":
         logger.info("Milvus DB Loaded")
-        code_string= f"""c = Milvus.from_documents(splits,embedding,collection_name='test',connection_args={{"uri": MILVUS_CONNECTION_STRING}},)"""
+        code_string= f"""c = Milvus.from_documents(splits,embedding,collection_name='{index_name}',connection_args={{"uri": MILVUS_CONNECTION_STRING}},)"""
         print(code_string)
         import_string = f"""from langchain_milvus import Milvus"""
     elif db_type == "singleStoreDB":
