@@ -49,7 +49,7 @@ load_dotenv()
 # Get the database URL from the environment variable
 SINGLESTOREDB_URL = os.getenv("SINGLESTOREDB_URL")
 PGVECTOR_CONNECTION_STRING = os.getenv("PGVECTOR_CONNECTION_STRING")
-
+MILVUS_CONNECTION_STRING = os.getenv("MILVUS_CONNECTION_STRING")
 import dotenv
 from langchain_community.document_loaders import *
 from langchain_text_splitters import *
