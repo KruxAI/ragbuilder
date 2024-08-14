@@ -20,7 +20,7 @@ import requests
 import uvicorn
 from pathlib import Path
 from urllib.parse import urlparse
-from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization
+from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization, get_model_obj
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
@@ -219,7 +219,8 @@ def _get_hash_file(source_data):
 def _get_hash_url(url):
     try:
         # Fetch the content of the URL
-        response = requests.get(url)
+        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
+        response = requests.get(url, headers=headers, allow_redirects=True)
         response.raise_for_status()  # Check for HTTP errors
         return hashlib.md5(response.content).hexdigest()
     
@@ -258,7 +259,8 @@ def _is_valid_source_data(source_data):
     try:
         result = urlparse(source_data)
         if all([result.scheme, result.netloc]):
-            response = requests.head(source_data)
+            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
+            response = requests.head(source_data, headers=headers, allow_redirects=True)
             return response.status_code == 200
     except:
         pass
@@ -294,6 +296,9 @@ class ProjectData(BaseModel):
     ollamaLLMModel: str
     generateSyntheticData: bool
     optimization: str
+    evalFramework: str
+    evalEmbedding: str
+    evalLLM: str
     compressors: Optional[dict[str, bool]] = Field(default=None)
     syntheticDataGeneration: Optional[dict] = Field(default=None)
     testDataPath: Optional[str] = Field(default=None)
@@ -301,7 +306,7 @@ class ProjectData(BaseModel):
     testSize: Optional[str] = Field(default=None)
     criticLLM: Optional[str] = Field(default=None)
     generatorLLM: Optional[str] = Field(default=None)
-    embedding: Optional[str] = Field(default=None)
+    generatorEmbedding: Optional[str] = Field(default=None)
     numRuns: Optional[str] = Field(default=None)
 
 @app.post("/rbuilder")
@@ -389,6 +394,9 @@ def parse_config(config: dict, db: sqlite3.Connection):
     min_chunk_size=int(config["chunkSize"]["min"])
     max_chunk_size=int(config["chunkSize"]["max"])
     optimization=config.get("optimization", 'fullParameterSearch')
+    eval_framework = config.get('evalFramework')
+    eval_embedding = config.get('evalEmbedding')
+    eval_llm = config.get('evalLLM')
     other_embedding = [emb for emb in [hf_embedding, azureoai_embedding, googlevertexai_embedding, ollama_embedding] if emb is not None and emb != ""]
     other_llm = [llm for llm in [hf_llm, groq_llm, azureoai_llm, googlevertexai_llm, ollama_llm] if llm is not None and llm != ""]
     
@@ -402,9 +410,9 @@ def parse_config(config: dict, db: sqlite3.Connection):
             logger.error(f'Expected integer value for test_size. Got {config["syntheticDataGeneration"]["testSize"]}')
             raise
         
-        critic_llm=config["syntheticDataGeneration"]["criticLLM"]
-        generator_llm=config["syntheticDataGeneration"]["generatorLLM"]
-        embedding_model=config["syntheticDataGeneration"]["embedding"]
+        critic_llm=get_model_obj('llm', config["syntheticDataGeneration"]["criticLLM"], temperature = 0.2)
+        generator_llm=get_model_obj('llm', config["syntheticDataGeneration"]["generatorLLM"], temperature = 0.2)
+        embedding_model=get_model_obj('embedding', config["syntheticDataGeneration"]["generatorEmbedding"])
         # TODO: Add Distribution
 
         try:
@@ -463,6 +471,9 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 other_embedding=other_embedding,
                 other_llm=other_llm,
                 num_runs=num_runs,
+                eval_framework=eval_framework,
+                eval_embedding=eval_embedding,
+                eval_llm=eval_llm,
                 disabled_opts=disabled_opts
             )
         elif optimization=='fullParameterSearch' :
@@ -478,6 +489,9 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 max_chunk_size=max_chunk_size,
                 other_embedding=other_embedding,
                 other_llm=other_llm,
+                eval_framework=eval_framework,
+                eval_embedding=eval_embedding,
+                eval_llm=eval_llm,
                 disabled_opts=disabled_opts
             )
             logger.info(f"res = {res}")

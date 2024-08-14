@@ -7,16 +7,35 @@ function validateSourceData() {
         contentType: "application/json",
         data: JSON.stringify({ sourceData: sourceData }),
         success: function (response) {
+            var sourceDataError = document.getElementById("sourceDataError")
             if (response.valid) {
                 console.log('Source data is valid.');
+                sourceDataError.innerHTML = "";
+                $('#nextStep1').prop('disabled', false);
             } else {
-                alert('Invalid source data. Please check the URL or file/ directory path.');
+                sourceDataError.innerHTML = "<span style='color: red;'>"+"Invalid source data. Please check the URL or file/ directory path.</span>";
+                $('#nextStep1').prop('disabled', true);
             }
         },
         error: function (error) {
             console.error('Error validating source data:', error);
         }
     });
+}
+
+function formatModelSelection(provider, model) {
+    return `${provider}:${model}`;
+}
+
+function getModel(selectedID, modelName) {
+    const elt = $('#'+selectedID)[0];
+    const provider = $(elt.options[elt.selectedIndex]).closest('optgroup').prop('label');
+    const model = $('#'+modelName).val();
+    if (provider === 'OpenAI') {
+        return formatModelSelection('OpenAI', $(elt.options[elt.selectedIndex]).val());
+    } else {
+        return formatModelSelection($(elt.options[elt.selectedIndex]).val(), model);
+    }
 }
 
 let progressInterval;
@@ -190,6 +209,51 @@ $(document).ready(function () {
         }
     });
 
+    $('#evalEmbedding').change(function() {
+        var parent = $(this.options[this.selectedIndex]).closest('optgroup').prop('label');
+        if (parent === 'OpenAI') {
+            $('#customEvalEmbedding').hide().val('');
+        } else {
+            $('#customEvalEmbedding').show();
+        }
+    });
+    
+    $('#evalLLM').change(function() {
+        var parent = $(this.options[this.selectedIndex]).closest('optgroup').prop('label');
+        if (parent === 'OpenAI') {
+            $('#customEvalLLM').hide().val('');
+        } else {
+            $('#customEvalLLM').show();
+        }
+    });
+
+    $('#generatorEmbedding').change(function() {
+        var parent = $(this.options[this.selectedIndex]).closest('optgroup').prop('label');
+        if (parent === 'OpenAI') {
+            $('#customGenEmbedding').hide().val('');
+        } else {
+            $('#customGenEmbedding').show();
+        }
+    });
+    
+    $('#criticLLM').change(function() {
+        var parent = $(this.options[this.selectedIndex]).closest('optgroup').prop('label');
+        if (parent === 'OpenAI') {
+            $('#customCriticLLM').hide().val('');
+        } else {
+            $('#customCriticLLM').show();
+        }
+    });
+
+    $('#generatorLLM').change(function() {
+        var parent = $(this.options[this.selectedIndex]).closest('optgroup').prop('label');
+        if (parent === 'OpenAI') {
+            $('#customGenLLM').hide().val('');
+        } else {
+            $('#customGenLLM').show();
+        }
+    });
+
     $('#nextStep1').click(function () {
         const sourceData = $('#sourceData').val();
         $.ajax({
@@ -247,6 +311,19 @@ $(document).ready(function () {
             const testDataPath = $('#testDataPath').val();
             testDataHtml = `<p><strong>Test Data Path:</strong> ${testDataPath}</p>`;
         }
+
+        const evalFramework = $('#evalFramework').val();
+        const evalEmbedding = getModel('evalEmbedding', 'customEvalEmbedding');
+        const evalLLM = getModel('evalLLM', 'customEvalLLM');
+
+        const evaluationHtml = `
+            <p><strong>Evaluation Framework:</strong> ${evalFramework}</p>
+            <p><strong>Evaluation Embedding Model:</strong> ${evalEmbedding}</p>
+            <p><strong>Evaluation LLM:</strong> ${evalLLM}</p>
+        `;
+
+        testDataHtml += evaluationHtml;
+
 
         if ($('#includeNonTemplated').is(':checked')) {
             // console.log(existingSynthDataPath);
@@ -449,6 +526,9 @@ $(document).ready(function () {
             googleVertexAILLMModel: $('#llmGoogleVertexAI').is(':checked') ? 'GoogleVertexAI:'+$('#llmGoogleVertexAIModel').val() : $('#llmGoogleVertexAIModel').val(),
             ollamaLLMModel: $('#llmOllama').is(':checked') ? 'Ollama:'+$('#llmOllamaModel').val() : $('#llmOllamaModel').val(),
             generateSyntheticData: $('#generateSynthetic').is(':checked'),
+            evalFramework: $('#evalFramework').val(),
+            evalEmbedding: getModel('evalEmbedding', 'customEvalEmbedding'),
+            evalLLM: getModel('evalLLM', 'customEvalLLM'),
             optimization: $('input[name="optimization"]:checked').attr('id')
         };
         
@@ -468,9 +548,9 @@ $(document).ready(function () {
         } else {
             projectData.syntheticDataGeneration = {
                 testSize: $('#testSize').val(),
-                criticLLM: $('#criticLLM').val(),
-                generatorLLM: $('#generatorLLM').val(),
-                embedding: $('#embedding').val()
+                criticLLM: getModel('criticLLM', 'customCriticLLM'),
+                generatorLLM: getModel('generatorLLM', 'customGenLLM'),
+                generatorEmbedding: getModel('generatorEmbedding', 'customGenEmbedding')
             };
         }
 
@@ -534,14 +614,13 @@ $(document).ready(function () {
                 type: "GET",
                 url: "/progress",
                 success: function (response) {
-                    console.log(JSON.stringify(response));
+                    // console.log(JSON.stringify(response));
                     const currentRun = response.current_run;
                     const totalRuns = response.total_runs;
 
                     if (currentRun > lastKnownRun) {
                         lastKnownRun = currentRun;
                         const progressPercentage = Math.min((currentRun / totalRuns) * 100, 100);
-                        console.log('ProgressPercentage: ', progressPercentage);
                         $('#progressText').text(`Running ${currentRun}/${totalRuns}...`);
 
                         if (smoothInterval) {
@@ -572,12 +651,12 @@ $(document).ready(function () {
         const interval = 2000; // 2 seconds
         const steps = duration / interval;
         const increment = (1 / totalRuns) * 100 / steps;
-        console.log('currentRun: ', currentRun);
-        console.log('totalRuns: ', totalRuns);
-        console.log('duration: ', duration);
-        console.log('interval: ', interval);
-        console.log('steps: ', steps);
-        console.log('Increment: ', increment);
+        // console.log('currentRun: ', currentRun);
+        // console.log('totalRuns: ', totalRuns);
+        // console.log('duration: ', duration);
+        // console.log('interval: ', interval);
+        // console.log('steps: ', steps);
+        // console.log('Increment: ', increment);
         let currentProgress = progressPercentage;
         let targetProgress = Math.min(((currentRun + 1) / totalRuns) * 100, 100);
 
@@ -586,7 +665,7 @@ $(document).ready(function () {
                 clearInterval(smoothInterval);
             } else {
                 currentProgress += increment;
-                console.log('currentProgress += increment: ', currentProgress);
+                // console.log('currentProgress += increment: ', currentProgress);
                 $('#progressBar').css('width', `${currentProgress - 0.1}%`).attr('aria-valuenow', currentProgress);
             }
         }, interval);
