@@ -614,27 +614,15 @@ $(document).ready(function () {
                 type: "GET",
                 url: "/progress",
                 success: function (response) {
-                    // console.log(JSON.stringify(response));
-                    const currentRun = response.current_run;
-                    const totalRuns = response.total_runs;
-
-                    if (currentRun > lastKnownRun) {
-                        lastKnownRun = currentRun;
-                        const progressPercentage = Math.min((currentRun / totalRuns) * 100, 100);
-                        $('#progressText').text(`Running ${currentRun}/${totalRuns}...`);
-
-                        if (smoothInterval) {
-                            clearInterval(smoothInterval);
-                        }
-                        smoothProgressUpdate(progressPercentage, currentRun, totalRuns);
-                        lastUpdateTime = Date.now();
+                    const { current_run, total_runs, synth_data_gen_in_progress } = response;
+    
+                    if (synth_data_gen_in_progress === 1) {
+                        handleSynthDataGeneration();
+                    } else {
+                        handleNormalProgress(current_run, total_runs);
                     }
-
-                    if (Date.now() - lastUpdateTime > 300000) { // In case there's no progress for the last 120 secs since smoothProgressUpdate stopped (60 secs ago)
-                        $('#progressText').text(`Running ${currentRun}/${totalRuns}... (Current run is taking longer than expected)`);
-                    }
-
-                    if (currentRun >= totalRuns) {
+    
+                    if (current_run >= total_runs && synth_data_gen_in_progress === 0) {
                         clearInterval(progressInterval);
                     }
                 },
@@ -642,8 +630,43 @@ $(document).ready(function () {
                     console.error(error);
                 }
             });
-
         }, 20000); // Update every 20 seconds
+    }
+
+    function handleSynthDataGeneration() {
+        $('#progressText').text("Generating synthetic test data... (this may take a while)");
+        if (!smoothInterval) {
+            startSlowProgressBar();
+        }
+    }
+
+    function handleNormalProgress(currentRun, totalRuns) {
+        if (currentRun > lastKnownRun) {
+            lastKnownRun = currentRun;
+            const progressPercentage = Math.min((currentRun / totalRuns) * 100, 100);
+            $('#progressText').text(`Running ${currentRun}/${totalRuns}...`);
+    
+            if (smoothInterval) {
+                clearInterval(smoothInterval);
+            }
+            smoothProgressUpdate(progressPercentage, currentRun, totalRuns);
+            lastUpdateTime = Date.now();
+        }
+    
+        if (Date.now() - lastUpdateTime > 300000) {
+            $('#progressText').text(`Running ${currentRun}/${totalRuns}... (Current run is taking longer than expected)`);
+        }
+    }
+    
+    function startSlowProgressBar() {
+        let progress = 0;
+        smoothInterval = setInterval(function () {
+            progress += 0.1;
+            if (progress > 100) {
+                progress = 0;
+            }
+            $('#progressBar').css('width', `${progress}%`).attr('aria-valuenow', progress);
+        }, 2000);
     }
 
     function smoothProgressUpdate(progressPercentage, currentRun, totalRuns) {
