@@ -416,6 +416,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
         # TODO: Add Distribution
 
         try:
+            progress_state.toggle_synth_data_gen_progress(1)
             f_name=generate_data.generate_data(
                 src_data=src_path,
                 generator_model=generator_llm,
@@ -436,6 +437,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
         # Insert generated into hashmap 
         insert_hashmap(get_hash(src_path), f_name, db)
         # g._hashmap=None # To refresh hashmap
+        progress_state.toggle_synth_data_gen_progress(0)
         logger.info(f"Synthetic test data generation completed: {f_name}")
 
         

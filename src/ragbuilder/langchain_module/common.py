@@ -15,12 +15,16 @@ class ProgressState:
             cls._instance = super().__new__(cls)
             cls._instance.progress_info = {
                 'current_run': 0,
-                'total_runs': 1
+                'total_runs': 1,
+                'synth_data_gen_in_progress': 0
             }
         return cls._instance
 
     def get_progress(self):
         return self.progress_info
+
+    def toggle_synth_data_gen_progress(self, n):
+        self.progress_info['synth_data_gen_in_progress'] = n
 
     def set_total_runs(self, n):
         self.progress_info['total_runs'] = n
