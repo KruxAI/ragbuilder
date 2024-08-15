@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 setup(
     name='ragbuilder',
-    version='0.0.7',
+    version='0.0.9',
     author='Ashwin Aravind, Aravind Parameswaran',
     author_email='ashwin@krux.ai, aravind@krux.ai',
     description='RagBuilder is a toolkit designed to help you create optimal Production-ready Retrieval-Augmented Generation (RAG) pipeline for your data',
@@ -86,7 +86,9 @@ setup(
         'langchain-google-vertexai',
         'langchain-ollama',
         'langchain_postgres',
-        'psycopg[binary,pool]'
+        'psycopg[binary,pool]',
+        'langchain_milvus',
+        'langsmith'
         # 'llama-index',
         # 'llama-index-vector-stores-chroma',
         # 'llama-index-readers-web',
