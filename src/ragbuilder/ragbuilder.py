@@ -418,10 +418,10 @@ def parse_config(config: dict, db: sqlite3.Connection):
         try:
             f_name=generate_data.generate_data(
                 src_data=src_path,
-                test_size=test_size,
                 generator_model=generator_llm,
                 critic_model=critic_llm,
-                embedding_model=embedding_model
+                embedding_model=embedding_model,
+                test_size=test_size
             )
             if f_name is None:
                 logger.error(f'Synthetic test data generation failed.')

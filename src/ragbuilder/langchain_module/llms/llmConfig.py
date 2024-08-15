@@ -20,7 +20,7 @@ def getLLM(**kwargs):
         if not temp_arg_str: # Since temperature is mandatory in Groq
             temp_arg_str = ", temperature = 0.7" 
         import_string = f"""from langchain_groq import ChatGroq""" 
-        code_string = f"""llm= ChatGroq(temperature=0,model_name='{model}'{temp_arg_str})"""
+        code_string = f"""llm= ChatGroq(model_name='{model}'{temp_arg_str})"""
     elif model_owner == "AzureOAI":
         logger.info(f"LLM Code Gen Invoked:Azure")
         import_string = f"""from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI""" 

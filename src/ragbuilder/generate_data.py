@@ -61,11 +61,11 @@ def load_src(src_data):
 
 def generate_data(
         src_data,
+        generator_model,
+        critic_model,
+        embedding_model,
         test_size = 5,
         distribution = {'simple': 0.5, 'reasoning': 0.1, 'multi_context': 0.4},
-        generator_model = ChatOpenAI(model="gpt-4o-mini", temperature=0.2, max_tokens=800),
-        critic_model = ChatOpenAI(model="gpt-4o", temperature=0.2),
-        embedding_model = OpenAIEmbeddings(model="text-embedding-3-large"),
         run_config = RunConfig(timeout=1000, max_workers=1, max_wait=900, max_retries=5)
 ):
     dist=dict()
