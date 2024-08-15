@@ -43,7 +43,7 @@ def getEmbedding(**kwargs):
             logger.info(f"GoogleVertexAI Embedding Invoked: {embedding_model}")
             code_string= f"""embedding =  VertexAIEmbeddings(model_name='{model}') """
             import_string = f"""from langchain_google_genai import GoogleGenerativeAIEmbeddings"""
-        elif model_owner == "Azure":
+        elif model_owner == "AzureOAI":
             logger.info(f"Azure Embedding Invoked: {embedding_model}")
             code_string= f"""embedding = AzureOpenAIEmbeddings(model='{model}')"""
             import_string = f"""from langchain_openai import AzureOpenAIEmbeddings"""

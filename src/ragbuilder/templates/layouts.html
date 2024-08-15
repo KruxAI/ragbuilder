@@ -27,6 +27,7 @@
                                 <label for="sourceData" class="col-sm-2 col-form-label">Source data: </label>
                                 <div class="col-sm-10">
                                     <input type="text" class="form-control" id="sourceData" placeholder="~/development/src_data">
+                                    <span id="sourceDataError"></span>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -397,69 +398,160 @@
                             </div>
                         </div>
                         <div id="step3" class="container-fluid" style="display: none;">
-                            <h5>RAG Evaluation Dataset Options</h5>
-                            <div class="my-3">
-                                <p class="fw-light text-muted extra-small">
-                                    You can either generate a synthetic test dataset or provide your own test dataset file (CSV format with at least 2 columns: "question" and "ground_truth"). If synthetic test data was previously generated for the specified source data, we will automatically re-use it.
-                                </p>
-                            </div>
-                            <div class="mx-5">
-                                <p id="hashLookupResult"></p>
-                                <div id="foundExistingSynthData" style="display: none;" class="form-check">
-                                    <input class="form-check-input" type="radio" name="syntheticDataOptions" id="useExistingSynthData" value="reuse" checked>
-                                    <label class="form-check-label" for="useExistingSynthData">
-                                        Use existing synthetic test data 
-                                    </label>
+                            <h5>RAG Evaluation Settings</h5>
+                            <p class="fw-light text-muted extra-small">
+                                Select the RAG evaluation framework that you prefer along with other settings like Embedding model & LLM for evaluation (wherever applicable).
+                            </p>
+                            <div class="mx-5 mb-5">
+                                <div class="form-group row my-4">
+                                    <label for="evalFramework" class="col-sm-3 col-form-label">Evaluation Framework:</label>
+                                    <div class="col-sm-4">
+                                    <select class="form-select" id="evalFramework">
+                                        <option value="RAGAS" selected>RAGAS</option>
+                                        <option value="DeepEval" disabled>DeepEval [Coming soon]</option>
+                                        <option value="ARES" disabled>ARES [Coming soon]</option>
+                                        <option value="Trulens" disabled>Trulens [Coming soon]</option>
+                                    </select>
+                                    </div>
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="syntheticDataOptions" id="generateSynthetic" value="generate" checked>
-                                    <label class="form-check-label" for="generateSynthetic">
-                                        Generate synthetic test data based on my dataset
-                                    </label>
+                                <div class="form-group row mb-4">
+                                    <label for="evalEmbedding" class="col-sm-3 col-form-label">Evaluation Embedding Model:</label>
+                                    <div class="col-sm-4">
+                                    <select class="form-select" id="evalEmbedding">
+                                        <optgroup label="OpenAI">
+                                        <option value="text-embedding-3-small">text-embedding-3-small</option>
+                                        <option value="text-embedding-3-large" selected>text-embedding-3-large</option>
+                                        <option value="text-embedding-ada-002">text-embedding-ada-002</option>
+                                        </optgroup>
+                                        <option value="HF">HuggingFace</option>
+                                        <option value="AzureOAI">Azure OpenAI</option>
+                                        <option value="GoogleVertexAI">Google Vertex AI</option>
+                                        <option value="Ollama">Ollama</option>
+                                    </select>
+                                    <input type="text" class="form-control mt-2" id="customEvalEmbedding" style="display: none;" placeholder="Enter Model name e.g., mxbai-embed-large">
+                                    </div>
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="syntheticDataOptions" id="existingTestData" value="existing">
-                                    <label class="form-check-label" for="existingTestData">
-                                        I already have a manually created test data set
-                                    </label>
+                                <div class="form-group row mb-4">
+                                    <label for="evalLLM" class="col-sm-3 col-form-label">Evaluation LLM:</label>
+                                    <div class="col-sm-4">
+                                    <select class="form-select" id="evalLLM">
+                                        <optgroup label="OpenAI">
+                                        <option value="gpt-4o-mini" selected>GPT-4o mini</option>
+                                        <option value="gpt-4o">GPT-4o</option>
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                        </optgroup>
+                                        <option value="HF">HuggingFace</option>
+                                        <option value="Groq">Groq</option>
+                                        <option value="AzureOAI">Azure OpenAI</option>
+                                        <option value="GoogleVertexAI">Google Vertex AI</option>
+                                        <option value="Ollama">Ollama</option>
+                                    </select>
+                                    <input type="text" class="form-control mt-2" id="customEvalLLM" style="display: none;" placeholder="Enter LLM model name e.g., llama-3.1-405B">
+                                    </div>
                                 </div>
-                                <div id="existingTestDataPath" style="display: none;" class="mt-3">
-                                    <label for="testDataPath" class="form-label">Test Data Path (csv):</label>
-                                    <input type="text" class="form-control" id="testDataPath" placeholder="Enter path to your test data">
-                                </div>
-                                <div id="generateSyntheticSection" class="mt-3">
-                                    <div id="advancedSettings" class="collapse">
-                                        <div class="accordion" id="advancedSettingsAccordion">
-                                            <div class="accordion-item">
-                                                <h2 class="accordion-header" id="headingOne">
-                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdv" aria-expanded="false" aria-controls="collapseAdv">
-                                                        Advanced Settings
-                                                    </button>
-                                                </h2>
-                                                <div id="collapseAdv" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#advancedSettingsAccordion">
-                                                    <div class="accordion-body">
-                                                        <div class="mb-3 row">
-                                                            <label for="testSize" class="col-sm-3 col-form-label">Test size:</label>
-                                                            <div class="col-sm-8">
-                                                                <input type="number" class="form-control" id="testSize" value="20">
-                                                            </div>
-                                                        </div>
-                                                        <div class="mb-3 row">
-                                                            <label for="criticLLM" class="col-sm-3 col-form-label">Critic LLM:</label>
-                                                            <div class="col-sm-8">
-                                                                <input type="text" class="form-control" id="criticLLM" value="gpt-4o">
-                                                            </div>
-                                                        </div>
-                                                        <div class="mb-3 row">
-                                                            <label for="generatorLLM" class="col-sm-3 col-form-label">Generator LLM:</label>
-                                                            <div class="col-sm-8">
-                                                                <input type="text" class="form-control" id="generatorLLM" value="gpt-4o">
-                                                            </div>
-                                                        </div>
-                                                        <div class="mb-3 row">
-                                                            <label for="embedding" class="col-sm-3 col-form-label">Embedding:</label>
-                                                            <div class="col-sm-8">
-                                                                <input type="text" class="form-control" id="embedding" value="text-embedding-3-large">
+
+                                <div class="form-group row mb-4">
+                                    <span class="col-sm-3" style="color: #747574;">Evaluation Dataset</span>
+                                    <div class="col-sm-9">
+                                        <p id="hashLookupResult"></p>
+                                        <div id="foundExistingSynthData" style="display: none;" class="form-check">
+                                            <input class="form-check-input" type="radio" name="syntheticDataOptions" id="useExistingSynthData" value="reuse" checked>
+                                            <label class="form-check-label" for="useExistingSynthData">
+                                                Use existing synthetic test data 
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="syntheticDataOptions" id="generateSynthetic" value="generate" checked aria-describedby="synthDataHelpBlock">
+                                            <label class="form-check-label" for="generateSynthetic">
+                                                Generate synthetic test data based on my dataset
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="syntheticDataOptions" id="existingTestData" value="existing">
+                                            <label class="form-check-label" for="existingTestData">
+                                                I already have a manually created test data set
+                                            </label>
+                                        </div>
+                                        <div id="existingTestDataPath" style="display: none;" class="mt-3">
+                                            <label for="testDataPath" class="form-label">Test Data Path (csv):</label>
+                                            <input type="text" class="form-control" id="testDataPath" placeholder="Enter path to your test data">
+                                        </div>
+                                        <div id="synthDataHelpBlock" class="form-text">
+                                            You can either generate a synthetic test dataset or provide your own test dataset file (CSV format with at least 2 columns: "question" and "ground_truth"). If synthetic test data was previously generated for the specified source data, you will automatically see the option to re-use it.
+                                        </div>
+                                        <div id="generateSyntheticSection" class="mt-3">
+                                            <div id="advancedSettings" class="collapse">
+                                                <div class="accordion" id="advancedSettingsAccordion">
+                                                    <div class="accordion-item">
+                                                        <h2 class="accordion-header" id="headingOne">
+                                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdv" aria-expanded="false" aria-controls="collapseAdv">
+                                                                Advanced Settings
+                                                            </button>
+                                                        </h2>
+                                                        <div id="collapseAdv" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#advancedSettingsAccordion">
+                                                            <div class="accordion-body">
+                                                                <div class="mb-3 row">
+                                                                    <label for="testSize" class="col-sm-3 col-form-label">Test size:</label>
+                                                                    <div class="col-sm-8">
+                                                                        <input type="number" class="form-control" id="testSize" value="20">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="mb-3 row">
+                                                                    <label for="generatorEmbedding" class="col-sm-3 col-form-label">Embedding:</label>
+                                                                    <div class="col-sm-8">
+                                                                    <select class="form-select" id="generatorEmbedding">
+                                                                        <optgroup label="OpenAI">
+                                                                        <option value="text-embedding-3-small">text-embedding-3-small</option>
+                                                                        <option value="text-embedding-3-large" selected>text-embedding-3-large</option>
+                                                                        <option value="text-embedding-ada-002">text-embedding-ada-002</option>
+                                                                        </optgroup>
+                                                                        <option value="HF">HuggingFace</option>
+                                                                        <option value="AzureOAI">Azure OpenAI</option>
+                                                                        <option value="GoogleVertexAI">Google Vertex AI</option>
+                                                                        <option value="Ollama">Ollama</option>
+                                                                    </select>
+                                                                    <input type="text" class="form-control mt-2" id="customGenEmbedding" style="display: none;" placeholder="Enter Model name e.g., mxbai-embed-large">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="mb-3 row">
+                                                                    <label for="criticLLM" class="col-sm-3 col-form-label">Critic LLM:</label>
+                                                                    <div class="col-sm-8">
+                                                                    <select class="form-select" id="criticLLM">
+                                                                        <optgroup label="OpenAI">
+                                                                        <option value="gpt-4o-mini">GPT-4o mini</option>
+                                                                        <option value="gpt-4o" selected>GPT-4o</option>
+                                                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                                                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                                                        </optgroup>
+                                                                        <option value="HF">HuggingFace</option>
+                                                                        <option value="Groq">Groq</option>
+                                                                        <option value="AzureOAI">Azure OpenAI</option>
+                                                                        <option value="GoogleVertexAI">Google Vertex AI</option>
+                                                                        <option value="Ollama">Ollama</option>
+                                                                    </select>
+                                                                    <input type="text" class="form-control mt-2" id="customCriticLLM" style="display: none;" placeholder="Enter LLM model name e.g., llama-3.1-405B">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="mb-3 row">
+                                                                    <label for="generatorLLM" class="col-sm-3 col-form-label">Generator LLM:</label>
+                                                                    <div class="col-sm-8">
+                                                                    <select class="form-select" id="generatorLLM">
+                                                                        <optgroup label="OpenAI">
+                                                                        <option value="gpt-4o-mini">GPT-4o mini</option>
+                                                                        <option value="gpt-4o" selected>GPT-4o</option>
+                                                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                                                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                                                        </optgroup>
+                                                                        <option value="HF">HuggingFace</option>
+                                                                        <option value="Groq">Groq</option>
+                                                                        <option value="AzureOAI">Azure OpenAI</option>
+                                                                        <option value="GoogleVertexAI">Google Vertex AI</option>
+                                                                        <option value="Ollama">Ollama</option>
+                                                                    </select>
+                                                                    <input type="text" class="form-control mt-2" id="customGenLLM" style="display: none;" placeholder="Enter LLM model name e.g., llama-3.1-405B">
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>

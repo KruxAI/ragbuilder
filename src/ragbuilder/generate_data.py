@@ -61,11 +61,11 @@ def load_src(src_data):
 
 def generate_data(
         src_data,
+        generator_model,
+        critic_model,
+        embedding_model,
         test_size = 5,
         distribution = {'simple': 0.5, 'reasoning': 0.1, 'multi_context': 0.4},
-        generator_model = "gpt-4o",
-        critic_model = "gpt-4o",
-        embedding_model = "text-embedding-3-large",
         run_config = RunConfig(timeout=1000, max_workers=1, max_wait=900, max_retries=5)
 ):
     dist=dict()
@@ -80,9 +80,9 @@ def generate_data(
     # Load source data as docs
     docs=load_src(src_data) 
     if docs:
-        generator_llm=ChatOpenAI(model=generator_model, temperature=0.2, max_tokens=800)
-        critic_llm = ChatOpenAI(model=critic_model, temperature=0.2)
-        embeddings = OpenAIEmbeddings(model=embedding_model)
+        generator_llm = generator_model
+        critic_llm = critic_model
+        embeddings = embedding_model
         generator = TestsetGenerator.from_langchain(
             generator_llm,
             critic_llm,

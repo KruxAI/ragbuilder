@@ -22,7 +22,7 @@ current_working_directory = os.getcwd()
 dotenv_path = os.path.join(current_working_directory, '.env')
 load_dotenv(dotenv_path)
 logger = logging.getLogger("ragbuilder")
-#Load Sythetic Data
+# For loading Synthetic Data
 import pandas as pd
 from datasets import Dataset
 from langchain_openai import OpenAIEmbeddings,ChatOpenAI
@@ -32,13 +32,8 @@ RUN_CONFIG_MAX_WORKERS = int(os.getenv('RUN_CONFIG_MAX_WORKERS', '16'))
 RUN_CONFIG_MAX_WAIT = int(os.getenv('RUN_CONFIG_MAX_WAIT', '180'))
 RUN_CONFIG_MAX_RETRIES = int(os.getenv('RUN_CONFIG_MAX_RETRIES', '10'))
 RUN_CONFIG_IS_ASYNC = os.getenv('RUN_CONFIG_IS_ASYNC', 'true').lower() == 'true'
-chat_model = ChatOpenAI(
-    model="gpt-4o-mini", 
-    temperature=0.2,
-    verbose=True
-)
 BAYESIAN_RUNS=50
-#Import needed for Executing the Generated Code
+# Imports needed for Executing the Generated Code
 from operator import itemgetter
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
@@ -98,6 +93,15 @@ from ragbuilder.langchain_module.common import setup_logging
 import logging
 #####
 
+def get_model_obj(model_type: str, model: str, temperature: Optional[float] = None):
+    if model_type == 'embedding':
+        code=getEmbedding(embedding_model=model)
+    elif model_type == 'llm':
+        code=getLLM(retrieval_model=model, temperature=temperature)
+    code_str=f"\n{code['import_string']}\n\n{code['code_string']}"
+    locals_dict={}
+    exec(code_str, None, locals_dict)
+    return locals_dict[model_type]
 
 def rag_builder_bayes_optmization(**kwargs):
     run_id=kwargs['run_id']
@@ -110,6 +114,9 @@ def rag_builder_bayes_optmization(**kwargs):
     other_llm=kwargs.get('other_llm')
     logger.info(f'other_embedding={other_embedding}')
     logger.info(f'other_llm={other_llm}')
+    eval_framework=kwargs.get('eval_framework') # TODO: Add this as an argument to RagEvaluator
+    eval_embedding=kwargs.get('eval_embedding')
+    eval_llm=kwargs.get('eval_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
@@ -151,8 +158,8 @@ def rag_builder_bayes_optmization(**kwargs):
         rageval=eval.RagEvaluator(
             rag_builder, # code for rag function
             test_ds, 
-            llm = chat_model, 
-            embeddings = OpenAIEmbeddings(model="text-embedding-3-large"),
+            llm = get_model_obj('llm', eval_llm), 
+            embeddings = get_model_obj('embedding', eval_embedding), 
             #TODO: Fetch Run Config settings from advanced settings from front-end
             run_config = run_config,
             is_async = RUN_CONFIG_IS_ASYNC
@@ -193,8 +200,8 @@ def rag_builder_bayes_optmization(**kwargs):
             rageval = eval.RagEvaluator(
                 rag_builder,
                 test_ds, 
-                llm=chat_model, 
-                embeddings=OpenAIEmbeddings(model="text-embedding-3-large"),
+                llm = get_model_obj('llm', eval_llm), 
+                embeddings = get_model_obj('embedding', eval_embedding), 
                 run_config=run_config,
                 is_async=RUN_CONFIG_IS_ASYNC
             )
@@ -227,6 +234,9 @@ def rag_builder(**kwargs):
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
     other_embedding=kwargs.get('other_embedding')
     other_llm=kwargs.get('other_llm')
+    eval_framework=kwargs.get('eval_framework') # TODO: Add this as an argument to RagEvaluator
+    eval_embedding=kwargs.get('eval_embedding')
+    eval_llm=kwargs.get('eval_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
@@ -259,8 +269,8 @@ def rag_builder(**kwargs):
         rageval=eval.RagEvaluator(
             rag_builder, # code for rag function
             test_ds, 
-            llm = chat_model, 
-            embeddings = OpenAIEmbeddings(model="text-embedding-3-large"),
+            llm = get_model_obj('llm', eval_llm), 
+            embeddings = get_model_obj('embedding', eval_embedding), 
             #TODO: Fetch Run Config settings from advanced settings from front-end
             run_config = run_config,
             is_async = RUN_CONFIG_IS_ASYNC
