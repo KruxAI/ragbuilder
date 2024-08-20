@@ -266,7 +266,8 @@ def _is_valid_source_data(source_data):
         pass
     
     # Check if source_data is a file or directory
-    return os.path.exists(source_data)
+    expanded_path = os.path.expanduser(source_data)
+    return os.path.exists(expanded_path)
 
 @app.post("/check_source_data")
 async def check_source_data(data: SourceDataCheck):
@@ -378,7 +379,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     include_granular_combos=config["includeNonTemplated"]
     # gen_synthetic_data=config["generateSyntheticData"]
     src_path=config.get("sourceData", None)
-    src_data={'source':'url','input_path': src_path}
+    src_data={'source':'url','input_path': os.path.expanduser(src_path)}
     syntheticDataGenerationOpts=config.get("syntheticDataGeneration", None)
     existingSynthDataPath=config.get("existingSynthDataPath", None)
     vectorDB=config.get("vectorDB", None)
