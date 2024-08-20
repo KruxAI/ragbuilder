@@ -14,7 +14,7 @@ def getLLM(**kwargs):
     if temperature:
         temp_arg_str = f", temperature = {temperature}"
     model_owner= retrieval_model.split(":")[0]
-    model= ''.join(retrieval_model.split(":")[1:])
+    model= ':'.join(retrieval_model.split(":")[1:])
     if model_owner == "Groq":
         logger.info(f"LLM Code Gen Invoked:Groq")
         if not temp_arg_str: # Since temperature is mandatory in Groq
