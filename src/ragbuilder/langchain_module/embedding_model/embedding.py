@@ -16,7 +16,7 @@ def getEmbedding(**kwargs):
         
         embedding_model = kwargs['embedding_model']
         model_owner= embedding_model.split(":")[0]
-        model= ''.join(embedding_model.split(":")[1:])
+        model= ':'.join(embedding_model.split(":")[1:])
         # Validate the embedding model type
         if not isinstance(embedding_model, str):
             raise TypeError("The 'embedding_model' must be a string.")
