@@ -45,6 +45,7 @@ load_dotenv()
 SINGLESTOREDB_URL = os.getenv("SINGLESTOREDB_URL")
 PGVECTOR_CONNECTION_STRING = os.getenv("PGVECTOR_CONNECTION_STRING")
 MILVUS_CONNECTION_STRING = os.getenv("MILVUS_CONNECTION_STRING")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
 import dotenv
 from langchain_community.document_loaders import *
 from langchain_text_splitters import *
@@ -79,8 +80,8 @@ from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
 from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
 from langchain_postgres.vectorstores import PGVector
-from langchain_ollama.llms import OllamaLLM
-from langchain_ollama import OllamaEmbeddings
+from langchain_community.llms import Ollama
+from langchain_community.embeddings import OllamaEmbeddings
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *

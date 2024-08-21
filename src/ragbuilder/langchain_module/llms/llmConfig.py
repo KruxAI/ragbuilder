@@ -47,8 +47,8 @@ def getLLM(**kwargs):
         code_string = f"""llm=HuggingFaceEndpoint(repo_id='{model}'{temp_arg_str},huggingfacehub_api_token=os.environ.get('HUGGINGFACEHUB_API_TOKEN'))"""
     elif model_owner == "Ollama":
         logger.info(f"LLM Code Gen Invoked: {retrieval_model}")
-        import_string = f"""from langchain_ollama.llms import OllamaLLM"""
-        code_string = f"""llm = OllamaLLM(model='{model}'{temp_arg_str})"""
+        import_string = f"""from langchain_community.llms import Ollama"""
+        code_string = f"""llm = Ollama(model='{model}'{temp_arg_str},base_url=OLLAMA_BASE_URL)"""
 
     else:
         raise ValueError(f"Invalid LLM: {kwargs['retrieval_model']}")

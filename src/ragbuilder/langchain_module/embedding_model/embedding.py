@@ -49,8 +49,8 @@ def getEmbedding(**kwargs):
             import_string = f"""from langchain_openai import AzureOpenAIEmbeddings"""
         elif model_owner == "Ollama":
             logger.info(f"Ollama Embedding Invoked: {embedding_model}")
-            code_string= f"""embedding = OllamaEmbeddings(model='{model}')"""
-            import_string = f"""from langchain_ollama import OllamaEmbeddings"""
+            code_string= f"""embedding = OllamaEmbeddings(model='{model}',base_url=OLLAMA_BASE_URL)"""
+            import_string = f"""from langchain_community.embeddings import OllamaEmbeddings"""
         else:
             raise ValueError(f"Invalid LLM: {embedding_model}")
         return {'code_string':code_string,'import_string':import_string}
