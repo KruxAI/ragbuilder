@@ -129,7 +129,7 @@ def rag_builder_bayes_optmization(**kwargs):
     logger.info(f"Initializing RAG parameter set...")
     lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, other_embedding, other_llm)
     configs_to_run=dict()
-    configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},4:{'ragname':'crag'}} 
+    configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},5:{'ragname':'crag'}} 
     #TODO: Add a check to see if the templates are to be included
 
     # if kwargs['compare_templates']:
@@ -256,8 +256,8 @@ def rag_builder(**kwargs):
     # if kwargs['compare_templates']:
     #     configs_to_run.update(top_n_templates)
         # Run Templates first if templates have been selected
-    configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},4:{'ragname':'crag'}} 
-    
+    configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},5:{'ragname':'crag'}} 
+
     # configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},2:{'ragname':'hyde'}}
     for key, val in configs_to_run.items():
         logger.info("SOTA Ragbuilder Initiated")
@@ -323,6 +323,7 @@ from ragbuilder.rag_templates.sota.simple_rag import code as simple_rag
 from ragbuilder.rag_templates.sota.semantic_chunker import code as semantic_chunker
 from ragbuilder.rag_templates.sota.hyde import code as hyde
 from ragbuilder.rag_templates.sota.hybrid_rag import code as hybrid_rag
+from ragbuilder.rag_templates.sota.crag import code as crag
 class sotaRAGBuilder:
     def __init__(self,val):
         self.config = val
@@ -337,11 +338,14 @@ class sotaRAGBuilder:
             logger.info("simple_rag initiated")
             self.router=rag.sota_code_mod(semantic_chunker,self.loader_kwargs['input_path'])
         if val['ragname']=="hyde":
-            logger.info("simple_rag initiated")
+            logger.info("hyde initiated")
             self.router=rag.sota_code_mod(hyde,self.loader_kwargs['input_path'])
         if val['ragname']=="hybrid_rag":
-            logger.info("simple_rag initiated")
+            logger.info("hybrid_rag initiated")
             self.router=rag.sota_code_mod(hybrid_rag,self.loader_kwargs['input_path'])
+        if val['ragname']=="crag":
+            logger.info("crag initiated")
+            self.router=rag.sota_code_mod(crag,self.loader_kwargs['input_path'])
         locals_dict={}
         globals_dict = globals()
 

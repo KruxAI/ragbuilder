@@ -21,7 +21,7 @@ def rag_pipeline():
         
         embedding = OllamaEmbeddings(model='mxbai-embed-large:latest',base_url='BASE_URL')
 
-        splitter = SemanticChunker(OpenAIEmbeddings(), breakpoint_threshold_type='percentile', breakpoint_threshold_amount=90)
+        splitter = SemanticChunker(embedding, breakpoint_threshold_type='percentile', breakpoint_threshold_amount=90)
         splits=splitter.create_documents(docs[0].page_content)
         c=Chroma.from_documents(documents=splits, embedding=embedding, collection_name='testindex-ragbuilder',)
         retrievers=[]
