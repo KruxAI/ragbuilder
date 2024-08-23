@@ -83,7 +83,8 @@ from langchain_postgres.vectorstores import PGVector
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain.chains import LLMChain, HypotheticalDocumentEmbedder
-
+from langchain.prompts import ChatPromptTemplate
+from langchain.load import dumps, loads
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
