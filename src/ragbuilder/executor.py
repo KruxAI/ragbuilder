@@ -82,6 +82,8 @@ from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
+from langchain.chains import LLMChain, HypotheticalDocumentEmbedder
+
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
@@ -127,9 +129,11 @@ def rag_builder_bayes_optmization(**kwargs):
     logger.info(f"Initializing RAG parameter set...")
     lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, other_embedding, other_llm)
     configs_to_run=dict()
+    configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},4:{'ragname':'crag'}} 
+    #TODO: Add a check to see if the templates are to be included
 
-    if kwargs['compare_templates']:
-        configs_to_run.update(top_n_templates)
+    # if kwargs['compare_templates']:
+    #     configs_to_run.update(top_n_templates)
 
     space = lc_templates.generate_config_space(exclude_elements=disabled_opts)
     logger.info(f"Config space={space}")
@@ -144,13 +148,17 @@ def rag_builder_bayes_optmization(**kwargs):
     progress_state.set_total_runs(total_runs)
 
     # Run Templates first if templates have been selected
+    # configs_to_run= {1:{'ragname':'simple_rag'}}
     for key, val in configs_to_run.items():
+        logger.info("SOTA Ragbuilder Initiated")
         progress_state.increment_progress()
         logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
-        logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
+        # logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
+        print(val)
         val['loader_kwargs']=src_data
         val['run_id']=run_id
-        rag_builder=RagBuilder(val)
+        rag_builder=sotaRAGBuilder(val)
+        logger.info("SOTA Ragbuilder Class Initiated")
         run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
         # logger.info(f"{repr(run_config)}")
         # time.sleep(30)
@@ -245,8 +253,39 @@ def rag_builder(**kwargs):
     result=None
     configs_to_run=dict()
 
-    if kwargs['compare_templates']:
-        configs_to_run.update(top_n_templates)
+    # if kwargs['compare_templates']:
+    #     configs_to_run.update(top_n_templates)
+        # Run Templates first if templates have been selected
+    configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},4:{'ragname':'crag'}} 
+    
+    # configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},2:{'ragname':'hyde'}}
+    for key, val in configs_to_run.items():
+        logger.info("SOTA Ragbuilder Initiated")
+        progress_state.increment_progress()
+        logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
+        # logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
+        print(val)
+        val['loader_kwargs']=src_data
+        val['run_id']=run_id
+        rag_builder=sotaRAGBuilder(val)
+        logger.info("SOTA Ragbuilder Class Initiated")
+        run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+        # logger.info(f"{repr(run_config)}")
+        # time.sleep(30)
+        # result=0
+        logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... (this may take a while)")
+        rageval=eval.RagEvaluator(
+            rag_builder, # code for rag function
+            test_ds, 
+            llm = get_model_obj('llm', eval_llm), 
+            embeddings = get_model_obj('embedding', eval_embedding), 
+            #TODO: Fetch Run Config settings from advanced settings from front-end
+            run_config = run_config,
+            is_async = RUN_CONFIG_IS_ASYNC
+            )
+        result=rageval.evaluate()
+        logger.info(f'progress_state={progress_state.get_progress()}')
+        configs_to_run=dict()
     if kwargs['include_granular_combos']:
         logger.info(f"Initializing RAG parameter set...")
         lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, other_embedding, other_llm)
@@ -277,9 +316,56 @@ def rag_builder(**kwargs):
             is_async = RUN_CONFIG_IS_ASYNC
             )
         result=rageval.evaluate()
-        # logger.info(f'progress_state={progress_state.get_progress()}')
+        # byor_ragbuilder()
     return result
 
+from ragbuilder.rag_templates.sota.simple_rag import code as simple_rag
+from ragbuilder.rag_templates.sota.semantic_chunker import code as semantic_chunker
+from ragbuilder.rag_templates.sota.hyde import code as hyde
+from ragbuilder.rag_templates.sota.hybrid_rag import code as hybrid_rag
+class sotaRAGBuilder:
+    def __init__(self,val):
+        self.config = val
+        self.run_id = val['run_id']
+        self.loader_kwargs = val['loader_kwargs']
+        logger.info("Sota Ragbuilder Invoked", val['loader_kwargs'])
+        # output of router is genrated code as string
+        if val['ragname']=="simple_rag":
+            logger.info("simple_rag initiated")
+            self.router=rag.sota_code_mod(simple_rag,self.loader_kwargs['input_path'])
+        if val['ragname']=="semantic_chunker":
+            logger.info("simple_rag initiated")
+            self.router=rag.sota_code_mod(semantic_chunker,self.loader_kwargs['input_path'])
+        if val['ragname']=="hyde":
+            logger.info("simple_rag initiated")
+            self.router=rag.sota_code_mod(hyde,self.loader_kwargs['input_path'])
+        if val['ragname']=="hybrid_rag":
+            logger.info("simple_rag initiated")
+            self.router=rag.sota_code_mod(hybrid_rag,self.loader_kwargs['input_path'])
+        locals_dict={}
+        globals_dict = globals()
+
+        logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
+        try:
+        #execution os string
+            logger.info(f"Generated Code\n{self.router}")
+            logger.info("sota rag execution initiated")
+            exec(self.router,globals_dict,locals_dict)
+
+            #old rag func hooked to eval
+            self.rag = locals_dict['rag_pipeline']()
+        except Exception as e:
+            logger.error(f"Error invoking RAG. ERROR: {e}")
+    
+    def __repr__(self):
+        try:
+            json_config=json.dumps(self.config)
+        except Exception as e:
+            logger.error(f"Error serializing RAG config as JSON: {e}")
+            logger.debug(f"self.config = {self.config}")
+            raw_config=str(self.config).replace("'", '"')
+            return json.dumps({"msg": "Failed to serialize RAG config", "raw_config": raw_config})
+        return json_config
 
 
 class RagBuilder:
@@ -338,4 +424,45 @@ class RagBuilder:
             raw_config=str(self.config).replace("'", '"')
             return json.dumps({"msg": "Failed to serialize RAG config", "raw_config": raw_config})
         return json_config
-             
+
+def byor_ragbuilder(test_ds,eval_llm,eval_embedding):
+    current_directory = os.getcwd()
+    print(f"Current Working Directory: {current_directory}")
+    folder_path = current_directory+'/byor'
+
+    # Iterate over all files in the folder
+    for filename in os.listdir(folder_path):
+        # Only consider .py files
+        print('filename',filename)
+        if filename.endswith('.py') and filename != '__init__.py':
+            module_name = filename[:-3]  # Strip .py extension
+            module_path = os.path.join(folder_path, filename)
+            
+            # Dynamically load the module
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            
+            # Check if the module has 'rag_pipline' function and execute it
+            if hasattr(module, 'rag_pipeline'):
+                print(f"found rag_pipeline() from {module_name}")
+                logger.info("BYOR Ragbuilder Initiated")
+                progress_state.increment_progress()
+                logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
+                # logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
+                logger.info("BYOR Ragbuilder Class Initiated")
+                run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+                logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... (this may take a while)")
+                rag_builder=module.rag_pipline()
+                rageval=eval.RagEvaluator(
+                    rag_builder, # code for rag function
+                    test_ds, 
+                    llm = get_model_obj('llm', eval_llm), 
+                    embeddings = get_model_obj('embedding', eval_embedding), 
+                    #TODO: Fetch Run Config settings from advanced settings from front-end
+                    run_config = run_config,
+                    is_async = RUN_CONFIG_IS_ASYNC
+                    )
+                result=rageval.evaluate()
+                logger.info(f'progress_state={progress_state.get_progress()}')
+    

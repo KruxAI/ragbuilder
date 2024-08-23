@@ -120,3 +120,19 @@ def rag_pipeline():
 """.format(code_text.replace('\n', '\n        '))
     logger.info(f"Codegen completed")
     return function_code
+
+def is_docker():
+    """Check if the code is running inside a Docker container."""
+    path = '/.dockerenv'
+    return os.path.exists(path)
+def sota_code_mod(code,input_path):
+    print("input_path", input_path)
+    docs = ragbuilder_loader(input_path=input_path)
+    code_string=docs['code_string'].replace("\n",'\n        ') 
+    print("code_string", code_string)
+    if is_docker():
+        code_string_docker=code.replace("BASE_URL","http://host.docker.internal:11434/")
+    else:
+        code_string_docker=code.replace("BASE_URL","http://localhost:11434")
+    codmod=code_string_docker.replace("{loader_class}",code_string)
+    return codmod
