@@ -120,3 +120,15 @@ def rag_pipeline():
 """.format(code_text.replace('\n', '\n        '))
     logger.info(f"Codegen completed")
     return function_code
+
+def sota_code_mod(**kwargs):
+    kwargs['embedding_model']=kwargs['embedding_kwargs']['embedding_model']
+    code=kwargs['code']
+    llm = getLLM(**kwargs)
+    embedding = getEmbedding(**kwargs)
+    docs = ragbuilder_loader(input_path=kwargs['input_path'])
+    codmod=code.replace("{loader_class}",docs['code_string'].replace("\n",'\n        '))
+    codmod=codmod.replace("{llm_class}",llm['code_string'].replace("\n",'\n        '))
+    codmod=codmod.replace("{embedding_class}",embedding['code_string'].replace("\n",'\n        '))
+    # codmod=codmod.replace("\n",'\n        ') 
+    return codmod

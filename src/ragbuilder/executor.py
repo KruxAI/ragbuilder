@@ -82,6 +82,9 @@ from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
+from langchain.chains import LLMChain, HypotheticalDocumentEmbedder
+from langchain.prompts import ChatPromptTemplate
+from langchain.load import dumps, loads
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
@@ -107,6 +110,7 @@ def get_model_obj(model_type: str, model: str, temperature: Optional[float] = No
 def rag_builder_bayes_optmization(**kwargs):
     run_id=kwargs['run_id']
     src_data=kwargs['src_data']
+    selected_templates = kwargs.get('selected_templates', [])
     vectorDB=kwargs['vectorDB']
     min_chunk_size=kwargs.get('min_chunk_size', 1000)
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
@@ -118,6 +122,8 @@ def rag_builder_bayes_optmization(**kwargs):
     eval_framework=kwargs.get('eval_framework') # TODO: Add this as an argument to RagEvaluator
     eval_embedding=kwargs.get('eval_embedding')
     eval_llm=kwargs.get('eval_llm')
+    sota_embedding=kwargs.get('sota_embedding')
+    sota_llm=kwargs.get('sota_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
@@ -126,31 +132,47 @@ def rag_builder_bayes_optmization(**kwargs):
     # Define the configuration space
     logger.info(f"Initializing RAG parameter set...")
     lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, other_embedding, other_llm)
-    configs_to_run=dict()
+    # configs_to_run=dict()
+    cnt_templates=0
+    # configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},4:{'ragname':'crag'}} 
+    #TODO: Add a check to see if the templates are to be included
 
-    if kwargs['compare_templates']:
-        configs_to_run.update(top_n_templates)
-
-    space = lc_templates.generate_config_space(exclude_elements=disabled_opts)
-    logger.info(f"Config space={space}")
-    cnt_combos=lc_templates.count_combos() + len(configs_to_run)
-    logger.info(f"Number of RAG combinations : {cnt_combos}")
-    configs_evaluated=dict()
     
-    if cnt_combos < num_runs:
-        total_runs=cnt_combos
+    if kwargs['compare_templates']:
+        # configs_to_run.update(top_n_templates)
+        cnt_templates = len(selected_templates)
+
+    if kwargs['include_granular_combos']:
+        space = lc_templates.generate_config_space(exclude_elements=disabled_opts)
+        logger.info(f"Config space={space}")
+        cnt_combos=lc_templates.count_combos() + cnt_templates
+        logger.info(f"Number of RAG combinations : {cnt_combos}")
+        configs_evaluated=dict()
+    
+        if cnt_combos < num_runs:
+            total_runs=cnt_combos
+        else:
+            total_runs = num_runs + cnt_templates
     else:
-        total_runs = num_runs + len(configs_to_run)
+        logger.info(f"Number of RAG combinations : {cnt_templates}")
+        total_runs = cnt_templates
+    
     progress_state.set_total_runs(total_runs)
 
     # Run Templates first if templates have been selected
-    for key, val in configs_to_run.items():
+    # configs_to_run= {1:{'ragname':'simple_rag'}}
+    for key in selected_templates:
+        val = top_n_templates[key]
         progress_state.increment_progress()
         logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
-        logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
+        logger.info(f"SOTA template: {key}: {val['description']}")
+        # logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
+        print(val)
         val['loader_kwargs']=src_data
+        val['embedding_kwargs']={'embedding_model': sota_embedding}
+        val['llm']=sota_llm
         val['run_id']=run_id
-        rag_builder=RagBuilder(val)
+        rag_builder=SOTARAGBuilder(val)
         run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
         # logger.info(f"{repr(run_config)}")
         # time.sleep(30)
@@ -166,7 +188,7 @@ def rag_builder_bayes_optmization(**kwargs):
             is_async = RUN_CONFIG_IS_ASYNC
             )
         result=rageval.evaluate()
-        logger.info(f'progress_state={progress_state.get_progress()}')
+        logger.debug(f'progress_state={progress_state.get_progress()}')
     
     if kwargs['include_granular_combos']:
         # Objective function for Bayesian optimization on the custom RAG configurations
@@ -230,6 +252,7 @@ def rag_builder_bayes_optmization(**kwargs):
 def rag_builder(**kwargs):
     run_id=kwargs['run_id']
     src_data=kwargs['src_data']
+    selected_templates = kwargs.get('selected_templates', [])
     vectorDB=kwargs['vectorDB']
     min_chunk_size=kwargs.get('min_chunk_size', 1000)
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
@@ -238,48 +261,121 @@ def rag_builder(**kwargs):
     eval_framework=kwargs.get('eval_framework') # TODO: Add this as an argument to RagEvaluator
     eval_embedding=kwargs.get('eval_embedding')
     eval_llm=kwargs.get('eval_llm')
+    sota_embedding=kwargs.get('sota_embedding')
+    sota_llm=kwargs.get('sota_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None
-    configs_to_run=dict()
+    configs_to_run = []
+    cnt_combos = 0
 
     if kwargs['compare_templates']:
-        configs_to_run.update(top_n_templates)
+        # configs_to_run.update(top_n_templates)
+        logger.info(f"Gathering SOTA RAG configs...")
+        cnt_combos = len(selected_templates)
+        configs_to_run.append({'type': 'SOTA','configs': selected_templates})
+
     if kwargs['include_granular_combos']:
         logger.info(f"Initializing RAG parameter set...")
         lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, other_embedding, other_llm)
-        configs_to_run.update(lc_templates.nuancedCombos(disabled_opts))
+        custom_combos=lc_templates.nuancedCombos(disabled_opts)
+        configs_to_run.append({'type': 'CUSTOM','configs': custom_combos})
+        cnt_combos+=len(custom_combos)
 
-    cnt_combos=len(configs_to_run)
+
     logger.info(f"Number of RAG combinations : {cnt_combos}")
     progress_state.set_total_runs(cnt_combos)
 
-    for val in configs_to_run.values():
-        progress_state.increment_progress()
-        logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
-        val['loader_kwargs']=src_data
-        val['run_id']=run_id
-        rag_builder=RagBuilder(val)
-        run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
-        # logger.info(f"{repr(run_config)}")
-        # time.sleep(30)
-        # result=0
-        logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... (this may take a while)")
-        rageval=eval.RagEvaluator(
-            rag_builder, # code for rag function
-            test_ds, 
-            llm = get_model_obj('llm', eval_llm), 
-            embeddings = get_model_obj('embedding', eval_embedding), 
-            #TODO: Fetch Run Config settings from advanced settings from front-end
-            run_config = run_config,
-            is_async = RUN_CONFIG_IS_ASYNC
-            )
-        result=rageval.evaluate()
-        # logger.info(f'progress_state={progress_state.get_progress()}')
+    for configs in configs_to_run:
+        if configs['type'] == 'SOTA':
+            for key in configs['configs']:
+                val = top_n_templates[key]
+                progress_state.increment_progress()
+                logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
+                logger.info(f"SOTA template: {key}: {val['description']}")
+                val['loader_kwargs']=src_data
+                val['embedding_kwargs']={'embedding_model': sota_embedding}
+                val['llm']=sota_llm
+                val['run_id']=run_id
+                rag_builder=SOTARAGBuilder(val)
+                run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+                # logger.info(f"{repr(run_config)}")
+                # time.sleep(30)
+                # result=0
+                logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... (this may take a while)")
+                rageval=eval.RagEvaluator(
+                    rag_builder, # code for rag function
+                    test_ds, 
+                    llm = get_model_obj('llm', eval_llm), 
+                    embeddings = get_model_obj('embedding', eval_embedding), 
+                    #TODO: Fetch Run Config settings from advanced settings from front-end
+                    run_config = run_config,
+                    is_async = RUN_CONFIG_IS_ASYNC
+                    )
+                result=rageval.evaluate()
+                logger.debug(f'progress_state={progress_state.get_progress()}')
+        if configs['type'] == 'CUSTOM':
+            for val in configs['configs'].values():
+                progress_state.increment_progress()
+                logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
+                val['loader_kwargs']=src_data
+                val['run_id']=run_id
+                rag_builder=RagBuilder(val)
+                run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+                # logger.info(f"{repr(run_config)}")
+                # time.sleep(30)
+                # result=0
+                logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... (this may take a while)")
+                rageval=eval.RagEvaluator(
+                    rag_builder, # code for rag function
+                    test_ds, 
+                    llm = get_model_obj('llm', eval_llm), 
+                    embeddings = get_model_obj('embedding', eval_embedding), 
+                    #TODO: Fetch Run Config settings from advanced settings from front-end
+                    run_config = run_config,
+                    is_async = RUN_CONFIG_IS_ASYNC
+                    )
+                result=rageval.evaluate()
     return result
 
+import importlib
+class SOTARAGBuilder:
+    def __init__(self, val):
+        self.config = val
+        self.run_id = val['run_id']
+        self.loader_kwargs = val['loader_kwargs']
+        self.llm = val['llm']
+        self.embedding_kwargs = val['embedding_kwargs']
+        logger.debug(f"SOTA template RAGbuilder Invoked {val}")
+        sota_module = importlib.import_module('ragbuilder.rag_templates.sota.'+val['module'])
+        logger.debug(f"{val['name']} initiated")
+        self.router=rag.sota_code_mod(
+            code=sota_module.code, 
+            input_path=self.loader_kwargs['input_path'],
+            retrieval_model=self.llm,
+            embedding_kwargs=self.embedding_kwargs
+        )
+        locals_dict={}
+        globals_dict = globals()
+
+        logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
+        try:
+            exec(self.router,globals_dict,locals_dict)
+            self.rag = locals_dict['rag_pipeline']()
+        except Exception as e:
+            logger.error(f"Error invoking RAG. ERROR: {e}")
+    
+    def __repr__(self):
+        try:
+            json_config=json.dumps(self.config)
+        except Exception as e:
+            logger.error(f"Error serializing RAG config as JSON: {e}")
+            logger.debug(f"self.config = {self.config}")
+            raw_config=str(self.config).replace("'", '"')
+            return json.dumps({"msg": "Failed to serialize RAG config", "raw_config": raw_config})
+        return json_config
 
 
 class RagBuilder:
@@ -338,4 +434,45 @@ class RagBuilder:
             raw_config=str(self.config).replace("'", '"')
             return json.dumps({"msg": "Failed to serialize RAG config", "raw_config": raw_config})
         return json_config
-             
+
+def byor_ragbuilder(test_ds,eval_llm,eval_embedding):
+    current_directory = os.getcwd()
+    print(f"Current Working Directory: {current_directory}")
+    folder_path = current_directory+'/byor'
+
+    # Iterate over all files in the folder
+    for filename in os.listdir(folder_path):
+        # Only consider .py files
+        print('filename',filename)
+        if filename.endswith('.py') and filename != '__init__.py':
+            module_name = filename[:-3]  # Strip .py extension
+            module_path = os.path.join(folder_path, filename)
+            
+            # Dynamically load the module
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            
+            # Check if the module has 'rag_pipline' function and execute it
+            if hasattr(module, 'rag_pipeline'):
+                print(f"found rag_pipeline() from {module_name}")
+                logger.info("BYOR Ragbuilder Initiated")
+                progress_state.increment_progress()
+                logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
+                # logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
+                logger.info("BYOR Ragbuilder Class Initiated")
+                run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
+                logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... (this may take a while)")
+                rag_builder=module.rag_pipline()
+                rageval=eval.RagEvaluator(
+                    rag_builder, # code for rag function
+                    test_ds, 
+                    llm = get_model_obj('llm', eval_llm), 
+                    embeddings = get_model_obj('embedding', eval_embedding), 
+                    #TODO: Fetch Run Config settings from advanced settings from front-end
+                    run_config = run_config,
+                    is_async = RUN_CONFIG_IS_ASYNC
+                    )
+                result=rageval.evaluate()
+                logger.debug(f'progress_state={progress_state.get_progress()}')
+    
