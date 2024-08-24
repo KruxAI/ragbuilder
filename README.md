@@ -176,7 +176,7 @@ Create a file named `.env` in the directory where you will run the `ragbuilder` 
 # Environment variables for the RagBuilder project
 OPENAI_API_KEY=XXXXXX
 MISTRAL_API_KEY=XXXXX
-ENABLE_ANALYTICS=True
+ENABLE_ANALYTICS=True # set to False to disable usage tracking
 HUGGINGFACEHUB_API_TOKEN=XXXXXX
 COHERE_API_KEY=XXXXXX
 JINA_API_KEY=XXXXXX
