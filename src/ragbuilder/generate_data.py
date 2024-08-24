@@ -103,7 +103,7 @@ def generate_data(
 
         ts=datetime.now(timezone.utc).timestamp()
         test_df = testset.to_pandas()
-        f_name=f'rag_test_data_{critic_llm.model}_{ts}.csv'
+        f_name=f'rag_test_data_{ts}.csv'
         logger.info(f"Writing to csv file: {f_name}")
         test_df.to_csv(f_name)
         return f_name
