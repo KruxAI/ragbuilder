@@ -47,11 +47,16 @@ function loadTemplates() {
             let templatesHtml = '';
             response.templates.forEach(template => {
                 templatesHtml += `
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="${template.id}" id="template-${template.id}" name="templateCheckbox" checked>
-                        <label class="form-check-label" for="template-${template.id}">
-                            ${template.name} - ${template.description}
-                        </label>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="${template.id}" id="template-${template.id}" name="templateCheckbox" checked>
+                                <label class="form-check-label" for="template-${template.id}">
+                                    <h6 class="mb-1">${template.name}</h6>
+                                    <p class="text-muted small mb-0">${template.description}</p>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 `;
             });
