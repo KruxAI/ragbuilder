@@ -25,11 +25,6 @@ top_n_templates = {
         'description': 'Hybrid RAG',
         'module': 'hybrid_rag'
     },
-    'crag': {
-        'name': 'C-RAG',
-        'description': 'Corrective RAG',
-        'module': 'crag'
-    },
     'rrf': {
         'name': 'RRF',
         'description': 'Reciprocal Rank Fusion RAG',
