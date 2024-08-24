@@ -15,11 +15,11 @@ def rag_pipeline():
         def format_docs(docs):
             return "\\n".join(doc.page_content for doc in docs) 
         
-        llm = Ollama(model='llama3.1:latest',base_url='BASE_URL')
+        {llm_class}
         
         {loader_class}
         
-        embedding = OllamaEmbeddings(model='mxbai-embed-large:latest',base_url='BASE_URL')
+        {embedding_class}
 
         splitter = SemanticChunker(embedding, breakpoint_threshold_type='percentile', breakpoint_threshold_amount=90)
         splits=splitter.create_documents(docs[0].page_content)
