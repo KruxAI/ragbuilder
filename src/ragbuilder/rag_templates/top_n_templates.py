@@ -1,9 +1,14 @@
 
 top_n_templates = {
-    'simple_rag': {
-        'name': 'Simple RAG',
-        'description': 'Simple RAG',
-        'module': 'simple_rag'
+    'query_rewrite': {
+        'name': 'Query Rewrite RAG',
+        'description': 'Query Rewrite RAG',
+        'module': 'query_rewrite'
+    },
+    'step_back_prompt': {
+        'name': 'Step Back Prompting',
+        'description': 'Step Back Prompting',
+        'module': 'step_back_prompt'
     },
     'semantic_chunker': {
         'name': 'Semantic Chunker',
