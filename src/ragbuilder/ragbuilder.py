@@ -411,7 +411,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     other_embedding = [emb for emb in [hf_embedding, azureoai_embedding, googlevertexai_embedding, ollama_embedding] if emb is not None and emb != ""]
     other_llm = [llm for llm in [hf_llm, groq_llm, azureoai_llm, googlevertexai_llm, ollama_llm] if llm is not None and llm != ""]
     sota_embedding = config.get('sotaEmbeddingModel')
-    sota_llm = config.get('customSotaLLMModel')
+    sota_llm = config.get('sotaLLMModel')
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath

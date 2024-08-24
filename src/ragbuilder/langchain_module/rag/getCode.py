@@ -125,17 +125,10 @@ def sota_code_mod(**kwargs):
     kwargs['embedding_model']=kwargs['embedding_kwargs']['embedding_model']
     code=kwargs['code']
     llm = getLLM(**kwargs)
-    print(llm)
     embedding = getEmbedding(**kwargs)
-    print(embedding)
     docs = ragbuilder_loader(input_path=kwargs['input_path'])
-    print('done1')
     codmod=code.replace("{loader_class}",docs['code_string'].replace("\n",'\n        '))
-    print('done2')
     codmod=codmod.replace("{llm_class}",llm['code_string'].replace("\n",'\n        '))
-    print('done3')
     codmod=codmod.replace("{embedding_class}",embedding['code_string'].replace("\n",'\n        '))
-    print('done4')
     # codmod=codmod.replace("\n",'\n        ') 
-    print('done5')
     return codmod

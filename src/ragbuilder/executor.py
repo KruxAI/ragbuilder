@@ -169,7 +169,7 @@ def rag_builder_bayes_optmization(**kwargs):
         # logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
         print(val)
         val['loader_kwargs']=src_data
-        val['embedding_kwargs']=sota_embedding
+        val['embedding_kwargs']={'embedding_model': sota_embedding}
         val['llm']=sota_llm
         val['run_id']=run_id
         rag_builder=SOTARAGBuilder(val)
@@ -296,7 +296,7 @@ def rag_builder(**kwargs):
                 logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
                 logger.info(f"SOTA template: {key}: {val['description']}")
                 val['loader_kwargs']=src_data
-                val['embedding_kwargs']=sota_embedding
+                val['embedding_kwargs']={'embedding_model': sota_embedding}
                 val['llm']=sota_llm
                 val['run_id']=run_id
                 rag_builder=SOTARAGBuilder(val)
@@ -348,7 +348,7 @@ class SOTARAGBuilder:
         self.loader_kwargs = val['loader_kwargs']
         self.llm = val['llm']
         self.embedding_kwargs = val['embedding_kwargs']
-        logger.debug("SOTA template RAGbuilder Invoked", val['loader_kwargs'])
+        logger.debug(f"SOTA template RAGbuilder Invoked {val}")
         sota_module = importlib.import_module('ragbuilder.rag_templates.sota.'+val['module'])
         logger.debug(f"{val['name']} initiated")
         self.router=rag.sota_code_mod(
