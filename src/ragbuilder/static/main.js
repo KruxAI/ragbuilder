@@ -140,6 +140,24 @@ $(document).ready(function () {
         document.getElementById('minValue').innerText = values[0];
         document.getElementById('maxValue').innerText = values[1];
     });
+
+    $('#sotaEmbeddingModel').change(function() {
+        var selectedValue = $(this).val();
+        if (['HF', 'AzureOAI', 'GoogleVertexAI', 'Ollama'].includes(selectedValue)) {
+            $('#customSotaEmbeddingModel').show();
+        } else {
+            $('#customSotaEmbeddingModel').hide().val('');
+        }
+    });
+
+    $('#sotaLLMModel').change(function() {
+        var selectedValue = $(this).val();
+        if (['HF', 'Groq', 'AzureOAI', 'GoogleVertexAI', 'Ollama'].includes(selectedValue)) {
+            $('#customSotaLLMModel').show();
+        } else {
+            $('#customSotaLLMModel').hide().val('');
+        }
+    });
     
     $('#embeddingHuggingFace').change(function () {
         if (this.checked) {
@@ -316,7 +334,6 @@ $(document).ready(function () {
             $('#step1').hide();
             loadTemplates();
             $('#step1b').show();
-            console.log("Reached step 1b...");
         } else {
             $('#step1').hide();
             $('#step2').show();
@@ -326,7 +343,6 @@ $(document).ready(function () {
 
     $('#nextStep1b').click(function () {
         if ($('#includeNonTemplated').is(':checked')) {
-            console.log("Reached step 2...");
             $('#step1b').hide();
             $('#step2').show();
         } else {
@@ -592,9 +608,14 @@ $(document).ready(function () {
             optimization: $('input[name="optimization"]:checked').attr('id')
         };
 
-        $('input[name="templateCheckbox"]:checked').each(function() {
-            projectData.selectedTemplates.push($(this).val());
-        });
+        if ($('#compareTemplates').is(':checked')) {
+            $('input[name="templateCheckbox"]:checked').each(function() {
+                projectData.selectedTemplates.push($(this).val());
+            });
+
+            projectData.sotaEmbeddingModel =  getModel('sotaEmbeddingModel', 'customSotaEmbeddingModel');
+            projectData.sotaLLMModel =  getModel('sotaLLMModel', 'customSotaLLMModel');
+        }
         
         if ($('#contextualCompression').is(':checked')) {
                 projectData.compressors = {

@@ -58,6 +58,45 @@
                             <div id="templatesList" class="mt-4 mx-3">
                                 <!-- Templates will be dynamically populated here -->
                             </div>
+                            <div class="row mt-5 mx-3 gx-5">
+                                <div class="col-md-6">
+                                    <h6>Embedding Model</h6>
+                                    <div class="form-group mb-4">
+                                        <select class="form-select" id="sotaEmbeddingModel">
+                                            <optgroup label="OpenAI">
+                                                <option value="text-embedding-3-small">text-embedding-3-small</option>
+                                                <option value="text-embedding-3-large" selected>text-embedding-3-large</option>
+                                                <option value="text-embedding-ada-002">text-embedding-ada-002</option>
+                                            </optgroup>
+                                            <option value="HF">HuggingFace</option>
+                                            <option value="AzureOAI">Azure OpenAI</option>
+                                            <option value="GoogleVertexAI">Google Vertex AI</option>
+                                            <option value="Ollama">Ollama</option>
+                                        </select>
+                                        <input type="text" class="form-control mt-2" id="customSotaEmbeddingModel" style="display: none;" placeholder="Enter Model name e.g., mxbai-embed-large">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>LLM</h6>
+                                    <div class="form-group mb-4">
+                                        <select class="form-select" id="sotaLLMModel">
+                                            <optgroup label="OpenAI">
+                                                <option value="gpt-4o-mini" selected>GPT-4o mini</option>
+                                                <option value="gpt-4o">GPT-4o</option>
+                                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                            </optgroup>
+                                            <option value="HF">HuggingFace</option>
+                                            <option value="Groq">Groq</option>
+                                            <option value="AzureOAI">Azure OpenAI</option>
+                                            <option value="GoogleVertexAI">Google Vertex AI</option>
+                                            <option value="Ollama">Ollama</option>
+                                        </select>
+                                        <input type="text" class="form-control mt-2" id="customSotaLLMModel" style="display: none;" placeholder="Enter LLM model name e.g., llama-3.1-405B">
+                                    </div>
+                                </div>
+                            </div>
+                        
                             <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
                                 <button type="button" class="btn btn-secondary my-3 me-md-2" id="previousStep1b">Back</button>
                                 <button type="button" class="btn btn-primary my-3 me-md-2" id="nextStep1b">Next</button>

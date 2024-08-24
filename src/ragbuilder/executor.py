@@ -122,6 +122,8 @@ def rag_builder_bayes_optmization(**kwargs):
     eval_framework=kwargs.get('eval_framework') # TODO: Add this as an argument to RagEvaluator
     eval_embedding=kwargs.get('eval_embedding')
     eval_llm=kwargs.get('eval_llm')
+    sota_embedding=kwargs.get('sota_embedding')
+    sota_llm=kwargs.get('sota_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
@@ -167,6 +169,8 @@ def rag_builder_bayes_optmization(**kwargs):
         # logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
         print(val)
         val['loader_kwargs']=src_data
+        val['embedding_kwargs']=sota_embedding
+        val['llm']=sota_llm
         val['run_id']=run_id
         rag_builder=SOTARAGBuilder(val)
         run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
@@ -257,6 +261,8 @@ def rag_builder(**kwargs):
     eval_framework=kwargs.get('eval_framework') # TODO: Add this as an argument to RagEvaluator
     eval_embedding=kwargs.get('eval_embedding')
     eval_llm=kwargs.get('eval_llm')
+    sota_embedding=kwargs.get('sota_embedding')
+    sota_llm=kwargs.get('sota_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
     test_df=pd.read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
@@ -290,6 +296,8 @@ def rag_builder(**kwargs):
                 logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
                 logger.info(f"SOTA template: {key}: {val['description']}")
                 val['loader_kwargs']=src_data
+                val['embedding_kwargs']=sota_embedding
+                val['llm']=sota_llm
                 val['run_id']=run_id
                 rag_builder=SOTARAGBuilder(val)
                 run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
@@ -338,10 +346,17 @@ class SOTARAGBuilder:
         self.config = val
         self.run_id = val['run_id']
         self.loader_kwargs = val['loader_kwargs']
+        self.llm = val['llm']
+        self.embedding_kwargs = val['embedding_kwargs']
         logger.debug("SOTA template RAGbuilder Invoked", val['loader_kwargs'])
         sota_module = importlib.import_module('ragbuilder.rag_templates.sota.'+val['module'])
         logger.debug(f"{val['name']} initiated")
-        self.router=rag.sota_code_mod(sota_module.code, self.loader_kwargs['input_path'])
+        self.router=rag.sota_code_mod(
+            code=sota_module.code, 
+            input_path=self.loader_kwargs['input_path'],
+            retrieval_model=self.llm,
+            embedding_kwargs=self.embedding_kwargs
+        )
         locals_dict={}
         globals_dict = globals()
 

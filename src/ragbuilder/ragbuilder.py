@@ -307,6 +307,8 @@ class ProjectData(BaseModel):
     evalFramework: str
     evalEmbedding: str
     evalLLM: str
+    sotaEmbeddingModel: str
+    sotaLLMModel: str
     compressors: Optional[dict[str, bool]] = Field(default=None)
     syntheticDataGeneration: Optional[dict] = Field(default=None)
     testDataPath: Optional[str] = Field(default=None)
@@ -408,6 +410,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
     eval_llm = config.get('evalLLM')
     other_embedding = [emb for emb in [hf_embedding, azureoai_embedding, googlevertexai_embedding, ollama_embedding] if emb is not None and emb != ""]
     other_llm = [llm for llm in [hf_llm, groq_llm, azureoai_llm, googlevertexai_llm, ollama_llm] if llm is not None and llm != ""]
+    sota_embedding = config.get('sotaEmbeddingModel')
+    sota_llm = config.get('customSotaLLMModel')
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath
@@ -486,6 +490,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 eval_framework=eval_framework,
                 eval_embedding=eval_embedding,
                 eval_llm=eval_llm,
+                sota_embedding=sota_embedding,
+                sota_llm=sota_llm,
                 disabled_opts=disabled_opts
             )
         elif optimization=='fullParameterSearch' :
@@ -505,6 +511,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 eval_framework=eval_framework,
                 eval_embedding=eval_embedding,
                 eval_llm=eval_llm,
+                sota_embedding=sota_embedding,
+                sota_llm=sota_llm,
                 disabled_opts=disabled_opts
             )
             logger.info(f"res = {res}")
