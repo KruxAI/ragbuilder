@@ -43,11 +43,11 @@ def rag_pipeline():
             return reranked_results
 
         
-        llm = Ollama(model='llama3.1:latest',base_url='BASE_URL')
+        {llm_class}
         
         {loader_class}
         
-        embedding = OllamaEmbeddings(model='mxbai-embed-large:latest',base_url='BASE_URL')
+        {embedding_class}
         
         splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
         splits=splitter.split_documents(docs)
