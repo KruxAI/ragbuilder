@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.logger import logger 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 import sqlite3
 import markdown
 import threading
@@ -24,6 +24,7 @@ from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization, get_
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
+from ragbuilder.rag_templates.top_n_templates import get_templates
 from ragbuilder.analytics import track_event
 from ragbuilder.evaldb_dmls import *
 
@@ -273,11 +274,17 @@ def _is_valid_source_data(source_data):
 async def check_source_data(data: SourceDataCheck):
     return {"valid": _is_valid_source_data(data.sourceData)}
 
+@app.get("/templates")
+def get_rag_templates():
+    templates = get_templates()
+    return JSONResponse(content={"templates": templates})
+
 class ProjectData(BaseModel):
     description: str
     sourceData: str
     compareTemplates: bool
     includeNonTemplated: bool
+    selectedTemplates: List[str] = Field(default_factory=list)
     chunkingStrategy: dict[str, bool]
     chunkSize: dict[str, int]
     embeddingModel: dict[str, bool]
@@ -377,6 +384,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     desc=config["description"]
     compare_templates=config["compareTemplates"]
     include_granular_combos=config["includeNonTemplated"]
+    selected_templates = config.get('selectedTemplates', [])
     # gen_synthetic_data=config["generateSyntheticData"]
     src_path=config.get("sourceData", None)
     src_data={'source':'url','input_path': os.path.expanduser(src_path)}
@@ -467,6 +475,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 compare_templates=compare_templates, 
                 src_data=src_data, 
                 test_data=f_name,
+                selected_templates=selected_templates,
                 include_granular_combos=include_granular_combos, 
                 vectorDB=vectorDB,
                 min_chunk_size=min_chunk_size, 
@@ -486,6 +495,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 compare_templates=compare_templates, 
                 src_data=src_data, 
                 test_data=f_name,
+                selected_templates=selected_templates,
                 include_granular_combos=include_granular_combos, 
                 vectorDB=vectorDB,
                 min_chunk_size=min_chunk_size,

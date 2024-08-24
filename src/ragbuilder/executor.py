@@ -110,6 +110,7 @@ def get_model_obj(model_type: str, model: str, temperature: Optional[float] = No
 def rag_builder_bayes_optmization(**kwargs):
     run_id=kwargs['run_id']
     src_data=kwargs['src_data']
+    selected_templates = kwargs.get('selected_templates', [])
     vectorDB=kwargs['vectorDB']
     min_chunk_size=kwargs.get('min_chunk_size', 1000)
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
@@ -129,37 +130,45 @@ def rag_builder_bayes_optmization(**kwargs):
     # Define the configuration space
     logger.info(f"Initializing RAG parameter set...")
     lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, other_embedding, other_llm)
-    configs_to_run=dict()
-    configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},5:{'ragname':'crag'}} 
+    # configs_to_run=dict()
+    cnt_templates=0
+    # configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},4:{'ragname':'crag'}} 
     #TODO: Add a check to see if the templates are to be included
 
-    # if kwargs['compare_templates']:
-    #     configs_to_run.update(top_n_templates)
-
-    space = lc_templates.generate_config_space(exclude_elements=disabled_opts)
-    logger.info(f"Config space={space}")
-    cnt_combos=lc_templates.count_combos() + len(configs_to_run)
-    logger.info(f"Number of RAG combinations : {cnt_combos}")
-    configs_evaluated=dict()
     
-    if cnt_combos < num_runs:
-        total_runs=cnt_combos
+    if kwargs['compare_templates']:
+        # configs_to_run.update(top_n_templates)
+        cnt_templates = len(selected_templates)
+
+    if kwargs['include_granular_combos']:
+        space = lc_templates.generate_config_space(exclude_elements=disabled_opts)
+        logger.info(f"Config space={space}")
+        cnt_combos=lc_templates.count_combos() + cnt_templates
+        logger.info(f"Number of RAG combinations : {cnt_combos}")
+        configs_evaluated=dict()
+    
+        if cnt_combos < num_runs:
+            total_runs=cnt_combos
+        else:
+            total_runs = num_runs + cnt_templates
     else:
-        total_runs = num_runs + len(configs_to_run)
+        logger.info(f"Number of RAG combinations : {cnt_templates}")
+        total_runs = cnt_templates
+    
     progress_state.set_total_runs(total_runs)
 
     # Run Templates first if templates have been selected
     # configs_to_run= {1:{'ragname':'simple_rag'}}
-    for key, val in configs_to_run.items():
-        logger.info("SOTA Ragbuilder Initiated")
+    for key in selected_templates:
+        val = top_n_templates[key]
         progress_state.increment_progress()
         logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
+        logger.info(f"SOTA template: {key}: {val['description']}")
         # logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
         print(val)
         val['loader_kwargs']=src_data
         val['run_id']=run_id
-        rag_builder=sotaRAGBuilder(val)
-        logger.info("SOTA Ragbuilder Class Initiated")
+        rag_builder=SOTARAGBuilder(val)
         run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
         # logger.info(f"{repr(run_config)}")
         # time.sleep(30)
@@ -239,6 +248,7 @@ def rag_builder_bayes_optmization(**kwargs):
 def rag_builder(**kwargs):
     run_id=kwargs['run_id']
     src_data=kwargs['src_data']
+    selected_templates = kwargs.get('selected_templates', [])
     vectorDB=kwargs['vectorDB']
     min_chunk_size=kwargs.get('min_chunk_size', 1000)
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
@@ -252,24 +262,23 @@ def rag_builder(**kwargs):
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None
-    configs_to_run=dict()
 
     # if kwargs['compare_templates']:
     #     configs_to_run.update(top_n_templates)
         # Run Templates first if templates have been selected
-    configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},5:{'ragname':'crag'}} 
+        #configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},3:{'ragname':'hyde'},4:{'ragname':'hybrid_rag'},5:{'ragname':'crag'}} 
 
     # configs_to_run= {1:{'ragname':'simple_rag'},2:{'ragname':'semantic_chunker'},2:{'ragname':'hyde'}}
-    for key, val in configs_to_run.items():
-        logger.info("SOTA Ragbuilder Initiated")
+    for key in selected_templates:
+        val = top_n_templates[key]
         progress_state.increment_progress()
         logger.info(f"Running: {progress_state.get_progress()['current_run']}/{progress_state.get_progress()['total_runs']}")
+        logger.info(f"SOTA template: {key}: {val['description']}")
         # logger.info(f"Template:{key}: {val['description']}:{val['retrieval_model']}")
         print(val)
         val['loader_kwargs']=src_data
         val['run_id']=run_id
-        rag_builder=sotaRAGBuilder(val)
-        logger.info("SOTA Ragbuilder Class Initiated")
+        rag_builder=SOTARAGBuilder(val)
         run_config=RunConfig(timeout=RUN_CONFIG_TIMEOUT, max_workers=RUN_CONFIG_MAX_WORKERS, max_wait=RUN_CONFIG_MAX_WAIT, max_retries=RUN_CONFIG_MAX_RETRIES)
         # logger.info(f"{repr(run_config)}")
         # time.sleep(30)
@@ -286,11 +295,11 @@ def rag_builder(**kwargs):
             )
         result=rageval.evaluate()
         logger.info(f'progress_state={progress_state.get_progress()}')
-        configs_to_run=dict()
+        
     if kwargs['include_granular_combos']:
         logger.info(f"Initializing RAG parameter set...")
         lc_templates.init(vectorDB, min_chunk_size, max_chunk_size, other_embedding, other_llm)
-        configs_to_run.update(lc_templates.nuancedCombos(disabled_opts))
+        configs_to_run = lc_templates.nuancedCombos(disabled_opts)
 
     cnt_combos=len(configs_to_run)
     logger.info(f"Number of RAG combinations : {cnt_combos}")
@@ -320,33 +329,30 @@ def rag_builder(**kwargs):
         # byor_ragbuilder()
     return result
 
-from ragbuilder.rag_templates.sota.simple_rag import code as simple_rag
-from ragbuilder.rag_templates.sota.semantic_chunker import code as semantic_chunker
-from ragbuilder.rag_templates.sota.hyde import code as hyde
-from ragbuilder.rag_templates.sota.hybrid_rag import code as hybrid_rag
-from ragbuilder.rag_templates.sota.crag import code as crag
-class sotaRAGBuilder:
-    def __init__(self,val):
+import importlib
+class SOTARAGBuilder:
+    def __init__(self, val):
         self.config = val
         self.run_id = val['run_id']
         self.loader_kwargs = val['loader_kwargs']
         logger.info("Sota Ragbuilder Invoked", val['loader_kwargs'])
         # output of router is genrated code as string
-        if val['ragname']=="simple_rag":
-            logger.info("simple_rag initiated")
-            self.router=rag.sota_code_mod(simple_rag,self.loader_kwargs['input_path'])
-        if val['ragname']=="semantic_chunker":
-            logger.info("simple_rag initiated")
-            self.router=rag.sota_code_mod(semantic_chunker,self.loader_kwargs['input_path'])
-        if val['ragname']=="hyde":
-            logger.info("hyde initiated")
-            self.router=rag.sota_code_mod(hyde,self.loader_kwargs['input_path'])
-        if val['ragname']=="hybrid_rag":
-            logger.info("hybrid_rag initiated")
-            self.router=rag.sota_code_mod(hybrid_rag,self.loader_kwargs['input_path'])
-        if val['ragname']=="crag":
-            logger.info("crag initiated")
-            self.router=rag.sota_code_mod(crag,self.loader_kwargs['input_path'])
+        sota_module = importlib.import_module('ragbuilder.rag_templates.sota.'+val['name'])
+        logger.info(f"{val['name']} initiated")
+        self.router=rag.sota_code_mod(sota_module.code, self.loader_kwargs['input_path'])
+        # if val['name']=="simple_rag":
+        #     logger.info("Simple Rag initiated")
+            
+        #     self.router=rag.sota_code_mod(simple_rag,self.loader_kwargs['input_path'])
+        # if val['name']=="semantic_chunker":
+        #     logger.info("Semantic chunker RAG initiated")
+        #     self.router=rag.sota_code_mod(semantic_chunker,self.loader_kwargs['input_path'])
+        # if val['name']=="hyde":
+        #     logger.info("HyDE RAG initiated")
+        #     self.router=rag.sota_code_mod(hyde,self.loader_kwargs['input_path'])
+        # if val['name']=="hybrid_rag":
+        #     logger.info("Hybrid RAG initiated")
+        #     self.router=rag.sota_code_mod(hybrid_rag,self.loader_kwargs['input_path'])
         locals_dict={}
         globals_dict = globals()
 

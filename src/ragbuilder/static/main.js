@@ -38,6 +38,32 @@ function getModel(selectedID, modelName) {
     }
 }
 
+function loadTemplates() {
+    $.ajax({
+        url: '/templates',
+        type: 'GET',
+        success: function(response) {
+            console.log(response);
+            let templatesHtml = '';
+            response.templates.forEach(template => {
+                templatesHtml += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="${template.id}" id="template-${template.id}" name="templateCheckbox" checked>
+                        <label class="form-check-label" for="template-${template.id}">
+                            ${template.name} - ${template.description}
+                        </label>
+                    </div>
+                `;
+            });
+            $('#templatesList').html(templatesHtml);
+        },
+        error: function(error) {
+            console.error('Error loading templates:', error);
+            $('#templatesList').html('<p class="text-danger">Error loading templates. Please try again.</p>');
+        }
+    });
+}
+
 let progressInterval;
 let smoothInterval;
 
@@ -281,14 +307,29 @@ $(document).ready(function () {
             }
         });
 
-        if ($('#includeNonTemplated').is(':checked')) {
+        if ($('#compareTemplates').is(':checked')) {
             $('#step1').hide();
-            $('#step2').show();
+            loadTemplates();
+            $('#step1b').show();
+            console.log("Reached step 1b...");
         } else {
             $('#step1').hide();
+            $('#step2').show();
+
+        }
+    });
+
+    $('#nextStep1b').click(function () {
+        if ($('#includeNonTemplated').is(':checked')) {
+            console.log("Reached step 2...");
+            $('#step1b').hide();
+            $('#step2').show();
+        } else {
+            $('#step1b').hide();
             $('#step3').show();
 
         }
+       
     });
 
     
@@ -430,9 +471,18 @@ $(document).ready(function () {
         $('#review').html(selections);
     });
 
+    $('#previousStep1b').click(function () {
+        $('#step1b').hide();
+        $('#step1').show();
+    });
+
     $('#previousStep2').click(function () {
         $('#step2').hide();
-        $('#step1').show();
+        if ($('#compareTemplates').is(':checked')) {
+            $('#step1b').show();
+        } else {
+            $('#step1').show();
+        }
     });
 
     $('#previousStep3').click(function () {
@@ -440,7 +490,11 @@ $(document).ready(function () {
         if ($('#includeNonTemplated').is(':checked')) {
             $('#step2').show();
         } else {
-            $('#step1').show();
+            if ($('#compareTemplates').is(':checked')) {
+                $('#step1b').show();
+            } else {
+                $('#step1').show();
+            }
         }
     });
 
@@ -470,6 +524,7 @@ $(document).ready(function () {
             sourceData: $('#sourceData').val(),
             compareTemplates: $('#compareTemplates').is(':checked'),
             includeNonTemplated: $('#includeNonTemplated').is(':checked'),
+            selectedTemplates: [],
             chunkingStrategy: {
                 MarkdownHeaderTextSplitter: $('#markdown').is(':checked'),
                 HTMLHeaderTextSplitter: $('#html').is(':checked'),
@@ -531,6 +586,10 @@ $(document).ready(function () {
             evalLLM: getModel('evalLLM', 'customEvalLLM'),
             optimization: $('input[name="optimization"]:checked').attr('id')
         };
+
+        $('input[name="templateCheckbox"]:checked').each(function() {
+            projectData.selectedTemplates.push($(this).val());
+        });
         
         if ($('#contextualCompression').is(':checked')) {
                 projectData.compressors = {
