@@ -193,5 +193,5 @@ PINECONE_API_KEY=XXXXXX
 
 By setting up these environment variables, you enable the RagBuilder project to authenticate and interact with the necessary external services.
 
-### Instructions
-We track basic usage counts to help us understand our users' needs and if our tool is working for them. As a young startup, transparency is key, which is why we track these metrics. However, as an Open Startup, we make all the data we collect fully open-source. You can learn more about this here. RAGBuilder does not collect any information that could be used to identify you or your company. You can review exactly what we track directly in the code (here)[https://github.com/KruxAI/ragbuilder/blob/aa9ffdef5482f94b4784525098ed419b35b165cf/src/ragbuilder/analytics.py#L15]
+### Usage Analytics
+We collect basic usage metrics to understand how our tool is performing for users. Specifically, we track the number of runs initiated and how many complete successfully. As a startup, being data-driven is crucial for us, which is why we monitor these metrics. Rest assured, we do not collect any personal data or information that could identify you, your company, or access your data. You can see exactly what we track by reviewing the code [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L381) and [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L537).
