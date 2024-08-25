@@ -176,7 +176,7 @@ Create a file named `.env` in the directory where you will run the `ragbuilder` 
 # Environment variables for the RagBuilder project
 OPENAI_API_KEY=XXXXXX
 MISTRAL_API_KEY=XXXXX
-ENABLE_ANALYTICS=True # set to False to disable usage tracking
+ENABLE_ANALYTICS=True
 HUGGINGFACEHUB_API_TOKEN=XXXXXX
 COHERE_API_KEY=XXXXXX
 JINA_API_KEY=XXXXXX
@@ -192,3 +192,6 @@ PINECONE_API_KEY=XXXXXX
 5. Ensure that the .env file is located in the same directory where you run the ragbuilder command to ensure the environment variables are properly loaded.
 
 By setting up these environment variables, you enable the RagBuilder project to authenticate and interact with the necessary external services.
+
+### Instructions
+We track basic usage counts to help us understand our users' needs and if our tool is working for them. As a young startup, transparency is key, which is why we track these metrics. However, as an Open Startup, we make all the data we collect fully open-source. You can learn more about this here. RAGBuilder does not collect any information that could be used to identify you or your company. You can review exactly what we track directly in the code (here)[https://github.com/KruxAI/ragbuilder/blob/aa9ffdef5482f94b4784525098ed419b35b165cf/src/ragbuilder/analytics.py#L15]
