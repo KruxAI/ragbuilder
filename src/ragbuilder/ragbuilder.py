@@ -378,7 +378,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     enable_analytics = os.getenv('ENABLE_ANALYTICS', 'True').lower() == 'true'
     logger.info(f"enable_analytics = {enable_analytics}")
     if enable_analytics:
-        track_event()
+        track_event(config)
     logger.info(f"Initiating parsing config: {config}")
     disabled_opts=_get_disabled_opts(config)
     logger.info(f"Disabled options: {disabled_opts}")
