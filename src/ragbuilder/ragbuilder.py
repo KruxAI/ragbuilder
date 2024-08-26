@@ -307,8 +307,8 @@ class ProjectData(BaseModel):
     evalFramework: str
     evalEmbedding: str
     evalLLM: str
-    sotaEmbeddingModel: str
-    sotaLLMModel: str
+    sotaEmbeddingModel: Optional[str] = Field(default=None)
+    sotaLLMModel: Optional[str] = Field(default=None)
     compressors: Optional[dict[str, bool]] = Field(default=None)
     syntheticDataGeneration: Optional[dict] = Field(default=None)
     testDataPath: Optional[str] = Field(default=None)
