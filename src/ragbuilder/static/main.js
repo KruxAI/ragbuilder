@@ -80,6 +80,10 @@ $(document).ready(function () {
     var dataExists = "";
     var existingSynthDataPath = "";
     var chunk_size_values = [500, 2000]
+
+    var collapseAdv = new bootstrap.Collapse(document.getElementById('collapseAdv'), {
+        toggle: false
+    });
     
     // Check if source data path is valid
     $('#sourceData').on('blur', function() {
