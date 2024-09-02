@@ -8,7 +8,7 @@ from ragbuilder.langchain_module.common import setup_logging, progress_state
 setup_logging()
 logger = logging.getLogger("ragbuilder")
 
-MAX_MULTI_RETRIEVER_COMBOS=3
+MAX_MULTI_RETRIEVER_COMBOS=4
 # RAG Config parameter option values
 arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
 arr_chunk_size = [1000, 2000, 3000]

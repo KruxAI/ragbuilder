@@ -119,7 +119,7 @@ class LoggerWriter:
         self._buffer = ''
         self._is_logging = False  # Flag to avoid recursion
         dt_time=datetime.now().strftime("%Y-%m-%d")
-        self.skip_log_pattern=f"GET /get_log_updates|GET /progress|{dt_time}.*INFO|{dt_time}.*ERROR|{dt_time}.*DEBUG|^\s*$"
+        self.skip_log_pattern=f"GET /get_log_updates|GET /progress|{dt_time}.*INFO|{dt_time}.*ERROR|{dt_time}.*DEBUG|^\\s*$"
 
     def write(self, message):
         if self._is_logging:

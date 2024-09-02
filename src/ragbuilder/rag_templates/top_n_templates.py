@@ -1,9 +1,19 @@
 
 top_n_templates = {
+    # 'simple_rag': {
+    #     'name': 'Simple RAG',
+    #     'description': 'Simple RAG',
+    #     'module': 'simple_rag'
+    # },
     'query_rewrite': {
         'name': 'Query Rewrite RAG',
-        'description': 'Query Rewrite RAG',
+        'description': 'In this template, we rewrite the query first to improve retrieval',
         'module': 'query_rewrite'
+    },
+    'rrf': {
+        'name': 'Query Expansion with RRF',
+        'description': 'Query Expansion with Reciprocal Rank Fusion to merge results from all queries',
+        'module': 'rrf'
     },
     'step_back_prompt': {
         'name': 'Step Back Prompting',
@@ -24,11 +34,6 @@ top_n_templates = {
         'name': 'Hybrid RAG',
         'description': 'Hybrid RAG',
         'module': 'hybrid_rag'
-    },
-    'rrf': {
-        'name': 'RRF',
-        'description': 'Reciprocal Rank Fusion RAG',
-        'module': 'rrf'
     }
 }
 
