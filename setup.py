@@ -46,6 +46,7 @@ setup(
         'pdfminer.six',
         'langchain_experimental',
         'scikit-learn',
+        'ragas==0.1.7'
         'inquirer',
         'chromadb',
         'sentence-transformers',
@@ -55,7 +56,7 @@ setup(
         'llmlingua',
         'langchain-huggingface',
         'rank_bm25',
-        'ragas==0.1.7'
+        'ragas'
         'pandas',
         'pillow_heif',
         'opencv-python',
