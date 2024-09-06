@@ -35,7 +35,16 @@ def getRetriever(**kwargs):
 
     if retriever_type in ["vectorSimilarity", "vectorMMR"]:
         logger.info("Vector Retriever Invoked")
-        code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
+        document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
+        if document_compressor_pipeline is not None:
+            if 'CrossEncoderReranker' in document_compressor_pipeline:
+                print('CrossEncoderReranker')
+                code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': 100}})"""
+            else:
+                print('No CrossEncoderReranker')
+                code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
+        else:
+            code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
         import_string = f""
 
         return {'code_string':code_string,'import_string':import_string}
@@ -132,9 +141,10 @@ def getCompressors(**kwargs):
         return {'code_string':code_string,'import_string':import_string}
         
     if 'CrossEncoderReranker' in compressor_config:
+        search_kwargs=kwargs.get('search_kwargs',None)
         code_string= f"""
 model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
-arr_comp.append(CrossEncoderReranker(model=model, top_n=5))"""
+arr_comp.append(CrossEncoderReranker(model=model, top_n={search_kwargs}))"""
         import_string = f"""from langchain.retrievers.document_compressors import CrossEncoderReranker
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder"""
         return {'code_string':code_string,'import_string':import_string}
