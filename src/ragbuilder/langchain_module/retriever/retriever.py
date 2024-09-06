@@ -105,7 +105,7 @@ def getCompressors(**kwargs):
     - DocumentCompressorPipeline object based on the specified compressors.
     """
     compressor_config = kwargs.get('compressor',None)
-    print('kwargs',kwargs)
+    print(compressor_config)
     arr_transformer=[]
     if 'LLMChainExtractor' in compressor_config:
         code_string= f"""arr_comp.append(LLMChainExtractor.from_llm(llm))"""
