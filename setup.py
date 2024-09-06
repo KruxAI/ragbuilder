@@ -46,7 +46,6 @@ setup(
         'pdfminer.six',
         'langchain_experimental',
         'scikit-learn',
-        'ragas',
         'inquirer',
         'chromadb',
         'sentence-transformers',
