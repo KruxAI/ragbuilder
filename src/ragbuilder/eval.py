@@ -147,7 +147,7 @@ class RagEvaluator:
             raise_exceptions=False, 
             llm=self.llm,
             embeddings=self.embeddings,
-            # is_async=self.is_async, ragas UPDATE: is_async is not supported in ragas 0.1.16
+            is_async=self.is_async,
             run_config=self.run_config
         )
         
