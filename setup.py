@@ -56,7 +56,7 @@ setup(
         'llmlingua',
         'langchain-huggingface',
         'rank_bm25',
-        'ragas'
+        'ragas',
         'pandas',
         'pillow_heif',
         'opencv-python',
