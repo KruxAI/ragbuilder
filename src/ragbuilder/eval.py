@@ -147,7 +147,7 @@ class RagEvaluator:
             raise_exceptions=False, 
             llm=self.llm,
             embeddings=self.embeddings,
-            is_async=self.is_async,
+            # is_async=self.is_async,
             run_config=self.run_config
         )
         
