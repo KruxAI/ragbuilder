@@ -35,7 +35,6 @@ def getRetriever(**kwargs):
 
     if retriever_type in ["vectorSimilarity", "vectorMMR"]:
         logger.info("Vector Retriever Invoked")
-        print('kwargs',kwargs,'dict',kwargs['retriever_kwargs'].get('document_compressor_pipeline',None))
         document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
         if document_compressor_pipeline is not None:
             if 'CrossEncoderReranker' in document_compressor_pipeline:
