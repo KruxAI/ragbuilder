@@ -18,9 +18,13 @@ import hashlib
 import logging
 import requests
 import uvicorn
+import warnings
 from pathlib import Path
 from urllib.parse import urlparse
-from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization, get_model_obj
+from ragbuilder.executor import rag_builder, \
+    rag_builder_bayes_optmization, \
+    rag_builder_bayes_optimization_optuna, \
+    get_model_obj
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
@@ -44,6 +48,8 @@ BAYES_OPT=1
 
 templates = Jinja2Templates(directory=Path(BASE_DIR, 'templates'))
 app.mount("/static", StaticFiles(directory=Path(BASE_DIR, 'static')), name="static")
+
+warnings.filterwarnings(action="ignore", message=r"datetime.datetime.utcnow")
 
 def basename(path):
     return os.path.basename(path)
@@ -474,7 +480,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
         if optimization=='bayesianOptimization':
             logger.info(f"Using Bayesian optimization to find optimal RAG configs...")
             num_runs = int(config.get("numRuns", 50))
-            res = rag_builder_bayes_optmization(
+            res = rag_builder_bayes_optimization_optuna(
                 run_id=run_id, 
                 compare_templates=compare_templates, 
                 src_data=src_data, 
