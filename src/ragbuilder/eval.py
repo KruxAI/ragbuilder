@@ -25,7 +25,9 @@ import time
 import sqlite3
 import random
 import openai
-from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_log, retry_if_result, retry_if_exception_type
+import statistics
+from tenacity import retry, stop_after_attempt, wait_exponential, \
+    wait_random_exponential, before_sleep_log, retry_if_result, retry_if_exception_type
 from datetime import datetime, timezone
 from datasets import Dataset
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
@@ -96,7 +98,7 @@ class RagEvaluator:
         self.result_df = None
         self.db = self._get_db()
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=100), 
+    @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, min=4, max=100), 
            retry=(retry_if_exception_type(openai.APITimeoutError)
                    | retry_if_exception_type(openai.APIError)
                    | retry_if_exception_type(openai.APIConnectionError)
@@ -153,7 +155,7 @@ class RagEvaluator:
         self.eval_dataset = Dataset.from_pandas(eval_df) # TODO: Use from_dict instead on eval_ds directly?
         return self.eval_dataset
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=60),
+    @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, min=4, max=60),
        before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
     def _evaluate_with_retry(self):
         return evaluate(
@@ -191,11 +193,14 @@ class RagEvaluator:
 
         # Transform "contexts" array to string to save to DB properly
         self.result_df['contexts'] = self.result_df['contexts'].apply(lambda x: x[0])
+
+        # Aggregate other performance metrics into the result
+        # result.update(dict(self.result_df[["latency", "tokens", "cost"]].mean()))
         
         # Save everything to DB
         self._db_write()
         # return result
-        return result['answer_correctness']
+        return result
         # return self.result_df['answer_correctness'].mean() # TODO: OR result['answer_correctness'] maybe?
 
     

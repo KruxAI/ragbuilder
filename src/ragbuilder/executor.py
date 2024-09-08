@@ -9,13 +9,14 @@ from ragbuilder.langchain_module.rag import getCode as rag
 from ragbuilder.langchain_module.common import setup_logging, progress_state, LOG_LEVEL
 import logging
 import json
+import openai
 import optuna
-from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_log, retry_if_result
 from optuna.storages import RDBStorage
+from optuna.trial import TrialState
+from tenacity import retry, stop_after_attempt, wait_random_exponential, before_sleep_log, retry_if_exception_type, retry_if_result
 from skopt import gp_minimize
 from skopt.utils import use_named_args
 from skopt.callbacks import DeltaXStopper
-from tenacity import retry, stop_after_attempt, wait_exponential
 setup_logging()
 from ragbuilder import eval
 from dotenv import load_dotenv
@@ -342,11 +343,20 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
         def objective(trial):
             try:
                 config = lc_templates.generate_config_for_trial_optuna(trial)
-                str_config=json.dumps(config)
-                score = configs_evaluated.get(str_config, None)
-                if score:
-                    logger.info(f"Config already evaluated with score: {score}: {config}")
-                    return score
+                states_to_consider = (TrialState.COMPLETE,)
+                trials_to_consider = trial.study.get_trials(deepcopy=False, states=states_to_consider)
+                for t in reversed(trials_to_consider):
+                    if trial.params == t.params:
+                        # Use the existing value as trial duplicated the parameters.
+                        progress_state.increment_progress()
+                        logger.info(f"Config already evaluated with score: {t.value}: {config}")
+                        return t.value
+                    
+                # str_config=json.dumps(config)
+                # score = configs_evaluated.get(str_config, None)
+                # if score:
+                #     logger.info(f"Config already evaluated with score: {score}: {config}")
+                #     return score
                 
                 config['loader_kwargs'] = src_data
                 config['run_id'] = run_id
@@ -377,10 +387,10 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                 ## x=input("Continue? ")
                 ## if x.lower() != 'y':
                 ##      exit()
-                score = rageval.evaluate()
+                result = rageval.evaluate()
                 logger.info(f"Completed evaluation. Adding to configs evaluated...")
-                configs_evaluated[str_config]=score
-                return score  # We negate the score because gp_minimize minimizes
+                # configs_evaluated[str_config]=score
+                return result['answer_correctness'] 
             except Exception as e:
                 logger.error(f"Error while evaluating config: {config}")
                 logger.error(f"Error: {e}")
@@ -394,7 +404,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             url=f"sqlite:///{DATABASE}",
             engine_kwargs={"pool_size": 20, "connect_args": {"timeout": 10}},
             heartbeat_interval=60, 
-            grace_period=120,
+            grace_period=180,
             failed_trial_callback=optuna.storages.RetryFailedTrialCallback(max_retry=3),
         )
         study = optuna.create_study(
@@ -590,8 +600,12 @@ class RagBuilder:
             logger.error(f"Error creating RAG object from generated code. ERROR: {e}")
             raise RagBuilderException(f"Error creating RAG object from generated code. ERROR: {e}")
     
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=60),
-           retry=retry_if_result(lambda result: result is None),
+    @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, min=4, max=60),
+           retry=(retry_if_result(lambda result: result is None)
+                   | retry_if_exception_type(openai.APITimeoutError)
+                   | retry_if_exception_type(openai.APIError)
+                   | retry_if_exception_type(openai.APIConnectionError)
+                   | retry_if_exception_type(openai.RateLimitError)),
            before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
     def _exec(self):
         locals_dict={}
