@@ -28,7 +28,7 @@ from operator import itemgetter
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-from langchain.retrievers import MergerRetriever
+from langchain.retrievers import MergerRetriever,EnsembleRetriever
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 """
 def codeGen(**kwargs):
@@ -75,7 +75,7 @@ def codeGen(**kwargs):
             code_strings.append(retriever['code_string'])
             code_strings.append("retrievers.append(retriever)")
             imports.append(retriever['import_string'])
-        code_strings.append('retriever=MergerRetriever(retrievers=retrievers)')
+        code_strings.append('retriever=EnsembleRetriever(retrievers=retrievers)')
     else:
         retriever = getRetriever(**kwargs)
         code_strings.append(retriever['code_string'])
