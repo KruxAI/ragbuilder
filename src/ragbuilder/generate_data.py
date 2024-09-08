@@ -22,7 +22,7 @@ import logging
 import contextlib
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging
-
+from ragbuilder.analytics import  track_event
 
 setup_logging()
 logger = logging.getLogger("ragbuilder")
@@ -100,7 +100,7 @@ def generate_data(
             run_config=run_config,
         )
         logger.info("Completed synthetic data generation")
-
+        track_event('2')
         ts=datetime.now(timezone.utc).timestamp()
         test_df = testset.to_pandas()
         f_name=f'rag_test_data_{ts}.csv'
