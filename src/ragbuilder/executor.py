@@ -388,9 +388,9 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                 ## if x.lower() != 'y':
                 ##      exit()
                 result = rageval.evaluate()
-                logger.info(f"Completed evaluation. Adding to configs evaluated...")
+                logger.info(f"Completed evaluation. result={result}...")
                 # configs_evaluated[str_config]=score
-                return result['answer_correctness'] 
+                return result['answer_correctness'], result['latency'] 
             except Exception as e:
                 logger.error(f"Error while evaluating config: {config}")
                 logger.error(f"Error: {e}")
@@ -411,7 +411,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             study_name=str(run_id),
             storage=storage,
             load_if_exists=True,
-            direction="maximize",
+            directions=["maximize", "minimize"],
             sampler=optuna.samplers.TPESampler(),
             pruner=optuna.pruners.MedianPruner()
         )
@@ -419,11 +419,12 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
         
         logger.info(f"Completed Bayesian optimization...")
 
-        best_params = study.best_params
-        best_score = -study.best_value
+        best_trial = max(study.best_trials, key=lambda t: t.values[1])
+        # best_params = study.best_params
+        # best_score = -study.best_value
 
-        logger.info(f"Best Configuration: {best_params}")
-        logger.info(f"Best Score: {best_score}")
+        logger.info(f"Best Configuration: {best_trial.number}: {best_trial.params}:")
+        logger.info(f"Best Score: {best_trial.values}")
 
     return 0
 

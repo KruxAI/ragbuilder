@@ -186,19 +186,33 @@ class RagEvaluator:
             result = self._evaluate_with_retry() 
             self.result_df = result.to_pandas()
             logger.info(f"Eval: Evaluation complete for {self.id}")
+            # Transform "contexts" array to string to save to DB properly
+            self.result_df['contexts'] = self.result_df['contexts'].apply(lambda x: x[0])
+            # Save everything to DB
+            self._db_write()
+                # Aggregate other performance metrics into the result
+            logger.info("Aggregating other performance metrics for {self.if}...")
+            try:
+                result.update(dict(self.result_df[["latency", "tokens", "cost"]].mean()))
+            except Exception as e:
+                logger.error(f"Failed to aggregate performance metrics for {self.id}")
+                nan_perf = {"latency":float("nan"), "tokens":float("nan"), "cost":float("nan")}
+                result.update(nan_perf)
         except Exception as e:
             logger.error(f"All retries for RAG evaluation failed. Final exception: {e}")
-            result['answer_correctness']=float('NaN')
+            nan_perf = {
+                "answer_correctness":float("nan"),
+                "faithfulness":float("nan"),
+                "answer_relevancy":float("nan"),
+                "context_precision":float("nan"),
+                "context_recall":float("nan"),
+                "latency":float("nan"), 
+                "tokens":float("nan"), 
+                "cost":float("nan")
+            }
+            result=nan_perf
             raise RagEvaluatorException("All retries for RAG evaluation failed. Final exception: {e}.")
-
-        # Transform "contexts" array to string to save to DB properly
-        self.result_df['contexts'] = self.result_df['contexts'].apply(lambda x: x[0])
-
-        # Aggregate other performance metrics into the result
-        # result.update(dict(self.result_df[["latency", "tokens", "cost"]].mean()))
         
-        # Save everything to DB
-        self._db_write()
         # return result
         return result
         # return self.result_df['answer_correctness'].mean() # TODO: OR result['answer_correctness'] maybe?
