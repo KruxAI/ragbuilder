@@ -160,6 +160,8 @@ The environment variables are essential for authenticating and configuring vario
 
 ### Environment Variables
 
+### Environment Variables
+
 - **OPENAI_API_KEY**: The API key for OpenAI services.
 - **MISTRAL_API_KEY**: The API key for Mistral services.
 - **ENABLE_ANALYTICS**: A boolean flag to enable or disable analytics. Set to `True` or `False`.
