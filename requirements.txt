@@ -76,3 +76,4 @@ langchain_postgres
 psycopg[binary,pool]
 langchain_milvus
 langsmith
+neo4j

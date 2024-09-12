@@ -26,6 +26,7 @@ https://github.com/user-attachments/assets/8b4a5013-b1b7-40ee-820b-32c46fd99a2a
 ## Installation
 
 ### Option 1: Install using install script:
+Note: For GraphRAG, Neo4J Graph Database details must be added in the .env file. For spinning up a local Neo4J Graph Database refer repo https://github.com/KruxAI/neo4j-docker
 #### Mac
 
 ``` sh
@@ -68,7 +69,7 @@ This will start the Ragbuilder Uvicorn app and open the browser. If the browser 
 
 ### Option 2: Using Prebuilt Docker Image
 #### Using Docker Compose
-1. Pull the docker-compose.yml file
+1. Pull the docker-compose.yml file. This will sping RAGBuilder and neo4J database needed for GraphRAG.
 
 ```
 curl -o docker-compose.yml  https://raw.githubusercontent.com/KruxAI/ragbuilder/main/docker-compose.yml
@@ -159,6 +160,8 @@ The environment variables are essential for authenticating and configuring vario
 
 ### Environment Variables
 
+### Environment Variables
+
 - **OPENAI_API_KEY**: The API key for OpenAI services.
 - **MISTRAL_API_KEY**: The API key for Mistral services.
 - **ENABLE_ANALYTICS**: A boolean flag to enable or disable analytics. Set to `True` or `False`.
@@ -167,6 +170,20 @@ The environment variables are essential for authenticating and configuring vario
 - **JINA_API_KEY**: The API key for Jina services.
 - **SINGLESTOREDB_URL**: The connection string for SingleStoreDB, formatted as `userid:password@host:port/dbname`.
 - **PINECONE_API_KEY**: The API key for Pinecone services.
+- **GROQ_API_KEY**: The API key for accessing Groq services.
+- **AZURE_OPENAI_API_KEY**: The API key for Azure OpenAI services.
+- **AZURE_OPENAI_ENDPOINT**: The endpoint URL for Azure OpenAI services. Example: `https://<your-resource-name>.openai.azure.com/`.
+- **OPENAI_API_VERSION**: Specifies the API version for OpenAI. Example: `2024-02-01`.
+- **GOOGLE_API_KEY**: The API key for Google Cloud services.
+- **GOOGLE_CLOUD_PROJECT**: The project ID for Google Cloud.
+- **PGVECTOR_CONNECTION_STRING**: The connection string for PGVector, formatted as `postgresql+psycopg://langchain:langchain@localhost:6024/langchain`.
+- **MILVUS_CONNECTION_STRING**: The connection string for Milvus, using a local demo DB. Example: `./milvus_demo.db`.
+- **OLLAMA_BASE_URL**: The base URL for accessing Ollama services. Example: `http://localhost:11434` (use `http://host.docker.internal:11434/` if using Docker for RagBuilder).
+- **NEO4J_URI**: The connection URI for Neo4J. Example: `bolt://localhost:7687` (use `bolt://neo4j:7687` if using Docker for RagBuilder).
+- **NEO4J_USERNAME**: The username for Neo4J. Default: `neo4j`.
+- **NEO4J_PASSWORD**: The password for Neo4J. Default: `ragbuilder`.
+- **NEO4J_LOAD**: A flag to enable loading data into Neo4J. Set to `true` or `false`. set this to false if the Graph database is loaded and want to skip the step
+
 
 ### Example `.env` File
 

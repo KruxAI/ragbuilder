@@ -85,6 +85,33 @@ from langchain_community.embeddings import OllamaEmbeddings
 from langchain.chains import LLMChain, HypotheticalDocumentEmbedder
 from langchain.prompts import ChatPromptTemplate
 from langchain.load import dumps, loads
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.output_parsers import StrOutputParser
+import os
+from langchain_community.graphs import Neo4jGraph
+from langchain.text_splitter import MarkdownHeaderTextSplitter
+from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
+from langchain_community.document_loaders import *
+from dotenv import load_dotenv
+from langchain_chroma import Chroma
+from langchain_community.graphs.graph_document import (
+    Node as BaseNode,
+    Relationship as BaseRelationship,
+    GraphDocument,
+)
+from operator import itemgetter
+from langchain import hub
+from langchain_core.runnables import RunnablePassthrough, RunnableParallel
+from langchain.schema import Document
+from typing import List, Dict, Any, Optional
+from langchain.pydantic_v1 import Field, BaseModel
+from langchain.docstore.document import Document
+from langchain.prompts import ChatPromptTemplate
+from ragbuilder.graph_utils.graph_loader import load_graph 
+
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
@@ -362,6 +389,7 @@ class SOTARAGBuilder:
 
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
+            logger.info(f"Generated Code\n{self.router}")
             exec(self.router,globals_dict,locals_dict)
             self.rag = locals_dict['rag_pipeline']()
         except Exception as e:

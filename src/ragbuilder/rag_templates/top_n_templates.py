@@ -1,10 +1,15 @@
 
 top_n_templates = {
-    # 'simple_rag': {
-    #     'name': 'Simple RAG',
-    #     'description': 'Simple RAG',
-    #     'module': 'simple_rag'
-    # },
+    'graph_rag': {
+        'name': 'Graph RAG - Graph Retriever',
+        'description': 'Graph RAG (Graph Retriever only). Make sure NEO4J_LOAD=true in .env file if you are loading/reloading the data in the Graph DB',
+        'module': 'graph_rag'
+    },
+    'graph_rag_hybrid': {
+        'name': 'Graph RAG - Hybrid Retriever(Graph + Vector)',
+        'description': 'Graph RAG (Graph & Vector Retriever).  Make sure NEO4J_LOAD=true in .env file if you are loading/reloading the data in the Graph DB',
+        'module': 'graph_rag_hybrid'
+    },
     'query_rewrite': {
         'name': 'Query Rewrite RAG',
         'description': 'In this template, we rewrite the query first to improve retrieval',
