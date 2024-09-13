@@ -27,7 +27,7 @@ def rag_pipeline():
         
         {embedding_class}
         
-        splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1600, chunk_overlap=200)
         splits=splitter.split_documents(docs)
         c=Chroma.from_documents(documents=splits, embedding=embedding, collection_name='testindex-ragbuilder-1724418081',)   
         retriever = c.as_retriever()

@@ -49,8 +49,8 @@ def rag_pipeline():
             ("##", "Header 2"),
             ("###", "Header 3"),
         ]
-        markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
-        documents = markdown_splitter.split_text(docs[0].page_content)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1600, chunk_overlap=200)
+        documents=splitter.split_documents(docs)
 
         c=Chroma.from_documents(documents=documents, embedding=embedding, collection_name='testindex-ragbuilder',)
         vector_retriever=c.as_retriever(search_type='similarity', search_kwargs={'k': 100})
