@@ -81,6 +81,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbe
 from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain_community.llms import Ollama
+from langchain_ollama import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain.chains import LLMChain, HypotheticalDocumentEmbedder
 from langchain.prompts import ChatPromptTemplate
@@ -389,7 +390,7 @@ class SOTARAGBuilder:
 
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
-            logger.debug(f"Generated Code\n{self.router}")
+            logger.info(f"Generated Code\n{self.router}")
             exec(self.router,globals_dict,locals_dict)
             self.rag = locals_dict['rag_pipeline']()
         except Exception as e:

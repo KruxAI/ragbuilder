@@ -25,6 +25,13 @@ from langchain.pydantic_v1 import Field, BaseModel
 from langchain.docstore.document import Document
 from langchain.prompts import ChatPromptTemplate
 from ragbuilder.graph_utils.graph_loader import load_graph 
+from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
+from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
+from langchain_community.llms import Ollama
+from langchain_community.embeddings import OllamaEmbeddings
 load_dotenv()
 import os
 def rag_pipeline():
@@ -33,7 +40,7 @@ def rag_pipeline():
         NEO4J_USER = os.getenv("NEO4J_USER")
         NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
         NEO4J_LOAD = os.getenv('NEO4J_LOAD', 'True').lower() == 'true'
-
+        print(OLLAMA_BASE_URL)
         {llm_class}
             
         {loader_class}
@@ -102,8 +109,8 @@ def rag_pipeline():
             existing_indexes = [index["name"] for index in graph.query("SHOW INDEXES")]
 
             for label in all_labels:
-                index_name = f"index_{label}"
-                
+                index_name = f"index_{label.replace(' ', '_')}"
+                label = label.replace(' ', '_')
                 # Check if index already exists for this label
                 if index_name not in existing_indexes:
                     print(f"Index not found for label {label}, creating index...")
