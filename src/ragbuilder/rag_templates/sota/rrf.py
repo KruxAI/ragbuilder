@@ -14,7 +14,13 @@ from langchain.retrievers import MergerRetriever
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain.prompts import ChatPromptTemplate
 from langchain.load import dumps, loads
-
+from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
+from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
+from langchain_community.llms import Ollama
+from langchain_community.embeddings import OllamaEmbeddings
 def rag_pipeline():
     question=RunnablePassthrough()
     try:
@@ -49,7 +55,7 @@ def rag_pipeline():
         
         {embedding_class}
         
-        splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1600, chunk_overlap=200)
         splits=splitter.split_documents(docs)
         c=Chroma.from_documents(documents=splits, embedding=embedding, collection_name='testindex-ragbuilder-1724418081',)   
         retriever = c.as_retriever()

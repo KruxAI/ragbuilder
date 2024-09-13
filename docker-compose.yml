@@ -1,12 +1,36 @@
-version: '3.8'
+version: "3.8"
 
 services:
+  neo4j:
+    build: ./neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: "neo4j/ragbuilder"
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_import_file_use__neo4j__config: "true"
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+    volumes:
+      - ./data:/data
+    networks:
+      - custom-network
+
   ragbuilder:
-    image: ashwinzyx/ragbuilder:latest
+    image: ashwinzyx/ragbuilder:neo_test
     ports:
       - "55003:8005"
     volumes:
       - .:/ragbuilder
     env_file:
       - .env
+    depends_on:
+      - neo4j
     command: ["ragbuilder"]
+    networks:
+      - custom-network
+
+networks:
+  custom-network:
+    driver: bridge

@@ -9,7 +9,13 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 from langchain.retrievers import MergerRetriever
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
-
+from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
+from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
+from langchain_community.llms import Ollama
+from langchain_community.embeddings import OllamaEmbeddings
 def rag_pipeline():
     try:
         def format_docs(docs):
