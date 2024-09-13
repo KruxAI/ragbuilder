@@ -160,8 +160,6 @@ The environment variables are essential for authenticating and configuring vario
 
 ### Environment Variables
 
-### Environment Variables
-
 - **OPENAI_API_KEY**: The API key for OpenAI services.
 - **MISTRAL_API_KEY**: The API key for Mistral services.
 - **ENABLE_ANALYTICS**: A boolean flag to enable or disable analytics. Set to `True` or `False`.
@@ -183,6 +181,9 @@ The environment variables are essential for authenticating and configuring vario
 - **NEO4J_USERNAME**: The username for Neo4J. Default: `neo4j`.
 - **NEO4J_PASSWORD**: The password for Neo4J. Default: `ragbuilder`.
 - **NEO4J_LOAD**: A flag to enable loading data into Neo4J. Set to `true` or `false`. set this to false if the Graph database is loaded and want to skip the step
+#### Env Variables for RAGbuilder running on Docker will vary as below
+- **NEO4J_URI**: The connection URI for Neo4J. Example: use `bolt://neo4j:7687` if using Docker for RagBuilder
+- **OLLAMA_BASE_URL**: use `http://host.docker.internal:11434/` if using Docker for RagBuilder
 
 
 ### Example `.env` File

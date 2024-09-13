@@ -86,7 +86,6 @@ def rag_pipeline():
             if not words:
                 return ""
             full_text_query = " AND ".join([f"{word}~2" for word in words])
-            print(f"Generated Query: {full_text_query}")
             return full_text_query.strip()
         
 
