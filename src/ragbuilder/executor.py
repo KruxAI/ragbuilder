@@ -389,7 +389,7 @@ class SOTARAGBuilder:
 
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
-            logger.info(f"Generated Code\n{self.router}")
+            logger.debug(f"Generated Code\n{self.router}")
             exec(self.router,globals_dict,locals_dict)
             self.rag = locals_dict['rag_pipeline']()
         except Exception as e:
