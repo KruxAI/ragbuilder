@@ -51,11 +51,6 @@ def rag_pipeline():
             url=NEO4J_URI,
             username=NEO4J_USER,
             password=NEO4J_PASSWORD)
-        headers_to_split_on = [
-            ("#", "Header 1"),
-            ("##", "Header 2"),
-            ("###", "Header 3"),
-        ]
         splitter = RecursiveCharacterTextSplitter(chunk_size=1600, chunk_overlap=200)
         documents=splitter.split_documents(docs)
 
