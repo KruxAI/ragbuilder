@@ -22,12 +22,12 @@ top_n_templates = {
     },
     'step_back_prompt': {
         'name': 'Step Back Prompting',
-        'description': 'Step Back Prompting',
+        'description': 'Step back prompting technique instructs the LLM to first extract high-level concepts and principles from given details, then use those concepts to guide its reasoning towards the correct solution.',
         'module': 'step_back_prompt'
     },
     'semantic_chunker': {
         'name': 'Semantic Chunker',
-        'description': 'Semantic chunker',
+        'description': 'Semantic Chunking considers the relationships within the text. It divides the text into meaningful, semantically complete chunks.',
         'module': 'semantic_chunker'
     },
     'hyde': {
@@ -37,7 +37,7 @@ top_n_templates = {
     },
     'hybrid_rag': {
         'name': 'Hybrid RAG',
-        'description': 'Hybrid RAG',
+        'description': 'Hybrid RAG(Vector + BM25) with LongContextReorder',
         'module': 'hybrid_rag'
     }
 }
