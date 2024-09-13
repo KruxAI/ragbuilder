@@ -1,7 +1,7 @@
 pytest==7.2.1
 pytest-xdist~=3.2.0
 coverage~=7.1.0
-black~=23.1.0
+black>=24.3.0
 pytest-timeout~=2.1.0
 pytest-env~= 0.8.1
 python-dotenv
