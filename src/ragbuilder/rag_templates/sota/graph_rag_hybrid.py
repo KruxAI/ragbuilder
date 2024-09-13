@@ -4,7 +4,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 import os
 from langchain_community.graphs import Neo4jGraph
-from langchain.text_splitter import MarkdownHeaderTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
@@ -44,13 +44,8 @@ def rag_pipeline():
             url=NEO4J_URI,
             username=NEO4J_USER,
             password=NEO4J_PASSWORD)
-        headers_to_split_on = [
-            ("#", "Header 1"),
-            ("##", "Header 2"),
-            ("###", "Header 3"),
-        ]
-        markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
-        documents = markdown_splitter.split_text(docs[0].page_content)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1600, chunk_overlap=200)
+        documents=splitter.split_documents(docs)
 
         c=Chroma.from_documents(documents=documents, embedding=embedding, collection_name='testindex-ragbuilder',)
         vector_retriever=c.as_retriever(search_type='similarity', search_kwargs={'k': 100})

@@ -4,7 +4,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 import os
 from langchain_community.graphs import Neo4jGraph
-from langchain.text_splitter import MarkdownHeaderTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
