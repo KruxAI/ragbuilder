@@ -18,7 +18,7 @@ services:
       - custom-network
 
   ragbuilder:
-    image: ashwinzyx/ragbuilder:neo_test
+    image: ashwinzyx/ragbuilder:latest
     ports:
       - "55003:8005"
     volumes:
