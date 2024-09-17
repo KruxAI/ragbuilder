@@ -26,6 +26,7 @@ from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
 from ragbuilder.rag_templates.top_n_templates import get_templates
 from ragbuilder.analytics import track_event
+from ragbuilder.sampler import DataSampler
 from ragbuilder.evaldb_dmls import *
 
 # fastapi_setup_logging(logger)
@@ -388,8 +389,6 @@ def parse_config(config: dict, db: sqlite3.Connection):
     include_granular_combos=config["includeNonTemplated"]
     selected_templates = config.get('selectedTemplates', [])
     # gen_synthetic_data=config["generateSyntheticData"]
-    src_path=config.get("sourceData", None)
-    src_data={'source':'url','input_path': os.path.expanduser(src_path)}
     syntheticDataGenerationOpts=config.get("syntheticDataGeneration", None)
     existingSynthDataPath=config.get("existingSynthDataPath", None)
     vectorDB=config.get("vectorDB", None)
@@ -412,6 +411,13 @@ def parse_config(config: dict, db: sqlite3.Connection):
     other_llm = [llm for llm in [hf_llm, groq_llm, azureoai_llm, googlevertexai_llm, ollama_llm] if llm is not None and llm != ""]
     sota_embedding = config.get('sotaEmbeddingModel')
     sota_llm = config.get('sotaLLMModel')
+
+    # TODO: Add UI integration based conditional for sampling
+    src_path=config.get("sourceData", None)
+    data_sampler = DataSampler(os.path.expanduser(src_path))
+    src_path = sampled_data_path = data_sampler.sample_data()
+    src_data={'source':'url','input_path': sampled_data_path}
+
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath
