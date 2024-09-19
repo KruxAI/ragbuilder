@@ -15,21 +15,24 @@ from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain.prompts import ChatPromptTemplate
 from langchain.load import dumps, loads
 from langchain_openai import OpenAIEmbeddings,ChatOpenAI
-
+from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
+from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
+from langchain_community.llms import Ollama
+from langchain_community.embeddings import OllamaEmbeddings
 def rag_pipeline():
     try:
         def format_docs(docs):
             return "\\n".join(doc.page_content for doc in docs) 
-           
-        llm=ChatOpenAI(model='gpt-4o')
+        {llm_class}
         
-        loader = WebBaseLoader('https://paulgraham.com/persistence.html')
-        docs = loader.load()
+        {loader_class}
         
+        {embedding_class}
         
-        embedding=OpenAIEmbeddings(model='text-embedding-3-large')
-        
-        splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1600, chunk_overlap=200)
         splits=splitter.split_documents(docs)
         c=Chroma.from_documents(documents=splits, embedding=embedding, collection_name='testindex-ragbuilder-1724418081',)   
         retriever = c.as_retriever()
