@@ -62,7 +62,8 @@ class DataSampler:
 
     def estimate_url_size(self, url: str) -> int:
         try:
-            response = requests.head(url, allow_redirects=True)
+            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
+            response = requests.head(url, headers=headers, allow_redirects=True)
             content_length = response.headers.get('Content-Length')
             if content_length:
                 return int(content_length)
@@ -73,12 +74,12 @@ class DataSampler:
             logger.error(f"Error estimating URL size: {str(e)}")
             raise
 
-    def should_sample(self) -> bool:
-        return self.enable_sampling and self.estimate_data_size() > self.sample_size_threshold
+    def need_sampling(self) -> bool:
+        return self.estimate_data_size() > self.sample_size_threshold
 
     def sample_data(self) -> str:
         try:
-            if not self.should_sample():
+            if not (self.need_sampling() and self.enable_sampling):
                 logger.info(f"Sampling not required for {self.data_source}")
                 return self.data_source
 

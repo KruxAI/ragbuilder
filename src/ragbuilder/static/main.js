@@ -12,9 +12,11 @@ function validateSourceData() {
                 console.log('Source data is valid.');
                 sourceDataError.innerHTML = "";
                 $('#nextStep1').prop('disabled', false);
+                updateDataSizeInfo(response.size, response.exceeds_threshold);
             } else {
                 sourceDataError.innerHTML = "<span style='color: red;'>"+"Invalid source data. Please check the URL or file/ directory path.</span>";
                 $('#nextStep1').prop('disabled', true);
+                $('#dataSizeInfo').hide();
             }
         },
         error: function (error) {
@@ -22,6 +24,24 @@ function validateSourceData() {
         }
     });
 }
+
+function updateDataSizeInfo(size, exceedsThreshold) {
+    const sizeInMB = size / (1024 * 1024);
+    const sizeDisplay = sizeInMB >= 1024 ? `${(sizeInMB / 1024).toFixed(2)} GB` : `${sizeInMB.toFixed(2)} MB`;
+    
+    let infoText = '';
+    if (exceedsThreshold) {
+        infoText = `Your dataset is relatively large (${sizeDisplay}). RAGBuilder can sample your data to provide quicker initial results. You can always run the full analysis later if you're satisfied with the initial results.`;
+        $('#useSampling').prop('checked', true);
+    } else {
+        infoText = `Your dataset size is ${sizeDisplay}. RAGBuilder can process this dataset without sampling.`;
+        $('#useSampling').prop('checked', false);
+    }
+
+    $('#dataSizeInfo').text(infoText).show();
+    $('#samplingOption').show();
+}
+
 
 function formatModelSelection(provider, model) {
     return `${provider}:${model}`;
@@ -88,6 +108,14 @@ $(document).ready(function () {
     // Check if source data path is valid
     $('#sourceData').on('blur', function() {
         validateSourceData();
+    });
+
+    $('#useSampling').change(function() {
+        if ($(this).is(':checked')) {
+            $('#samplingInfo').show();
+        } else {
+            $('#samplingInfo').hide();
+        }
     });
 
     document.querySelectorAll('[data-mdb-toggle="collapse"]').forEach(element => {
@@ -309,15 +337,16 @@ $(document).ready(function () {
 
     $('#nextStep1').click(function () {
         const sourceData = $('#sourceData').val();
+        const useSampling = $('#useSampling').is(':checked');
         $.ajax({
             type: "POST",
             url: "/check_test_data",
             contentType: "application/json",
-            data: JSON.stringify({ sourceData: sourceData }),
+            data: JSON.stringify({ sourceData: sourceData, useSampling: useSampling }),
             success: function (response) {
                 if (response.exists) {
                     existingSynthDataPath = response.path;
-                    dataExists=`<p><strong>Test data exists for the provided source dataset’s hash.</strong><br>Path: ${response.path}</p>`
+                    dataExists=`<p><strong>Existing synthetic test data found for the provided source dataset.</strong><br>Path: ${response.path}</p>`
                     $('#hashLookupResult').html(`${dataExists}`);
                     $('#foundExistingSynthData').show();
                     $('#useExistingSynthData').prop('checked', true);
@@ -483,6 +512,8 @@ $(document).ready(function () {
             <div class="row row-cols-2">
                 <div class="col-md-4"><strong>Description:</strong></div><div class="col-md-8">${$('#description').val()}</div>
                 <div class="col-md-4"><strong>Source data:</strong></div><div class="col-md-8">${$('#sourceData').val()}</div>
+                <div class="col-md-4"><strong>Use data sampling:</strong></div>
+                <div class="col-md-8">${$('#useSampling').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
                 <div class="col-md-4"><strong>Use Pre-defined RAG Templates:</strong></div>
                 <div class="col-md-8">${$('#compareTemplates').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
                 <div class="col-md-4"><strong>Create Custom RAG Configurations:</strong></div>
@@ -547,6 +578,7 @@ $(document).ready(function () {
         const projectData = {
             description: $('#description').val(),
             sourceData: $('#sourceData').val(),
+            useSampling: $('#useSampling').is(':checked'),
             compareTemplates: $('#compareTemplates').is(':checked'),
             includeNonTemplated: $('#includeNonTemplated').is(':checked'),
             selectedTemplates: [],
@@ -719,7 +751,7 @@ $(document).ready(function () {
                     console.error(error);
                 }
             });
-        }, 20000); // Update every 20 seconds
+        }, 5000); // Update every 5 seconds
     }
 
     function handleSynthDataGeneration() {

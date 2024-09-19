@@ -200,41 +200,47 @@ def get_progress():
 
 class SourceDataCheck(BaseModel):
     sourceData: str
+    useSampling: Optional[bool] = Field(None)
 
-def get_hash(source_data):
+def get_hash(source_data, use_sampling=False):
     src_type=l.classify_path(source_data)
+    prefix = "sampled_" if use_sampling else ""
     
     if src_type == "directory":
-        return _get_hash_dir(source_data)
+        return _get_hash_dir(source_data, prefix)
     elif src_type == "url":
-        return _get_hash_url(source_data)
+        return _get_hash_url(source_data, prefix)
     elif src_type == "file":
-        return _get_hash_file(source_data)
+        return _get_hash_file(source_data, prefix)
     else:
         logger.error("Invalid input path type {source_data}")
         return None
 
-def _get_hash_file(source_data):
-    return hashlib.md5(open(source_data, "rb").read()).hexdigest()
-    # return hashlib.md5(source_data.encode()).hexdigest()
+def _get_hash_file(source_data, prefix=""):
+    md5_hash = hashlib.md5(prefix.encode())
+    with open(source_data, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            md5_hash.update(chunk)
+    return md5_hash.hexdigest()
 
-def _get_hash_url(url):
+def _get_hash_url(url, prefix=""):
     try:
         # Fetch the content of the URL
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
         response = requests.get(url, headers=headers, allow_redirects=True)
         response.raise_for_status()  # Check for HTTP errors
-        return hashlib.md5(response.content).hexdigest()
-    
+        md5_hash = hashlib.md5(prefix.encode())
+        md5_hash.update(response.content)
+        return md5_hash.hexdigest()
     except requests.RequestException as e:
         logger.error(f"Error fetching URL: {e}")
         return None
     
-def _get_hash_dir(dir_path):
+def _get_hash_dir(dir_path, prefix=""):
     if not os.path.isdir(dir_path):
         logger.error(f"{dir_path} is not a valid directory.")
         return None
-    md5_hash = hashlib.md5()
+    md5_hash = hashlib.md5(prefix.encode())
     try:
         for root, dirs, files in os.walk(dir_path):
             for file_name in sorted(files):
@@ -250,7 +256,8 @@ def _get_hash_dir(dir_path):
 @app.post("/check_test_data")
 async def check_test_data(data: SourceDataCheck, hashmap: dict = Depends(get_hashmap)):
     source_data = data.sourceData
-    hash_value = get_hash(source_data)
+    use_sampling = data.useSampling
+    hash_value = get_hash(source_data, use_sampling)
     if hash_value in hashmap:
         return {"exists": True, "path": hashmap[hash_value]}
     else:
@@ -273,8 +280,26 @@ def _is_valid_source_data(source_data):
 
 @app.post("/check_source_data")
 async def check_source_data(data: SourceDataCheck):
-    return {"valid": _is_valid_source_data(data.sourceData)}
-
+    try:
+        is_valid_source_data = _is_valid_source_data(data.sourceData)
+        logger.info(f"Source data {data.sourceData} validity: {is_valid_source_data}")
+        if is_valid_source_data:
+            logger.info(f"Estimating source data size...")
+            sampler = DataSampler(data.sourceData)
+            size = sampler.estimate_data_size()
+            exceeds_threshold = sampler.need_sampling()
+            logger.info(f"Source data size: {size}, exceeds_threshold: {exceeds_threshold}")
+            return {
+                "valid": is_valid_source_data,
+                "size": size,
+                "exceeds_threshold": exceeds_threshold
+            }
+        else:
+            return {"valid": is_valid_source_data}
+    except Exception as e:
+        logger.error(f"Error checking source data: {e}")
+        return {"valid": False}
+    
 @app.get("/templates")
 def get_rag_templates():
     templates = get_templates()
@@ -283,6 +308,7 @@ def get_rag_templates():
 class ProjectData(BaseModel):
     description: str
     sourceData: str
+    useSampling: bool
     compareTemplates: bool
     includeNonTemplated: bool
     selectedTemplates: List[str] = Field(default_factory=list)
@@ -411,13 +437,12 @@ def parse_config(config: dict, db: sqlite3.Connection):
     other_llm = [llm for llm in [hf_llm, groq_llm, azureoai_llm, googlevertexai_llm, ollama_llm] if llm is not None and llm != ""]
     sota_embedding = config.get('sotaEmbeddingModel')
     sota_llm = config.get('sotaLLMModel')
+    src_full_path = config.get("sourceData", None)
+    use_sampling = config.get("useSampling", False)
 
-    # TODO: Add UI integration based conditional for sampling
-    src_path=config.get("sourceData", None)
-    data_sampler = DataSampler(os.path.expanduser(src_path))
-    src_path = sampled_data_path = data_sampler.sample_data()
-    src_data={'source':'url','input_path': sampled_data_path}
-
+    data_sampler = DataSampler(os.path.expanduser(src_full_path), enable_sampling=use_sampling)
+    src_path = data_sampler.sample_data()
+    src_data={'source':'url','input_path': src_path}
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath
@@ -433,7 +458,6 @@ def parse_config(config: dict, db: sqlite3.Connection):
         generator_llm=get_model_obj('llm', config["syntheticDataGeneration"]["generatorLLM"], temperature = 0.2)
         embedding_model=get_model_obj('embedding', config["syntheticDataGeneration"]["generatorEmbedding"])
         # TODO: Add Distribution
-
         try:
             progress_state.toggle_synth_data_gen_progress(1)
             f_name=generate_data.generate_data(
@@ -454,12 +478,9 @@ def parse_config(config: dict, db: sqlite3.Connection):
             logger.error(f'Synthetic test data generation failed: {e}')
             raise
         # Insert generated into hashmap 
-        insert_hashmap(get_hash(src_path), f_name, db)
-        # g._hashmap=None # To refresh hashmap
+        insert_hashmap(get_hash(src_full_path, use_sampling), f_name, db)
         progress_state.toggle_synth_data_gen_progress(0)
-        logger.info(f"Synthetic test data generation completed: {f_name}")
-
-        
+        logger.info(f"Synthetic test data generation completed: {f_name}") 
     else:
         f_name=config["testDataPath"]
         logger.info(f"User provided test data: {f_name}")
