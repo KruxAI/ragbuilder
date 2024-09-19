@@ -369,6 +369,9 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
         # Objective function for Bayesian optimization on the custom RAG configurations
         
         def objective(trial):
+            delay = random.uniform(0, 5)  # Random delay between 0 and 5 seconds
+            logger.info(f"Delaying {trial.number} for {delay} seconds...")
+            time.sleep(delay)
             try:
                 config = lc_templates.generate_config_for_trial_optuna(trial)
                 states_to_consider = (TrialState.COMPLETE,)
@@ -404,7 +407,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                 #     score = scores[int(time.time())%100]
                 # except:
                 #      score = -1
-                logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... \n(this may take a while)")
+                logger.info(f"Evaluating RAG Config #{trial.number+1}... \n(this may take a while)")
                 rageval = eval.RagEvaluator(
                     rag_builder,
                     test_ds, 
@@ -443,7 +446,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             sampler=optuna.samplers.TPESampler(),
             pruner=optuna.pruners.MedianPruner()
         )
-        study.optimize(objective, n_trials=num_runs, n_jobs=8, catch=(RagBuilderException, eval.RagEvaluatorException))
+        study.optimize(objective, n_trials=num_runs, n_jobs=1, catch=(RagBuilderException, eval.RagEvaluatorException))
         
         logger.info(f"Completed Bayesian optimization...")
 
@@ -623,7 +626,7 @@ class RagBuilder:
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
         #execution os string
-            logger.debug(f"Generated Code\n{self.router}")
+            logger.info(f"Generated Code\n{self.router}")
             self.rag = self._exec()
             # print(f"self.rag = {self.rag}")
         except Exception as e:

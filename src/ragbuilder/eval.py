@@ -111,7 +111,7 @@ class RagEvaluator:
         #TODO: Validate that loops>=1. Raise exception if not.
         eval_ds=[]
         for row in self.test_dataset:
-            # print(f'Invoking retrieval for query: {row["question"]}')
+            print(f'Invoking retrieval for query: {row["question"]}')
             latency_results=[]
             for _i in range(loops):
                 start = time.perf_counter()
@@ -211,7 +211,7 @@ class RagEvaluator:
                 "cost":float("nan")
             }
             result=nan_perf
-            raise RagEvaluatorException("All retries for RAG evaluation failed. Final exception: {e}.")
+            raise RagEvaluatorException(f"All retries for RAG evaluation failed. Final exception: {e}.")
         
         # return result
         return result
