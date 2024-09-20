@@ -17,7 +17,7 @@ pdf2image
 pdfminer.six
 langchain_experimental
 scikit-learn
-ragas==0.1.16
+ragas==0.1.7
 inquirer
 llama_index
 chromadb
@@ -77,3 +77,4 @@ psycopg[binary,pool]
 langchain_milvus
 langsmith
 neo4j
+optuna

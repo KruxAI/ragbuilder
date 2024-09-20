@@ -46,7 +46,7 @@ setup(
         'pdfminer.six',
         'langchain_experimental',
         'scikit-learn',
-        'ragas==0.1.16',
+        'ragas==0.1.7',
         'inquirer',
         'chromadb',
         'sentence-transformers',
@@ -88,7 +88,8 @@ setup(
         'langchain_postgres',
         'psycopg[binary,pool]',
         'langchain_milvus',
-        'langsmith'
+        'langsmith',
+        'optuna'
         # 'llama-index',
         # 'llama-index-vector-stores-chroma',
         # 'llama-index-readers-web',

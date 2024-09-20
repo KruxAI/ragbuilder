@@ -135,8 +135,9 @@ class RagEvaluator:
                         if cost == 0:
                             try:
                                 model= ':'.join(self.rag.retrieval_model.split(":")[1:])
-                                cost = OPENAI_PRICING[model]["input"] * prompt_tokens + \
-                                    OPENAI_PRICING[model]["output"] * completion_tokens
+                                if model in OPENAI_PRICING:
+                                    cost = OPENAI_PRICING[model]["input"] * prompt_tokens + \
+                                        OPENAI_PRICING[model]["output"] * completion_tokens
                             except Exception as e:
                                 logger.warning(f"Failed to calculate cost of llm invocation. ERROR: {e}")
 

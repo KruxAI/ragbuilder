@@ -442,7 +442,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             sampler=optuna.samplers.TPESampler(),
             pruner=optuna.pruners.MedianPruner()
         )
-        study.optimize(objective, n_trials=num_runs, n_jobs=4, catch=(RagBuilderException, eval.RagEvaluatorException))
+        study.optimize(objective, n_trials=num_runs, n_jobs=1, catch=(RagBuilderException, eval.RagEvaluatorException))
         
         logger.info(f"Completed Bayesian optimization...")
 
