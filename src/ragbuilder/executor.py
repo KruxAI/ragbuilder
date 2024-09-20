@@ -118,7 +118,6 @@ from langchain.docstore.document import Document
 from langchain.prompts import ChatPromptTemplate
 from ragbuilder.graph_utils.graph_loader import load_graph 
 
- 
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
 from ragbuilder.langchain_module.loader.loader import *
@@ -369,7 +368,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
         # Objective function for Bayesian optimization on the custom RAG configurations
         
         def objective(trial):
-            delay = random.uniform(0, 5)  # Random delay between 0 and 5 seconds
+            delay = random.uniform(0, 10)  # Random delay between 0 and 5 seconds
             logger.info(f"Delaying {trial.number} for {delay} seconds...")
             time.sleep(delay)
             try:
@@ -446,7 +445,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             sampler=optuna.samplers.TPESampler(),
             pruner=optuna.pruners.MedianPruner()
         )
-        study.optimize(objective, n_trials=num_runs, n_jobs=1, catch=(RagBuilderException, eval.RagEvaluatorException))
+        study.optimize(objective, n_trials=num_runs, n_jobs=4, catch=(RagBuilderException, eval.RagEvaluatorException))
         
         logger.info(f"Completed Bayesian optimization...")
 

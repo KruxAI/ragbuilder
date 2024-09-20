@@ -35,12 +35,21 @@ from langchain_core.runnables import graph
 from langchain_community.callbacks import get_openai_callback
 from ragas import evaluate, RunConfig
 from ragas.metrics import (
-    answer_relevancy,
-    faithfulness,
-    context_recall,
-    context_precision,
-    answer_correctness
+    AnswerRelevancy,
+    Faithfulness,
+    ContextRecall,
+    ContextPrecision,
+    AnswerCorrectness
 )
+from ragas.llms.base import LangchainLLMWrapper
+from ragas.embeddings.base import LangchainEmbeddingsWrapper
+# from ragas.metrics import (
+#     answer_relevancy,
+#     faithfulness,
+#     context_recall,
+#     context_precision,
+#     answer_correctness
+# )
 import logging
 import contextlib
 from ragbuilder.langchain_module.common import setup_logging, LOG_LEVEL
@@ -155,9 +164,20 @@ class RagEvaluator:
         self.eval_dataset = Dataset.from_pandas(eval_df) # TODO: Use from_dict instead on eval_ds directly?
         return self.eval_dataset
 
-    @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, min=4, max=60),
-       before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
+    @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=5, min=10, max=600),
+           retry=(retry_if_exception_type(openai.APITimeoutError)
+                   | retry_if_exception_type(openai.APIError)
+                   | retry_if_exception_type(openai.APIConnectionError)
+                   | retry_if_exception_type(openai.RateLimitError)),
+            before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
     def _evaluate_with_retry(self):
+        llm = LangchainLLMWrapper(self.llm, run_config=self.run_config)
+        embeddings = LangchainEmbeddingsWrapper(self.embeddings, run_config=self.run_config)
+        answer_correctness = AnswerCorrectness(max_retries = 3, embeddings = embeddings, llm = llm)
+        faithfulness = Faithfulness(max_retries = 3, llm = llm)
+        answer_relevancy = AnswerRelevancy(embeddings = self.embeddings, llm = llm)
+        context_precision = ContextPrecision(max_retries = 3, llm = llm)
+        context_recall = ContextRecall(max_retries = 3, llm = llm)
         return evaluate(
             self.eval_dataset,
             metrics=[
@@ -168,7 +188,7 @@ class RagEvaluator:
                 context_precision,
                 context_recall,
             ],
-            raise_exceptions=True, 
+            raise_exceptions=False, 
             llm=self.llm,
             embeddings=self.embeddings,
             run_config=self.run_config
@@ -191,7 +211,7 @@ class RagEvaluator:
             # Save everything to DB
             self._db_write()
                 # Aggregate other performance metrics into the result
-            logger.info("Aggregating other performance metrics for {self.if}...")
+            logger.info(f"Aggregating other performance metrics for {self.id}...")
             try:
                 result.update(dict(self.result_df[["latency", "tokens", "cost"]].mean()))
             except Exception as e:
