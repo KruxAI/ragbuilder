@@ -15,6 +15,7 @@ arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter
 arr_chunk_size = [1000, 2000, 3000]
 arr_embedding_model = ['OpenAI:text-embedding-3-small','OpenAI:text-embedding-3-large','OpenAI:text-embedding-ada-002']
 retriever_combinations = arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
+arr_baseline_retrievers = ['vectorSimilarity', 'bm25Retriever']
 arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
 arr_contextual_compression = [True, False]
 compressor_combinations = arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
@@ -34,7 +35,8 @@ def init(db='ChromaDB', min=500, max=2000, other_embedding=[], other_llm=[]):
     arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
     arr_chunk_size = _get_arr_chunk_size(min, max, step_size=chunk_step_size)
     arr_embedding_model = ['OpenAI:text-embedding-3-small','OpenAI:text-embedding-3-large','OpenAI:text-embedding-ada-002']
-    retriever_combinations = arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
+    arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
+    retriever_combinations = [retriever for retriever in arr_retriever if retriever not in arr_baseline_retrievers]
     arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
     arr_contextual_compression = [True, False]
     compressor_combinations = arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
@@ -147,16 +149,33 @@ def generate_config_for_trial_optuna(trial):
             'chunk_strategy': chunking_strategy
         }
 
-    # Retriever selection    
-    retriever_kwargs = {'retrievers': []}
-    for i, retriever in enumerate(arr_retriever):
-        if trial.suggest_categorical(f'use_{retriever}', [True, False]):
-            retriever_kwargs['retrievers'].append(_format_retriever_config(retriever, search_kwargs))
+    # Retriever selection - start with the baseline retrievers
+    selected_retrievers = []
+    for retriever in arr_baseline_retrievers:
+        selected_retrievers.append(retriever)
+
+    # Now, select 'n' - the num of retrievers from MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers)
+    n_retrievers = trial.suggest_int('n_retrievers', 0, MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers))
+    print(f'n_retrievers: {n_retrievers}')
+
+    # Now choose those n retrievers
+    for i in range(n_retrievers):
+        retriever = trial.suggest_categorical(f'retriever_{i}', retriever_combinations)
+        if retriever not in selected_retrievers:
+            selected_retrievers.append(retriever)
+
+    retriever_kwargs = {'retrievers': [_format_retriever_config(retriever, search_kwargs) for retriever in selected_retrievers]}
+    print(f'retriever_kwargs: {retriever_kwargs}')
+
+    # for i, retriever in enumerate(arr_retriever):
+    #     if trial.suggest_categorical(f'use_{retriever}', [True, False]):
+    #         retriever_kwargs['retrievers'].append(_format_retriever_config(retriever, search_kwargs))
+
     
     # Ensure at least one retriever is selected
-    if not retriever_kwargs['retrievers']:
-        fallback_retriever = trial.suggest_categorical('fallback_retriever', arr_retriever)
-        retriever_kwargs['retrievers'].append(_format_retriever_config(fallback_retriever, search_kwargs))
+    # if not retriever_kwargs['retrievers']:
+    #     fallback_retriever = trial.suggest_categorical('fallback_retriever', arr_retriever)
+    #     retriever_kwargs['retrievers'].append(_format_retriever_config(fallback_retriever, search_kwargs))
         
     # For parentDoc retrievers, change chunking strategy to RecursiveCharacterTextSplitter 
     # if it's not already a RecursiveCharacterTextSplitter or CharacterTextSplitter

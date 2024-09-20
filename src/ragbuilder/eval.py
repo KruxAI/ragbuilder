@@ -138,7 +138,7 @@ class RagEvaluator:
                                 cost = OPENAI_PRICING[model]["input"] * prompt_tokens + \
                                     OPENAI_PRICING[model]["output"] * completion_tokens
                             except Exception as e:
-                                logger.error(f"Error calculating cost of llm invocation. ERROR: {e}")
+                                logger.warning(f"Failed to calculate cost of llm invocation. ERROR: {e}")
 
                     except Exception as e:
                         logger.error(f"Error invoking RAG for question: {row['question']}. ERROR: {e}")
@@ -188,7 +188,7 @@ class RagEvaluator:
                 context_precision,
                 context_recall,
             ],
-            raise_exceptions=False, 
+            raise_exceptions=True, 
             llm=self.llm,
             embeddings=self.embeddings,
             run_config=self.run_config

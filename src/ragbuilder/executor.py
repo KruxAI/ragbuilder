@@ -381,13 +381,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                         progress_state.increment_progress()
                         logger.info(f"Config already evaluated with score: {t.value}: {config}")
                         return t.value
-                    
-                # str_config=json.dumps(config)
-                # score = configs_evaluated.get(str_config, None)
-                # if score:
-                #     logger.info(f"Config already evaluated with score: {score}: {config}")
-                #     return score
-                
+                                    
                 config['loader_kwargs'] = src_data
                 config['run_id'] = run_id
                 logger.info(f"Config raw={config}\n\n")
@@ -406,6 +400,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                 #     score = scores[int(time.time())%100]
                 # except:
                 #      score = -1
+                # return score
                 logger.info(f"Evaluating RAG Config #{trial.number+1}... \n(this may take a while)")
                 rageval = eval.RagEvaluator(
                     rag_builder,
@@ -420,7 +415,8 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                 result = rageval.evaluate()
                 logger.info(f"Completed evaluation. result={result}...")
                 # configs_evaluated[str_config]=score
-                return result['answer_correctness'], result['latency'] 
+                return result['answer_correctness'] 
+                
             except Exception as e:
                 logger.error(f"Error while evaluating config: {config}")
                 logger.error(f"Error: {e}")
@@ -441,7 +437,8 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             study_name=str(run_id),
             storage=storage,
             load_if_exists=True,
-            directions=["maximize", "minimize"],
+            direction="maximize",
+            # directions=["maximize", "minimize"],
             sampler=optuna.samplers.TPESampler(),
             pruner=optuna.pruners.MedianPruner()
         )
