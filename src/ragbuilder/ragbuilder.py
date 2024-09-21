@@ -45,7 +45,8 @@ url = "http://localhost:8005"
 
 app = FastAPI()
 DATABASE = 'eval.db'
-BAYES_OPT=1
+BAYES_OPT = 1
+CURRENT_RUN_ID = 0
 
 templates = Jinja2Templates(directory=Path(BASE_DIR, 'templates'))
 app.mount("/static", StaticFiles(directory=Path(BASE_DIR, 'static')), name="static")
@@ -204,6 +205,13 @@ def get_log_updates():
 def get_progress():
     return progress_state.get_progress()
 
+@app.get("/get_current_run_id")
+def get_current_run_id():
+    if CURRENT_RUN_ID:
+        return {"run_id": CURRENT_RUN_ID}
+    else:
+        raise HTTPException(status_code=404, detail="No active run ID found")
+
 class SourceDataCheck(BaseModel):
     sourceData: str
     useSampling: Optional[bool] = Field(None)
@@ -351,6 +359,7 @@ class ProjectData(BaseModel):
     generatorLLM: Optional[str] = Field(default=None)
     generatorEmbedding: Optional[str] = Field(default=None)
     numRuns: Optional[str] = Field(default=None)
+    nJobs: Optional[int] = Field(default=None)
 
 @app.post("/rbuilder")
 def rbuilder_route(project_data: ProjectData, db: sqlite3.Connection = Depends(get_db)):
@@ -408,6 +417,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     # Instead of get_db(), use the db parameter
     # Replace jsonify with direct dictionary returns
     # ...
+    global CURRENT_RUN_ID
     enable_analytics = os.getenv('ENABLE_ANALYTICS', 'True').lower() == 'true'
     logger.info(f"enable_analytics = {enable_analytics}")
     if enable_analytics:
@@ -415,7 +425,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     logger.info(f"Initiating parsing config: {config}")
     disabled_opts=_get_disabled_opts(config)
     logger.info(f"Disabled options: {disabled_opts}")
-    run_id=int(time.time())
+    CURRENT_RUN_ID=int(time.time())
     desc=config["description"]
     compare_templates=config["compareTemplates"]
     include_granular_combos=config["includeNonTemplated"]
@@ -492,14 +502,14 @@ def parse_config(config: dict, db: sqlite3.Connection):
         logger.info(f"User provided test data: {f_name}")
 
     run_details=(
-        run_id, 
+        CURRENT_RUN_ID, 
         'Running',
         desc, 
         src_path,
         LOG_FILENAME,
         json.dumps(config), 
         json.dumps(disabled_opts), 
-        run_id
+        CURRENT_RUN_ID
     )
     _db_write(run_details, db)
     # return json.dumps({'status':'success', 'f_name': f_name})
@@ -507,8 +517,9 @@ def parse_config(config: dict, db: sqlite3.Connection):
         if optimization=='bayesianOptimization':
             logger.info(f"Using Bayesian optimization to find optimal RAG configs...")
             num_runs = int(config.get("numRuns", 50))
+            n_jobs = int(config.get("nJobs", 1))
             res = rag_builder_bayes_optimization_optuna(
-                run_id=run_id, 
+                run_id=CURRENT_RUN_ID, 
                 compare_templates=compare_templates, 
                 src_data=src_data, 
                 test_data=f_name,
@@ -520,6 +531,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 other_embedding=other_embedding,
                 other_llm=other_llm,
                 num_runs=num_runs,
+                n_jobs=n_jobs,
                 eval_framework=eval_framework,
                 eval_embedding=eval_embedding,
                 eval_llm=eval_llm,
@@ -530,7 +542,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
         elif optimization=='fullParameterSearch' :
             logger.info(f"Spawning RAG configs by invoking rag_builder...")
             res = rag_builder(
-                run_id=run_id, 
+                run_id=CURRENT_RUN_ID, 
                 compare_templates=compare_templates, 
                 src_data=src_data, 
                 test_data=f_name,
@@ -557,7 +569,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
         }, 400
     except Exception as e:
         logger.error(f'Failed to complete creation and evaluation of RAG configs: {e}')
-        _update_status(run_id, 'Failed', db)
+        _update_status(CURRENT_RUN_ID, 'Failed', db)
         db.close()
         return {
             "status": "error",
@@ -565,13 +577,13 @@ def parse_config(config: dict, db: sqlite3.Connection):
         }, 400
     else:
         logger.info(f"Processing finished successfully")
-        _update_status(run_id, 'Success', db)
+        _update_status(CURRENT_RUN_ID, 'Success', db)
         db.close()
         track_event('1')
         return {
             "status": "success",
             "message": "Completed successfully.",
-            "run_id": run_id
+            "run_id": CURRENT_RUN_ID
         }
     # return jsonify({'status':'success', 'f_name': f_name})
 

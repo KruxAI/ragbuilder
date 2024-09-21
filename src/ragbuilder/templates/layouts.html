@@ -443,12 +443,27 @@
                                     Ragbuilder uses Bayesian optimization for efficient hyperparameter tuning. Alternatively, you can generate and assess all parameter combinations for exhaustive insights, but this approach is long-running, costly, and computationally intensive.
                                 </p>
                                 <div class="form-group mx-3">
-                                    <input type="radio" class="form-check-input me-2" id="bayesianOptimization" name="optimization" checked>
-                                    <label class="form-check-label" for="bayesianOptimization">Use Bayesian Optimization (Recommended)</label>
-                                    <div id="numRunsContainer" class="ms-5">
+                                    <div class="form-check">
+                                        <input type="radio" class="form-check-input me-2" id="bayesianOptimization" name="optimization" checked>
+                                        <label class="form-check-label" for="bayesianOptimization">Use Bayesian Optimization (Recommended)</label>
+                                    </div>
+                                    <div id="optimizationSettingsContainer" class="ms-4 row">
+                                        <div id="numRunsContainer" class="col-md-5">
+                                          <label for="numRuns" class="form-label">Number of Runs:</label>
+                                          <input type="number" class="form-control d-inline-block" id="numRuns" name="numRuns" value="50" min="1" step="1" style="width: 80px;">
+                                        </div>
+                                        <div id="nJobsContainer" class="col-md-7">
+                                          <label for="nJobs" class="form-label">Number of Parallel Jobs:</label>
+                                          <input type="number" class="form-control d-inline-block" id="nJobs" name="nJobs" value="1" min="-1" step="1" style="width: 80px;">
+                                          <p class="fw-light form-text text-muted">
+                                            If set to -1, the number is set to CPU count.<br>⚠️ Values >1 may increase the risk of rate limit errors or resource contention issues.
+                                          </p>
+                                        </div>
+                                      </div>
+                                    <!-- <div id="numRunsContainer" class="ms-5">
                                         <label for="numRuns" class="form-label me-2">Number of Runs:</label>
                                         <input type="number" class="form-control d-inline-block" id="numRuns" value="50" min="1" style="width: 80px;">
-                                    </div>
+                                    </div> -->
                                 </div>
                                 <div class="form-group mx-3">
                                     <input type="radio" class="form-check-input me-2" id="fullParameterSearch" name="optimization">
@@ -652,6 +667,8 @@
                         <div class="progress mb-3">
                             <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
+                        <div id="viewResultsText" class="fw-light text-muted small mb-2"></div>
+                        <button id="viewResultsBtn" class="btn btn-primary mb-3" style="display: none;">View Current Results</button>
                         <div>
                             <h5>Log Output:</h5>
                             <pre id="logOutput" class="border p-3" style="height: 600px; overflow-y: scroll;"></pre>

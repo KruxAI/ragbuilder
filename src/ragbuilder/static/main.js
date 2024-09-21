@@ -1,3 +1,8 @@
+
+let progressInterval;
+let smoothInterval;
+let currentRunId = null;
+
 function validateSourceData() {
     const sourceData = $('#sourceData').val();
 
@@ -89,8 +94,18 @@ function loadTemplates() {
     });
 }
 
-let progressInterval;
-let smoothInterval;
+function fetch_current_run_id() {
+    $.ajax({
+        type: "GET",
+        url: "/get_current_run_id",
+        success: function(response) {
+            currentRunId = response.run_id;
+        },
+        error: function(error) {
+            console.error("Failed to fetch current run ID:", error);
+        }
+    });
+}
 
 $(document).ready(function () {
     // Show modal to capture user inputs and send it to backend.
@@ -285,8 +300,10 @@ $(document).ready(function () {
     $('input[name="optimization"]').change(function () {
         if ($('#bayesianOptimization').is(':checked')) {
             $('#numRunsContainer').show();
+            $('#nJobsContainer').show();
         } else {
             $('#numRunsContainer').hide();
+            $('#nJobsContainer').hide();
         }
     });
 
@@ -677,12 +694,14 @@ $(document).ready(function () {
 
         if (projectData.optimization === "bayesianOptimization") {
             projectData.numRuns = $('#numRuns').val();
+            projectData.nJobs = $('#nJobs').val();
         }
     
         console.log(JSON.stringify(projectData));
 
         $('#step4').hide();
         $('#progressSection').show();
+        $('#viewResultsBtn').hide();
 
         fetchLogUpdates();
         fetchProgressUpdates();
@@ -726,8 +745,25 @@ $(document).ready(function () {
         });
     });
 
+    $('#viewResultsBtn').click(function() {
+        if (currentRunId) {
+            window.open(`/summary/${currentRunId}`, '_blank');
+        } else {
+            console.error('No run ID available');
+            alert('Unable to view results: No active run ID found.');
+        }
+    });
+
     let lastKnownRun = -1;
     let lastUpdateTime = Date.now();
+
+    function checkFirstEvalComplete(response) {
+        if (response.first_eval_complete && !$('#viewResultsBtn').is(':visible')) {
+            fetch_current_run_id();
+            $('#viewResultsBtn').show();
+            $('#viewResultsText').text('First evaluation complete. You can now view current results.');
+        }
+    }
 
     function fetchProgressUpdates() {
         const progressInterval = setInterval(function () {
@@ -735,13 +771,15 @@ $(document).ready(function () {
                 type: "GET",
                 url: "/progress",
                 success: function (response) {
-                    const { current_run, total_runs, synth_data_gen_in_progress } = response;
+                    const { current_run, total_runs, synth_data_gen_in_progress, first_eval_complete } = response;
     
                     if (synth_data_gen_in_progress === 1) {
                         handleSynthDataGeneration();
                     } else {
                         handleNormalProgress(current_run, total_runs);
                     }
+
+                    checkFirstEvalComplete(response);
     
                     if (current_run >= total_runs && synth_data_gen_in_progress === 0) {
                         clearInterval(progressInterval);
@@ -842,6 +880,3 @@ $(document).ready(function () {
         }, 2000); // Update every 2 seconds
     }
 });
-
-
-

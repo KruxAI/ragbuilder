@@ -287,6 +287,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
     min_chunk_size=kwargs.get('min_chunk_size', 1000)
     max_chunk_size=kwargs.get('max_chunk_size', 1000)
     num_runs=kwargs.get('num_runs')
+    n_jobs=kwargs.get('n_jobs')
     other_embedding=kwargs.get('other_embedding')
     other_llm=kwargs.get('other_llm')
     logger.info(f'other_embedding={other_embedding}')
@@ -368,9 +369,10 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
         # Objective function for Bayesian optimization on the custom RAG configurations
         
         def objective(trial):
-            delay = random.uniform(0, 10)  # Random delay between 0 and 5 seconds
-            logger.info(f"Delaying {trial.number} for {delay} seconds...")
-            time.sleep(delay)
+            if n_jobs == -1 or n_jobs > 1:
+                delay = random.uniform(0, 10)  # Random delay between 0 and 5 seconds
+                logger.info(f"Delaying {trial.number} for {delay} seconds to avoid race conditions...")
+                time.sleep(delay)
             try:
                 config = lc_templates.generate_config_for_trial_optuna(trial)
                 states_to_consider = (TrialState.COMPLETE,)
@@ -414,8 +416,11 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                 ##      exit()
                 result = rageval.evaluate()
                 logger.info(f"Completed evaluation. result={result}...")
-                # configs_evaluated[str_config]=score
-                return result['answer_correctness'] 
+                if 'answer_correctness' in result and result['answer_correctness'] != float('NaN'):
+                    if not progress_state.get_progress()['first_eval_complete']:
+                        progress_state.set_first_eval_complete()
+                    return result['answer_correctness'] 
+                return float('NaN')
                 
             except Exception as e:
                 logger.error(f"Error while evaluating config: {config}")
@@ -442,11 +447,12 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             sampler=optuna.samplers.TPESampler(),
             pruner=optuna.pruners.MedianPruner()
         )
-        study.optimize(objective, n_trials=num_runs, n_jobs=1, catch=(RagBuilderException, eval.RagEvaluatorException))
+        study.optimize(objective, n_trials=num_runs, n_jobs=n_jobs, catch=(RagBuilderException, eval.RagEvaluatorException))
         
         logger.info(f"Completed Bayesian optimization...")
 
-        best_trial = max(study.best_trials, key=lambda t: t.values[1])
+        best_trial = study.best_trial
+        # best_trial = max(study.best_trials, key=lambda t: t.values[1])
         # best_params = study.best_params
         # best_score = -study.best_value
 
@@ -622,7 +628,7 @@ class RagBuilder:
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
         #execution os string
-            logger.info(f"Generated Code\n{self.router}")
+            logger.debug(f"Generated Code\n{self.router}")
             self.rag = self._exec()
             # print(f"self.rag = {self.rag}")
         except Exception as e:

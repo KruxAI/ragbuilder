@@ -23,11 +23,6 @@
 import pandas as pd
 import time
 import sqlite3
-import random
-import openai
-import statistics
-from tenacity import retry, stop_after_attempt, wait_exponential, \
-    wait_random_exponential, before_sleep_log, retry_if_result, retry_if_exception_type
 from datetime import datetime, timezone
 from datasets import Dataset
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
@@ -35,24 +30,15 @@ from langchain_core.runnables import graph
 from langchain_community.callbacks import get_openai_callback
 from ragas import evaluate, RunConfig
 from ragas.metrics import (
-    AnswerRelevancy,
-    Faithfulness,
-    ContextRecall,
-    ContextPrecision,
-    AnswerCorrectness
+    answer_relevancy,
+    faithfulness,
+    context_recall,
+    context_precision,
+    answer_correctness
 )
-from ragas.llms.base import LangchainLLMWrapper
-from ragas.embeddings.base import LangchainEmbeddingsWrapper
-# from ragas.metrics import (
-#     answer_relevancy,
-#     faithfulness,
-#     context_recall,
-#     context_precision,
-#     answer_correctness
-# )
 import logging
 import contextlib
-from ragbuilder.langchain_module.common import setup_logging, LOG_LEVEL
+from ragbuilder.langchain_module.common import setup_logging
 
 setup_logging()
 logger = logging.getLogger("ragbuilder")
@@ -90,9 +76,10 @@ class RagEvaluator:
             llm=None, 
             embeddings=None, 
             run_config=RunConfig(timeout=240, max_workers=1, max_wait=180, max_retries=10), 
+            is_async=False,
             model_name=None
     ):
-        self.id = int(time.time()*1000+random.randint(1, 1000))
+        self.id = int(time.time())
         self.rag = rag
         self.rag_fn = rag.rag
         self.code_snippet = rag.router
@@ -103,44 +90,32 @@ class RagEvaluator:
         self.llm = llm
         self.embeddings = embeddings
         self.run_config = run_config
+        self.is_async = is_async
         self.eval_dataset = None   # TODO: We can invoke prepare_eval_dataset here itself. Currently going ahead with lazy call option.
         self.result_df = None
-        self.db = self._get_db()
 
-    @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, min=4, max=100), 
-           retry=(retry_if_exception_type(openai.APITimeoutError)
-                   | retry_if_exception_type(openai.APIError)
-                   | retry_if_exception_type(openai.APIConnectionError)
-                   | retry_if_exception_type(openai.RateLimitError)),
-            before_sleep=before_sleep_log(logger, LOG_LEVEL))
-    def _rag_invoke_with_retry(self, query):
-        return dict(self.rag_fn.invoke(query))
-    
     def prepare_eval_dataset(self, loops=1):
         #TODO: Validate that loops>=1. Raise exception if not.
         eval_ds=[]
         for row in self.test_dataset:
-            print(f'Invoking retrieval for query: {row["question"]}')
+            # print(f'Invoking retrieval for query: {row["question"]}')
             latency_results=[]
             for _i in range(loops):
                 start = time.perf_counter()
                 with get_openai_callback() as cb:
                     try:
-                        response = self._rag_invoke_with_retry(row["question"])
                         response = dict(self.rag_fn.invoke(row["question"]))
                         tokens=cb.total_tokens
                         prompt_tokens=cb.prompt_tokens
                         completion_tokens=cb.completion_tokens
                         cost=cb.total_cost*1000
                         if cost == 0:
-                            try:
-                                model= ':'.join(self.rag.retrieval_model.split(":")[1:])
-                                if model in OPENAI_PRICING:
-                                    cost = OPENAI_PRICING[model]["input"] * prompt_tokens + \
-                                        OPENAI_PRICING[model]["output"] * completion_tokens
-                            except Exception as e:
-                                logger.warning(f"Failed to calculate cost of llm invocation. ERROR: {e}")
-
+                            model= ':'.join(self.rag.retrieval_model.split(":")[1:])
+                            if model in OPENAI_PRICING:
+                                cost = OPENAI_PRICING[model]["input"] * prompt_tokens + \
+                                    OPENAI_PRICING[model]["output"] * completion_tokens
+                            else:
+                                logger.warning(f"Cannot calculate cost metric for {model}. Cost metric will show up as 0.")
                     except Exception as e:
                         logger.error(f"Error invoking RAG for question: {row['question']}. ERROR: {e}")
                         response = {"answer":"Failed to get answer", "context":"Failed to get context"}
@@ -164,22 +139,13 @@ class RagEvaluator:
         eval_df = pd.DataFrame(eval_ds)
         self.eval_dataset = Dataset.from_pandas(eval_df) # TODO: Use from_dict instead on eval_ds directly?
         return self.eval_dataset
+    
+    def evaluate(self):
+        # Prepare eval dataset
+        self.prepare_eval_dataset()
 
-    @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=5, min=10, max=600),
-           retry=(retry_if_exception_type(openai.APITimeoutError)
-                   | retry_if_exception_type(openai.APIError)
-                   | retry_if_exception_type(openai.APIConnectionError)
-                   | retry_if_exception_type(openai.RateLimitError)),
-            before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
-    def _evaluate_with_retry(self):
-        llm = LangchainLLMWrapper(self.llm, run_config=self.run_config)
-        embeddings = LangchainEmbeddingsWrapper(self.embeddings, run_config=self.run_config)
-        answer_correctness = AnswerCorrectness(max_retries = 3, embeddings = embeddings, llm = llm)
-        faithfulness = Faithfulness(max_retries = 3, llm = llm)
-        answer_relevancy = AnswerRelevancy(embeddings = self.embeddings, llm = llm)
-        context_precision = ContextPrecision(max_retries = 3, llm = llm)
-        context_recall = ContextRecall(max_retries = 3, llm = llm)
-        return evaluate(
+        # Evaluate RAG retrieval precision/recall & generation accuracy metrics
+        result = evaluate(
             self.eval_dataset,
             metrics=[
                 # TODO: Add flexibility to choose metrics. Current set is not exhaustive
@@ -189,170 +155,114 @@ class RagEvaluator:
                 context_precision,
                 context_recall,
             ],
-            raise_exceptions=True, 
+            raise_exceptions=False, 
             llm=self.llm,
             embeddings=self.embeddings,
+            is_async=self.is_async,
             run_config=self.run_config
         )
-    
-    def evaluate(self):
-        if not self.rag or not self.rag_fn:
-            logger.error("RAG function is not provided. Skipping...") 
-            raise RagEvaluatorException("RAG function is not provided. Skipping...")
-        # Prepare eval dataset
-        self.prepare_eval_dataset()
+        
+        self.result_df = result.to_pandas()
+        logger.info(f"Eval: Evaluation complete for {self.id}")
 
-        # Evaluate RAG retrieval precision/recall & generation accuracy metrics
+        # Transform "contexts" array to string to save to DB properly
+        self.result_df['contexts'] = self.result_df['contexts'].apply(lambda x: x[0])
+        
+        # Save everything to DB
+        self._db_write()
+
+        # Aggregate other performance metrics into the result
+        logger.info(f"Aggregating other performance metrics for {self.id}...")
         try:
-            result = self._evaluate_with_retry() 
-            self.result_df = result.to_pandas()
-            logger.info(f"Eval: Evaluation complete for {self.id}")
-            # Transform "contexts" array to string to save to DB properly
-            self.result_df['contexts'] = self.result_df['contexts'].apply(lambda x: x[0])
-            # Save everything to DB
-            self._db_write()
-                # Aggregate other performance metrics into the result
-            logger.info(f"Aggregating other performance metrics for {self.id}...")
-            try:
-                result.update(dict(self.result_df[["latency", "tokens", "cost"]].mean()))
-            except Exception as e:
-                logger.error(f"Failed to aggregate performance metrics for {self.id}")
-                nan_perf = {"latency":float("nan"), "tokens":float("nan"), "cost":float("nan")}
-                result.update(nan_perf)
+            result.update(dict(self.result_df[["latency", "tokens", "cost"]].mean()))
         except Exception as e:
-            logger.error(f"All retries for RAG evaluation failed. Final exception: {e}")
-            nan_perf = {
-                "answer_correctness":float("nan"),
-                "faithfulness":float("nan"),
-                "answer_relevancy":float("nan"),
-                "context_precision":float("nan"),
-                "context_recall":float("nan"),
-                "latency":float("nan"), 
-                "tokens":float("nan"), 
-                "cost":float("nan")
-            }
-            result=nan_perf
-            raise RagEvaluatorException(f"All retries for RAG evaluation failed. Final exception: {e}.")
-        
-        # return result
+            logger.error(f"Failed to aggregate performance metrics for {self.id}")
+            nan_perf = {"latency":float("nan"), "tokens":float("nan"), "cost":float("nan")}
+            result.update(nan_perf)
         return result
+        # return result['answer_correctness']
         # return self.result_df['answer_correctness'].mean() # TODO: OR result['answer_correctness'] maybe?
-
     
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=60),
-           retry=retry_if_result(lambda result: result is None),
-           before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
-    def _connect_db_with_retry(self):
-        return sqlite3.connect(DATABASE, check_same_thread=False, autocommit=True)
-    
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=60),
-           retry=retry_if_result(lambda result: result is None),
-           before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
-    def _execute_with_retry(self, query, bind_vars=()):
-        return self.db.execute(query, bind_vars)
-    
-    def _get_db(self):
-        try:
-            db = self._connect_db_with_retry()
-            db.row_factory = sqlite3.Row
-            return db
-        except sqlite3.Error as e:
-            logger.error(f"Database connection failed: {e}")
-            raise RagEvaluatorException("Database connection failed: {e}.")
-        
     def _db_write(self):
-        # db = sqlite3.connect(DATABASE)
-        temp_table_name = f"rag_eval_details_{self.id}"
-        try:
-            self.result_df.to_sql(temp_table_name, self.db, index_label='question_id')
-        except sqlite3.Error as e:
-            logger.error(f"Error saving RAG eval results to DB: {e}")
-            raise RagEvaluatorException(f"Error saving RAG eval results to DB: {e}")
-
-        try:
-            insert_query=f"""
-                INSERT INTO rag_eval_details(
-                    question_id,
-                    eval_id,
-                    run_id,
-                    eval_ts,
-                    question,
-                    answer,
-                    contexts,
-                    ground_truth,
-                    answer_correctness,
-                    faithfulness,
-                    answer_relevancy,
-                    context_precision,
-                    context_recall,
-                    latency,
-                    tokens,
-                    cost
-                ) 
-                SELECT 
-                    question_id,
-                    eval_id,
-                    run_id,
-                    eval_ts,
-                    question,
-                    answer,
-                    contexts,
-                    ground_truth,
-                    answer_correctness,
-                    faithfulness,
-                    answer_relevancy,
-                    context_precision,
-                    context_recall,
-                    latency,
-                    tokens,
-                    cost
-                FROM {temp_table_name}
-            """
-            self._execute_with_retry(insert_query)
-        except sqlite3.Error as e:
-            logger.error(f"Error saving RAG eval results to DB: {e}")
-            raise RagEvaluatorException(f"Error saving RAG eval results to DB: {e}")
-
-        try:
-            summary_query="""
-            INSERT INTO rag_eval_summary (
+        db = sqlite3.connect(DATABASE)
+        self.result_df.to_sql(f"rag_eval_details_{self.id}", db, index_label='question_id')
+        insert_query=f"""
+            INSERT INTO rag_eval_details(
+                question_id,
+                eval_id,
                 run_id,
-                eval_id,
-                rag_config,
-                code_snippet,
-                avg_answer_correctness,
-                avg_faithfulness,
-                avg_answer_relevancy,
-                avg_context_precision,
-                avg_context_recall,
-                avg_tokens,
-                avg_cost_per_query,
-                avg_latency,
-                eval_ts
-            )
+                eval_ts,
+                question,
+                answer,
+                contexts,
+                ground_truth,
+                answer_correctness,
+                faithfulness,
+                answer_relevancy,
+                context_precision,
+                context_recall,
+                latency,
+                tokens,
+                cost
+            ) 
             SELECT 
-                MAX(run_id) as run_id,
+                question_id,
                 eval_id,
-                ? rag_config,
-                ? code_snippet,
-                avg(answer_correctness) as avg_answer_correctness,
-                avg(faithfulness) as avg_faithfulness,
-                avg(answer_relevancy) as avg_answer_relevancy,
-                avg(context_precision) as avg_context_precision,
-                avg(context_recall) as avg_context_recall,
-                avg(tokens) as avg_tokens,
-                avg(cost) as avg_cost_per_query,
-                avg(latency) as avg_latency,
-                MAX(eval_ts) as eval_ts
-            FROM rag_eval_details
-            WHERE eval_id = ?
-            GROUP BY eval_id
-            """
-            self._execute_with_retry(summary_query, (self.rag_config, self.code_snippet, self.id))
-            self._execute_with_retry(f"DROP TABLE IF EXISTS {temp_table_name}")
-            self.db.close()
-        except:
-            logger.error(f"Error saving RAG eval results to DB: {e}")
-            raise RagEvaluatorException(f"Error saving RAG eval results to DB: {e}")
+                run_id,
+                eval_ts,
+                question,
+                answer,
+                contexts,
+                ground_truth,
+                answer_correctness,
+                faithfulness,
+                answer_relevancy,
+                context_precision,
+                context_recall,
+                latency,
+                tokens,
+                cost
+            FROM rag_eval_details_{self.id}
+        """
+        db.execute(insert_query)
+        db.commit() 
+        
+        summary_query=f"""
+        INSERT INTO rag_eval_summary (
+            run_id,
+            eval_id,
+            rag_config,
+            code_snippet,
+            avg_answer_correctness,
+            avg_faithfulness,
+            avg_answer_relevancy,
+            avg_context_precision,
+            avg_context_recall,
+            avg_tokens,
+            avg_cost_per_query,
+            avg_latency,
+            eval_ts
+        )
+        SELECT 
+            MAX(run_id) as run_id,
+            eval_id,
+            ? rag_config,
+            ? code_snippet,
+            avg(answer_correctness) as avg_answer_correctness,
+            avg(faithfulness) as avg_faithfulness,
+            avg(answer_relevancy) as avg_answer_relevancy,
+            avg(context_precision) as avg_context_precision,
+            avg(context_recall) as avg_context_recall,
+            avg(tokens) as avg_tokens,
+            avg(cost) as avg_cost_per_query,
+            avg(latency) as avg_latency,
+            MAX(eval_ts) as eval_ts
+        FROM rag_eval_details
+        WHERE eval_id = {self.id}
+        GROUP BY eval_id
+        """
+        db.execute(summary_query, (self.rag_config, self.code_snippet))
+        db.commit()
+        db.close()
 
         logger.info(f"Eval: Writing to DB completed for {self.id}")
