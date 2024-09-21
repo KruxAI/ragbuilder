@@ -119,7 +119,6 @@ from langchain.docstore.document import Document
 from langchain.prompts import ChatPromptTemplate
 from ragbuilder.graph_utils.graph_loader import load_graph 
 import chromadb
- 
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
 from ragbuilder.langchain_module.loader.loader import *
@@ -580,7 +579,7 @@ class SOTARAGBuilder:
 
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
-            logger.info(f"Generated Code\n{self.router}")
+            logger.debug(f"Generated Code\n{self.router}")
             exec(self.router,globals_dict,locals_dict)
             self.rag = locals_dict['rag_pipeline']()
         except Exception as e:
