@@ -15,15 +15,19 @@ from ragbuilder.analytics import track_event
 
 setup_logging()
 logger = logging.getLogger("ragbuilder")
+SAMPLING_RATIO = float(os.getenv('SAMPLING_RATIO', '0.1'))
+SAMPLING_SIZE_THRESHOLD = int(os.getenv('SAMPLING_SIZE_THRESHOLD', '750_000'))
+SAMPLING_FILE_SIZE_THRESHOLD = int(os.getenv('SAMPLING_FILE_SIZE_THRESHOLD', '500_000'))
+
 
 class DataSampler:
     def __init__(
             self, 
             data_source: str, 
             enable_sampling: bool = True, 
-            sample_size_threshold: int =  750_000, #1_000_000_000, 
-            sample_ratio: float = 0.1, 
-            file_size_threshold: int = 500_000 #1_000_000
+            sample_size_threshold: int =  SAMPLING_SIZE_THRESHOLD,
+            sample_ratio: float = SAMPLING_RATIO, 
+            file_size_threshold: int = SAMPLING_FILE_SIZE_THRESHOLD
     ):
         self.data_source = data_source
         self.enable_sampling = enable_sampling
