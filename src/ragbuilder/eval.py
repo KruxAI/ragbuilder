@@ -170,15 +170,6 @@ class RagEvaluator:
         
         # Save everything to DB
         self._db_write()
-
-        # Aggregate other performance metrics into the result
-        logger.info(f"Aggregating other performance metrics for {self.id}...")
-        try:
-            result.update(dict(self.result_df[["latency", "tokens", "cost"]].mean()))
-        except Exception as e:
-            logger.error(f"Failed to aggregate performance metrics for {self.id}")
-            nan_perf = {"latency":float("nan"), "tokens":float("nan"), "cost":float("nan")}
-            result.update(nan_perf)
         return result
         # return result['answer_correctness']
         # return self.result_df['answer_correctness'].mean() # TODO: OR result['answer_correctness'] maybe?
