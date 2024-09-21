@@ -57,7 +57,9 @@ def rag_pipeline():
                 page_content=r+' '+chunk_content,
                 id=i)
             document_array.append(document)
-        c=Chroma.from_documents(documents=document_array, embedding=embedding, collection_name='testindex-ragbuilder-1726858923652', client_settings=chromadb.config.Settings(allow_reset=True))
+        timestamp = str(int(time.time()))
+        index_name = "testindex-ragbuilder-" + timestamp
+        c=Chroma.from_documents(documents=document_array, embedding=embedding, collection_name=index_name, client_settings=chromadb.config.Settings(allow_reset=True))
         retrievers=[]
         retriever=c.as_retriever(search_type='similarity', search_kwargs={'k': 100})
         retrievers.append(retriever)
