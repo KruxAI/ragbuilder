@@ -21,13 +21,13 @@ from langchain_ollama import ChatOllama
 def rag_pipeline():
     try:
         def format_docs(docs):
-            return "\n".join(doc.page_content for doc in docs) 
+            return "\\n".join(doc.page_content for doc in docs) 
         {llm_class}
         
         {loader_class}
         
         {embedding_class}
-               splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
         splits=splitter.split_documents(docs)
         document_array=[]
         for i in range(len(splits)):
