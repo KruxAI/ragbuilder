@@ -217,7 +217,8 @@ def rag_builder_bayes_optmization(**kwargs):
             llm = get_model_obj('llm', eval_llm), 
             embeddings = get_model_obj('embedding', eval_embedding), 
             #TODO: Fetch Run Config settings from advanced settings from front-end
-            run_config = run_config
+            run_config = run_config,
+            is_async=RUN_CONFIG_IS_ASYNC
             )
         result=rageval.evaluate()
         logger.debug(f'progress_state={progress_state.get_progress()}')
@@ -362,7 +363,8 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             llm = llm, 
             embeddings = embeddings, 
             #TODO: Fetch Run Config settings from advanced settings from front-end
-            run_config = run_config
+            run_config = run_config,
+            is_async=RUN_CONFIG_IS_ASYNC
             )
         result=rageval.evaluate()
         logger.debug(f'progress_state={progress_state.get_progress()}')
@@ -411,7 +413,8 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                     test_ds, 
                     llm = llm, 
                     embeddings = embeddings, 
-                    run_config=run_config
+                    run_config=run_config,
+                    is_async=RUN_CONFIG_IS_ASYNC
                 )
                 ## x=input("Continue? ")
                 ## if x.lower() != 'y':
@@ -525,7 +528,8 @@ def rag_builder(**kwargs):
                     llm = get_model_obj('llm', eval_llm), 
                     embeddings = get_model_obj('embedding', eval_embedding), 
                     #TODO: Fetch Run Config settings from advanced settings from front-end
-                    run_config = run_config
+                    run_config = run_config,
+                    is_async=RUN_CONFIG_IS_ASYNC
                     )
                 result=rageval.evaluate()
                 logger.debug(f'progress_state={progress_state.get_progress()}')
@@ -547,7 +551,8 @@ def rag_builder(**kwargs):
                     llm = get_model_obj('llm', eval_llm), 
                     embeddings = get_model_obj('embedding', eval_embedding), 
                     #TODO: Fetch Run Config settings from advanced settings from front-end
-                    run_config = run_config
+                    run_config = run_config,
+                    is_async=RUN_CONFIG_IS_ASYNC
                     )
                 result=rageval.evaluate()
     return result
@@ -695,7 +700,8 @@ def byor_ragbuilder(test_ds,eval_llm,eval_embedding):
                     llm = get_model_obj('llm', eval_llm), 
                     embeddings = get_model_obj('embedding', eval_embedding), 
                     #TODO: Fetch Run Config settings from advanced settings from front-end
-                    run_config = run_config
+                    run_config = run_config,
+                    is_async=RUN_CONFIG_IS_ASYNC
                     )
                 result=rageval.evaluate()
                 logger.debug(f'progress_state={progress_state.get_progress()}')
