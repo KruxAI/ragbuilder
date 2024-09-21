@@ -36,6 +36,7 @@ RUN_CONFIG_TIMEOUT = int(os.getenv('RUN_CONFIG_TIMEOUT', '240'))
 RUN_CONFIG_MAX_WORKERS = int(os.getenv('RUN_CONFIG_MAX_WORKERS', '16'))
 RUN_CONFIG_MAX_WAIT = int(os.getenv('RUN_CONFIG_MAX_WAIT', '180'))
 RUN_CONFIG_MAX_RETRIES = int(os.getenv('RUN_CONFIG_MAX_RETRIES', '10'))
+RUN_CONFIG_IS_ASYNC = os.getenv('RUN_CONFIG_IS_ASYNC', 'true').lower() == 'true'
 BAYESIAN_RUNS=50
 DATABASE = 'eval.db' #TODO: Define this in common.py
 # Imports needed for Executing the Generated Code
@@ -256,7 +257,8 @@ def rag_builder_bayes_optmization(**kwargs):
                 test_ds, 
                 llm = get_model_obj('llm', eval_llm), 
                 embeddings = get_model_obj('embedding', eval_embedding), 
-                run_config=run_config
+                run_config=run_config,
+                is_async=RUN_CONFIG_IS_ASYNC
             )
             # x=input("Continue? ")
             # if x.lower() != 'y':
