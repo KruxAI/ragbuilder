@@ -27,7 +27,7 @@ def rag_pipeline():
         {loader_class}
         
         {embedding_class}
-        splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1600, chunk_overlap=200)
         splits=splitter.split_documents(docs)
         document_array=[]
         for i in range(len(splits)):
