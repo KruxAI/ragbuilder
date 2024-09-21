@@ -67,7 +67,7 @@ from langchain.retrievers import (
     SelfQueryRetriever,
     TimeWeightedVectorStoreRetriever
 )
-
+from langchain_core.documents import Document
 from langchain.retrievers.document_compressors import *
 from langchain_community.document_transformers import *
 from langchain.retrievers.multi_query import *
@@ -118,7 +118,7 @@ from langchain.pydantic_v1 import Field, BaseModel
 from langchain.docstore.document import Document
 from langchain.prompts import ChatPromptTemplate
 from ragbuilder.graph_utils.graph_loader import load_graph 
-
+import chromadb
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
 from ragbuilder.langchain_module.loader.loader import *
