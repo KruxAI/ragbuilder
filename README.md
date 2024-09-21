@@ -69,16 +69,16 @@ This will start the Ragbuilder Uvicorn app and open the browser. If the browser 
 
 ### Option 2: Using Prebuilt Docker Image
 #### Using Docker Compose
-1. Pull the docker-compose.yml file. This will spin up RAGBuilder and neo4J database needed for GraphRAG.
+1. Pull the repo. This will spin up RAGBuilder and neo4J database needed for GraphRAG.
 
 ```
-curl -o docker-compose.yml  https://raw.githubusercontent.com/KruxAI/ragbuilder/main/docker-compose.yml
+git clone https://github.com/KruxAI/ragbuilder.git
 ```
 
-2. Pull the .env-Sample file to .env File
+2. Copy the .env-Sample file to .env File
 
 ```
-curl -o .env https://raw.githubusercontent.com/KruxAI/ragbuilder/main/.env-Sample
+cp .env-Sample .env
 ```
 
 3. Edit the .env file to add the necessary keys
