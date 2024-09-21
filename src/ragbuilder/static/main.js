@@ -1,3 +1,8 @@
+
+let progressInterval;
+let smoothInterval;
+let currentRunId = null;
+
 function validateSourceData() {
     const sourceData = $('#sourceData').val();
 
@@ -12,9 +17,11 @@ function validateSourceData() {
                 console.log('Source data is valid.');
                 sourceDataError.innerHTML = "";
                 $('#nextStep1').prop('disabled', false);
+                updateDataSizeInfo(response.size, response.exceeds_threshold);
             } else {
                 sourceDataError.innerHTML = "<span style='color: red;'>"+"Invalid source data. Please check the URL or file/ directory path.</span>";
                 $('#nextStep1').prop('disabled', true);
+                $('#dataSizeInfo').hide();
             }
         },
         error: function (error) {
@@ -22,6 +29,24 @@ function validateSourceData() {
         }
     });
 }
+
+function updateDataSizeInfo(size, exceedsThreshold) {
+    const sizeInMB = size / (1024 * 1024);
+    const sizeDisplay = sizeInMB >= 1024 ? `${(sizeInMB / 1024).toFixed(2)} GB` : `${sizeInMB.toFixed(2)} MB`;
+    
+    let infoText = '';
+    if (exceedsThreshold) {
+        infoText = `Your dataset is relatively large (${sizeDisplay}). RAGBuilder can sample your data to provide quicker initial results. You can always run the full analysis later if you're satisfied with the initial results.`;
+        $('#useSampling').prop('checked', true);
+    } else {
+        infoText = `Your dataset size is ${sizeDisplay}. RAGBuilder can process this dataset without sampling.`;
+        $('#useSampling').prop('checked', false);
+    }
+
+    $('#dataSizeInfo').text(infoText).show();
+    $('#samplingOption').show();
+}
+
 
 function formatModelSelection(provider, model) {
     return `${provider}:${model}`;
@@ -69,8 +94,18 @@ function loadTemplates() {
     });
 }
 
-let progressInterval;
-let smoothInterval;
+function fetch_current_run_id() {
+    $.ajax({
+        type: "GET",
+        url: "/get_current_run_id",
+        success: function(response) {
+            currentRunId = response.run_id;
+        },
+        error: function(error) {
+            console.error("Failed to fetch current run ID:", error);
+        }
+    });
+}
 
 $(document).ready(function () {
     // Show modal to capture user inputs and send it to backend.
@@ -88,6 +123,14 @@ $(document).ready(function () {
     // Check if source data path is valid
     $('#sourceData').on('blur', function() {
         validateSourceData();
+    });
+
+    $('#useSampling').change(function() {
+        if ($(this).is(':checked')) {
+            $('#samplingInfo').show();
+        } else {
+            $('#samplingInfo').hide();
+        }
     });
 
     document.querySelectorAll('[data-mdb-toggle="collapse"]').forEach(element => {
@@ -257,8 +300,10 @@ $(document).ready(function () {
     $('input[name="optimization"]').change(function () {
         if ($('#bayesianOptimization').is(':checked')) {
             $('#numRunsContainer').show();
+            $('#nJobsContainer').show();
         } else {
             $('#numRunsContainer').hide();
+            $('#nJobsContainer').hide();
         }
     });
 
@@ -309,15 +354,16 @@ $(document).ready(function () {
 
     $('#nextStep1').click(function () {
         const sourceData = $('#sourceData').val();
+        const useSampling = $('#useSampling').is(':checked');
         $.ajax({
             type: "POST",
             url: "/check_test_data",
             contentType: "application/json",
-            data: JSON.stringify({ sourceData: sourceData }),
+            data: JSON.stringify({ sourceData: sourceData, useSampling: useSampling }),
             success: function (response) {
                 if (response.exists) {
                     existingSynthDataPath = response.path;
-                    dataExists=`<p><strong>Test data exists for the provided source dataset’s hash.</strong><br>Path: ${response.path}</p>`
+                    dataExists=`<p><strong>Existing synthetic test data found for the provided source dataset.</strong><br>Path: ${response.path}</p>`
                     $('#hashLookupResult').html(`${dataExists}`);
                     $('#foundExistingSynthData').show();
                     $('#useExistingSynthData').prop('checked', true);
@@ -483,6 +529,8 @@ $(document).ready(function () {
             <div class="row row-cols-2">
                 <div class="col-md-4"><strong>Description:</strong></div><div class="col-md-8">${$('#description').val()}</div>
                 <div class="col-md-4"><strong>Source data:</strong></div><div class="col-md-8">${$('#sourceData').val()}</div>
+                <div class="col-md-4"><strong>Use data sampling:</strong></div>
+                <div class="col-md-8">${$('#useSampling').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
                 <div class="col-md-4"><strong>Use Pre-defined RAG Templates:</strong></div>
                 <div class="col-md-8">${$('#compareTemplates').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
                 <div class="col-md-4"><strong>Create Custom RAG Configurations:</strong></div>
@@ -547,6 +595,7 @@ $(document).ready(function () {
         const projectData = {
             description: $('#description').val(),
             sourceData: $('#sourceData').val(),
+            useSampling: $('#useSampling').is(':checked'),
             compareTemplates: $('#compareTemplates').is(':checked'),
             includeNonTemplated: $('#includeNonTemplated').is(':checked'),
             selectedTemplates: [],
@@ -645,12 +694,14 @@ $(document).ready(function () {
 
         if (projectData.optimization === "bayesianOptimization") {
             projectData.numRuns = $('#numRuns').val();
+            projectData.nJobs = $('#nJobs').val();
         }
     
         console.log(JSON.stringify(projectData));
 
         $('#step4').hide();
         $('#progressSection').show();
+        $('#viewResultsBtn').hide();
 
         fetchLogUpdates();
         fetchProgressUpdates();
@@ -694,8 +745,25 @@ $(document).ready(function () {
         });
     });
 
+    $('#viewResultsBtn').click(function() {
+        if (currentRunId) {
+            window.open(`/summary/${currentRunId}`, '_blank');
+        } else {
+            console.error('No run ID available');
+            alert('Unable to view results: No active run ID found.');
+        }
+    });
+
     let lastKnownRun = -1;
     let lastUpdateTime = Date.now();
+
+    function checkFirstEvalComplete(response) {
+        if (response.first_eval_complete && !$('#viewResultsBtn').is(':visible')) {
+            fetch_current_run_id();
+            $('#viewResultsBtn').show();
+            $('#viewResultsText').text('First evaluation complete. You can now view current results.');
+        }
+    }
 
     function fetchProgressUpdates() {
         const progressInterval = setInterval(function () {
@@ -703,13 +771,15 @@ $(document).ready(function () {
                 type: "GET",
                 url: "/progress",
                 success: function (response) {
-                    const { current_run, total_runs, synth_data_gen_in_progress } = response;
+                    const { current_run, total_runs, synth_data_gen_in_progress, first_eval_complete } = response;
     
                     if (synth_data_gen_in_progress === 1) {
                         handleSynthDataGeneration();
                     } else {
                         handleNormalProgress(current_run, total_runs);
                     }
+
+                    checkFirstEvalComplete(response);
     
                     if (current_run >= total_runs && synth_data_gen_in_progress === 0) {
                         clearInterval(progressInterval);
@@ -719,7 +789,7 @@ $(document).ready(function () {
                     console.error(error);
                 }
             });
-        }, 20000); // Update every 20 seconds
+        }, 5000); // Update every 5 seconds
     }
 
     function handleSynthDataGeneration() {
@@ -810,6 +880,3 @@ $(document).ready(function () {
         }, 2000); // Update every 2 seconds
     }
 });
-
-
-

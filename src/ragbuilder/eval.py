@@ -23,6 +23,7 @@
 import pandas as pd
 import time
 import sqlite3
+import random
 from datetime import datetime, timezone
 from datasets import Dataset
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
@@ -64,6 +65,8 @@ OPENAI_PRICING = {
     },
 }
 
+class RagEvaluatorException(Exception):
+    pass
 
 class RagEvaluator:
     def __init__(
@@ -77,7 +80,7 @@ class RagEvaluator:
             is_async=False,
             model_name=None
     ):
-        self.id = int(time.time())
+        self.id = int(time.time()*1000+random.randint(1, 1000))
         self.rag = rag
         self.rag_fn = rag.rag
         self.code_snippet = rag.router
@@ -104,9 +107,18 @@ class RagEvaluator:
                     try:
                         response = dict(self.rag_fn.invoke(row["question"]))
                         tokens=cb.total_tokens
-                        cost=cb.total_cost
+                        prompt_tokens=cb.prompt_tokens
+                        completion_tokens=cb.completion_tokens
+                        cost=cb.total_cost*1000
+                        if cost == 0:
+                            model= ':'.join(self.rag.retrieval_model.split(":")[1:])
+                            if model in OPENAI_PRICING:
+                                cost = OPENAI_PRICING[model]["input"] * prompt_tokens + \
+                                    OPENAI_PRICING[model]["output"] * completion_tokens
+                            else:
+                                logger.warning(f"Cannot calculate cost metric for {model}. Cost metric will show up as 0.")
                     except Exception as e:
-                        logger.error(f"Error invoking RAG for question: {row['question']}. \ERROR: {e}")
+                        logger.error(f"Error invoking RAG for question: {row['question']}. ERROR: {e}")
                         response = {"answer":"Failed to get answer", "context":"Failed to get context"}
                         tokens=cost=0
                 latency_results.append(1000000000*(time.perf_counter() - start))
@@ -159,8 +171,8 @@ class RagEvaluator:
         
         # Save everything to DB
         self._db_write()
-        # return result
-        return result['answer_correctness']
+        return result
+        # return result['answer_correctness']
         # return self.result_df['answer_correctness'].mean() # TODO: OR result['answer_correctness'] maybe?
     
     def _db_write(self):

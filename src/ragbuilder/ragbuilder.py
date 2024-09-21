@@ -18,14 +18,19 @@ import hashlib
 import logging
 import requests
 import uvicorn
+import warnings
 from pathlib import Path
 from urllib.parse import urlparse
-from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization, get_model_obj
+from ragbuilder.executor import rag_builder, \
+    rag_builder_bayes_optmization, \
+    rag_builder_bayes_optimization_optuna, \
+    get_model_obj
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
 from ragbuilder.rag_templates.top_n_templates import get_templates
 from ragbuilder.analytics import track_event
+from ragbuilder.sampler import DataSampler
 from ragbuilder.evaldb_dmls import *
 
 # fastapi_setup_logging(logger)
@@ -40,10 +45,13 @@ url = "http://localhost:8005"
 
 app = FastAPI()
 DATABASE = 'eval.db'
-BAYES_OPT=1
+BAYES_OPT = 1
+CURRENT_RUN_ID = 0
 
 templates = Jinja2Templates(directory=Path(BASE_DIR, 'templates'))
 app.mount("/static", StaticFiles(directory=Path(BASE_DIR, 'static')), name="static")
+
+warnings.filterwarnings(action="ignore", message=r"datetime.datetime.utcnow")
 
 def basename(path):
     return os.path.basename(path)
@@ -197,43 +205,56 @@ def get_log_updates():
 def get_progress():
     return progress_state.get_progress()
 
+@app.get("/get_current_run_id")
+def get_current_run_id():
+    if CURRENT_RUN_ID:
+        return {"run_id": CURRENT_RUN_ID}
+    else:
+        raise HTTPException(status_code=404, detail="No active run ID found")
+
 class SourceDataCheck(BaseModel):
     sourceData: str
+    useSampling: Optional[bool] = Field(None)
 
-def get_hash(source_data):
+def get_hash(source_data, use_sampling=False):
     src_type=l.classify_path(source_data)
+    prefix = "sampled_" if use_sampling else ""
     
     if src_type == "directory":
-        return _get_hash_dir(source_data)
+        return _get_hash_dir(source_data, prefix)
     elif src_type == "url":
-        return _get_hash_url(source_data)
+        return _get_hash_url(source_data, prefix)
     elif src_type == "file":
-        return _get_hash_file(source_data)
+        return _get_hash_file(source_data, prefix)
     else:
         logger.error("Invalid input path type {source_data}")
         return None
 
-def _get_hash_file(source_data):
-    return hashlib.md5(open(source_data, "rb").read()).hexdigest()
-    # return hashlib.md5(source_data.encode()).hexdigest()
+def _get_hash_file(source_data, prefix=""):
+    md5_hash = hashlib.md5(prefix.encode())
+    with open(source_data, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            md5_hash.update(chunk)
+    return md5_hash.hexdigest()
 
-def _get_hash_url(url):
+def _get_hash_url(url, prefix=""):
     try:
         # Fetch the content of the URL
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
         response = requests.get(url, headers=headers, allow_redirects=True)
         response.raise_for_status()  # Check for HTTP errors
-        return hashlib.md5(response.content).hexdigest()
-    
+        md5_hash = hashlib.md5(prefix.encode())
+        md5_hash.update(response.content)
+        return md5_hash.hexdigest()
     except requests.RequestException as e:
         logger.error(f"Error fetching URL: {e}")
         return None
     
-def _get_hash_dir(dir_path):
+def _get_hash_dir(dir_path, prefix=""):
     if not os.path.isdir(dir_path):
         logger.error(f"{dir_path} is not a valid directory.")
         return None
-    md5_hash = hashlib.md5()
+    md5_hash = hashlib.md5(prefix.encode())
     try:
         for root, dirs, files in os.walk(dir_path):
             for file_name in sorted(files):
@@ -249,7 +270,8 @@ def _get_hash_dir(dir_path):
 @app.post("/check_test_data")
 async def check_test_data(data: SourceDataCheck, hashmap: dict = Depends(get_hashmap)):
     source_data = data.sourceData
-    hash_value = get_hash(source_data)
+    use_sampling = data.useSampling
+    hash_value = get_hash(source_data, use_sampling)
     if hash_value in hashmap:
         return {"exists": True, "path": hashmap[hash_value]}
     else:
@@ -272,8 +294,26 @@ def _is_valid_source_data(source_data):
 
 @app.post("/check_source_data")
 async def check_source_data(data: SourceDataCheck):
-    return {"valid": _is_valid_source_data(data.sourceData)}
-
+    try:
+        is_valid_source_data = _is_valid_source_data(data.sourceData)
+        logger.info(f"Source data {data.sourceData} validity: {is_valid_source_data}")
+        if is_valid_source_data:
+            logger.info(f"Estimating source data size...")
+            sampler = DataSampler(data.sourceData)
+            size = sampler.estimate_data_size()
+            exceeds_threshold = sampler.need_sampling()
+            logger.info(f"Source data size: {size}, exceeds_threshold: {exceeds_threshold}")
+            return {
+                "valid": is_valid_source_data,
+                "size": size,
+                "exceeds_threshold": exceeds_threshold
+            }
+        else:
+            return {"valid": is_valid_source_data}
+    except Exception as e:
+        logger.error(f"Error checking source data: {e}")
+        return {"valid": False}
+    
 @app.get("/templates")
 def get_rag_templates():
     templates = get_templates()
@@ -282,6 +322,7 @@ def get_rag_templates():
 class ProjectData(BaseModel):
     description: str
     sourceData: str
+    useSampling: bool
     compareTemplates: bool
     includeNonTemplated: bool
     selectedTemplates: List[str] = Field(default_factory=list)
@@ -318,6 +359,7 @@ class ProjectData(BaseModel):
     generatorLLM: Optional[str] = Field(default=None)
     generatorEmbedding: Optional[str] = Field(default=None)
     numRuns: Optional[str] = Field(default=None)
+    nJobs: Optional[int] = Field(default=None)
 
 @app.post("/rbuilder")
 def rbuilder_route(project_data: ProjectData, db: sqlite3.Connection = Depends(get_db)):
@@ -375,6 +417,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     # Instead of get_db(), use the db parameter
     # Replace jsonify with direct dictionary returns
     # ...
+    global CURRENT_RUN_ID
     enable_analytics = os.getenv('ENABLE_ANALYTICS', 'True').lower() == 'true'
     logger.info(f"enable_analytics = {enable_analytics}")
     if enable_analytics:
@@ -382,14 +425,12 @@ def parse_config(config: dict, db: sqlite3.Connection):
     logger.info(f"Initiating parsing config: {config}")
     disabled_opts=_get_disabled_opts(config)
     logger.info(f"Disabled options: {disabled_opts}")
-    run_id=int(time.time())
+    CURRENT_RUN_ID=int(time.time())
     desc=config["description"]
     compare_templates=config["compareTemplates"]
     include_granular_combos=config["includeNonTemplated"]
     selected_templates = config.get('selectedTemplates', [])
     # gen_synthetic_data=config["generateSyntheticData"]
-    src_path=config.get("sourceData", None)
-    src_data={'source':'url','input_path': os.path.expanduser(src_path)}
     syntheticDataGenerationOpts=config.get("syntheticDataGeneration", None)
     existingSynthDataPath=config.get("existingSynthDataPath", None)
     vectorDB=config.get("vectorDB", None)
@@ -412,6 +453,12 @@ def parse_config(config: dict, db: sqlite3.Connection):
     other_llm = [llm for llm in [hf_llm, groq_llm, azureoai_llm, googlevertexai_llm, ollama_llm] if llm is not None and llm != ""]
     sota_embedding = config.get('sotaEmbeddingModel')
     sota_llm = config.get('sotaLLMModel')
+    src_full_path = config.get("sourceData", None)
+    use_sampling = config.get("useSampling", False)
+
+    data_sampler = DataSampler(os.path.expanduser(src_full_path), enable_sampling=use_sampling)
+    src_path = data_sampler.sample_data()
+    src_data={'source':'url','input_path': src_path}
     
     if existingSynthDataPath:
         f_name=existingSynthDataPath
@@ -427,7 +474,6 @@ def parse_config(config: dict, db: sqlite3.Connection):
         generator_llm=get_model_obj('llm', config["syntheticDataGeneration"]["generatorLLM"], temperature = 0.2)
         embedding_model=get_model_obj('embedding', config["syntheticDataGeneration"]["generatorEmbedding"])
         # TODO: Add Distribution
-
         try:
             progress_state.toggle_synth_data_gen_progress(1)
             f_name=generate_data.generate_data(
@@ -448,25 +494,22 @@ def parse_config(config: dict, db: sqlite3.Connection):
             logger.error(f'Synthetic test data generation failed: {e}')
             raise
         # Insert generated into hashmap 
-        insert_hashmap(get_hash(src_path), f_name, db)
-        # g._hashmap=None # To refresh hashmap
+        insert_hashmap(get_hash(src_full_path, use_sampling), f_name, db)
         progress_state.toggle_synth_data_gen_progress(0)
-        logger.info(f"Synthetic test data generation completed: {f_name}")
-
-        
+        logger.info(f"Synthetic test data generation completed: {f_name}") 
     else:
         f_name=config["testDataPath"]
         logger.info(f"User provided test data: {f_name}")
 
     run_details=(
-        run_id, 
+        CURRENT_RUN_ID, 
         'Running',
         desc, 
         src_path,
         LOG_FILENAME,
         json.dumps(config), 
         json.dumps(disabled_opts), 
-        run_id
+        CURRENT_RUN_ID
     )
     _db_write(run_details, db)
     # return json.dumps({'status':'success', 'f_name': f_name})
@@ -474,8 +517,9 @@ def parse_config(config: dict, db: sqlite3.Connection):
         if optimization=='bayesianOptimization':
             logger.info(f"Using Bayesian optimization to find optimal RAG configs...")
             num_runs = int(config.get("numRuns", 50))
-            res = rag_builder_bayes_optmization(
-                run_id=run_id, 
+            n_jobs = int(config.get("nJobs", 1))
+            res = rag_builder_bayes_optimization_optuna(
+                run_id=CURRENT_RUN_ID, 
                 compare_templates=compare_templates, 
                 src_data=src_data, 
                 test_data=f_name,
@@ -487,6 +531,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
                 other_embedding=other_embedding,
                 other_llm=other_llm,
                 num_runs=num_runs,
+                n_jobs=n_jobs,
                 eval_framework=eval_framework,
                 eval_embedding=eval_embedding,
                 eval_llm=eval_llm,
@@ -497,7 +542,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
         elif optimization=='fullParameterSearch' :
             logger.info(f"Spawning RAG configs by invoking rag_builder...")
             res = rag_builder(
-                run_id=run_id, 
+                run_id=CURRENT_RUN_ID, 
                 compare_templates=compare_templates, 
                 src_data=src_data, 
                 test_data=f_name,
@@ -524,7 +569,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
         }, 400
     except Exception as e:
         logger.error(f'Failed to complete creation and evaluation of RAG configs: {e}')
-        _update_status(run_id, 'Failed', db)
+        _update_status(CURRENT_RUN_ID, 'Failed', db)
         db.close()
         return {
             "status": "error",
@@ -532,13 +577,13 @@ def parse_config(config: dict, db: sqlite3.Connection):
         }, 400
     else:
         logger.info(f"Processing finished successfully")
-        _update_status(run_id, 'Success', db)
+        _update_status(CURRENT_RUN_ID, 'Success', db)
         db.close()
         track_event('1')
         return {
             "status": "success",
             "message": "Completed successfully.",
-            "run_id": run_id
+            "run_id": CURRENT_RUN_ID
         }
     # return jsonify({'status':'success', 'f_name': f_name})
 
