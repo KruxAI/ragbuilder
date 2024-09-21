@@ -1,5 +1,6 @@
 from ragbuilder.langchain_module.common import setup_logging
 import logging
+import chromadb
 from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS, SingleStoreDB
 from langchain_postgres.vectorstores import PGVector
@@ -8,6 +9,7 @@ from pinecone import Pinecone, ServerlessSpec
 from langchain_milvus import Milvus
 import uuid
 import time
+import random
 from getpass import getpass
 setup_logging()
 logger = logging.getLogger("ragbuilder")
@@ -28,13 +30,15 @@ def getVectorDB(db_type,embedding_model):
     - ValueError: If db_type is not supported.
     """
     logger.debug(f"getVectorDB:{db_type}{embedding_model}")
-    timestamp = str(int(time.time()))
+    timestamp = str(int(time.time()*1000+random.randint(1, 1000)))
     index_name = "testindex-ragbuilder-" + timestamp
     if db_type == "chromaDB":
         logger.info("Chroma DB Loaded")
         logger.info(f"Chroma DB Index Created {index_name}")
-        code_string= f"""c=Chroma.from_documents(documents=splits, embedding=embedding, collection_name='{index_name}',)"""
-        import_string = f"""from langchain_chroma import Chroma"""
+        code_string= f"""c=Chroma.from_documents(documents=splits, embedding=embedding, collection_name='{index_name}', client_settings=chromadb.config.Settings(allow_reset=True))"""
+        import_string = f"""from langchain_chroma import Chroma
+import chromadb"""
+        print({'code_string':code_string,'import_string':import_string})
     elif db_type == "faissDB":
         logger.info("FAISS DB Loaded")
         code_string= f"""c=FAISS.from_documents(documents=splits, embedding=embedding)"""

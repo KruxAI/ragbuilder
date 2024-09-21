@@ -16,6 +16,7 @@ class ProgressState:
             cls._instance.progress_info = {
                 'current_run': 0,
                 'total_runs': 1,
+                'first_eval_complete': False,
                 'synth_data_gen_in_progress': 0
             }
         return cls._instance
@@ -32,9 +33,13 @@ class ProgressState:
     def increment_progress(self):
         self.progress_info['current_run'] += 1
 
+    def set_first_eval_complete(self):
+        self.progress_info['first_eval_complete'] = True
+
     def reset(self):
         self.progress_info['current_run'] = 0
         self.progress_info['total_runs'] = 1
+        self.progress_info['first_eval_complete'] = False
 
 progress_state = ProgressState()
 
