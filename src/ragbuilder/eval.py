@@ -23,6 +23,7 @@
 import pandas as pd
 import time
 import sqlite3
+import random
 from datetime import datetime, timezone
 from datasets import Dataset
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
@@ -79,7 +80,7 @@ class RagEvaluator:
             is_async=False,
             model_name=None
     ):
-        self.id = int(time.time())
+        self.id = int(time.time()*1000+random.randint(1, 1000))
         self.rag = rag
         self.rag_fn = rag.rag
         self.code_snippet = rag.router
