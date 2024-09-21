@@ -61,7 +61,7 @@ from langchain.retrievers import (
     SelfQueryRetriever,
     TimeWeightedVectorStoreRetriever
 )
-
+from langchain_core.documents import Document
 from langchain.retrievers.document_compressors import *
 from langchain_community.document_transformers import *
 from langchain.retrievers.multi_query import *
@@ -112,7 +112,7 @@ from langchain.pydantic_v1 import Field, BaseModel
 from langchain.docstore.document import Document
 from langchain.prompts import ChatPromptTemplate
 from ragbuilder.graph_utils.graph_loader import load_graph 
-
+import chromadb
  
 # import local modules
 from ragbuilder.langchain_module.retriever.retriever import *
@@ -390,7 +390,7 @@ class SOTARAGBuilder:
 
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
-            logger.debug(f"Generated Code\n{self.router}")
+            logger.info(f"Generated Code\n{self.router}")
             exec(self.router,globals_dict,locals_dict)
             self.rag = locals_dict['rag_pipeline']()
         except Exception as e:
@@ -446,7 +446,7 @@ class RagBuilder:
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
         #execution os string
-            logger.debug(f"Generated Code\n{self.router}")
+            logger.info(f"Generated Code\n{self.router}")
             exec(self.router,globals_dict,locals_dict)
 
             #old rag func hooked to eval

@@ -1,5 +1,10 @@
 
 top_n_templates = {
+    'contextul_retriever':{
+        'name': 'Contextul Retriever',
+        'description': 'contextual retrieval capability enhances AI models by enabling them to access relevant external knowledge, improving response quality and reliability',
+        'module': 'contextul_retriever'
+    },
     'graph_rag': {
         'name': 'Graph RAG - Graph Retriever',
         'description': 'Graph RAG (Graph Retriever only). Make sure NEO4J_LOAD=true in .env file if you are loading/reloading the data in the Graph DB',
