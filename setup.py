@@ -89,7 +89,8 @@ setup(
         'psycopg[binary,pool]',
         'langchain_milvus',
         'langsmith',
-        'optuna'
+        'optuna',
+        'tenacity==8.4.2'
         # 'llama-index',
         # 'llama-index-vector-stores-chroma',
         # 'llama-index-readers-web',
