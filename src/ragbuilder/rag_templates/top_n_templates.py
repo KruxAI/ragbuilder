@@ -2,7 +2,7 @@
 top_n_templates = {
     'contextul_retriever':{
         'name': 'Contextul Retriever',
-        'description': 'contextual retrieval capability enhances AI models by enabling them to access relevant external knowledge, improving response quality and reliability',
+        'description': 'Contextual retrieval capability enhances AI models by enabling them to access relevant external knowledge, improving response quality and reliability. LLM call is made for each chunk to generate additional relevant context',
         'module': 'contextul_retriever'
     },
     'graph_rag': {
