@@ -563,7 +563,7 @@ class SOTARAGBuilder:
         self.config = val
         self.run_id = val['run_id']
         self.loader_kwargs = val['loader_kwargs']
-        self.llm = val['llm']
+        self.retrieval_model = val['llm']
         self.embedding_kwargs = val['embedding_kwargs']
         logger.debug(f"SOTA template RAGbuilder Invoked {val}")
         sota_module = importlib.import_module('ragbuilder.rag_templates.sota.'+val['module'])
@@ -571,7 +571,7 @@ class SOTARAGBuilder:
         self.router=rag.sota_code_mod(
             code=sota_module.code, 
             input_path=self.loader_kwargs['input_path'],
-            retrieval_model=self.llm,
+            retrieval_model=self.retrieval_model,
             embedding_kwargs=self.embedding_kwargs
         )
         locals_dict={}
