@@ -459,11 +459,12 @@ def parse_config(config: dict, db: sqlite3.Connection):
     data_sampler = DataSampler(os.path.expanduser(src_full_path), enable_sampling=use_sampling)
     #Sample data and return sample path or orginal path
     src_path = data_sampler.sample_data()
-    if data_processors is not None
+    if data_processors is not None:
         # Call DataProcessor to process data
         data_processor=DataProcessor(src_path, data_processors)
         # Process data and return process file path or orginal path
-        src_path=processor.processed_data
+        src_path=data_processor.processed_data
+        
     src_data={'source':'url','input_path': src_path}
     
     if existingSynthDataPath:
