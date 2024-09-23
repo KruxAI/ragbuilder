@@ -21,16 +21,14 @@ import uvicorn
 import warnings
 from pathlib import Path
 from urllib.parse import urlparse
-from ragbuilder.executor import rag_builder, \
-    rag_builder_bayes_optmization, \
-    rag_builder_bayes_optimization_optuna, \
-    get_model_obj
+from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization, rag_builder_bayes_optimization_optuna, get_model_obj
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
 from ragbuilder.rag_templates.top_n_templates import get_templates
 from ragbuilder.analytics import track_event
 from ragbuilder.sampler import DataSampler
+from ragbuilder.data_processor import DataProcessor
 from ragbuilder.evaldb_dmls import *
 
 # fastapi_setup_logging(logger)
@@ -455,9 +453,17 @@ def parse_config(config: dict, db: sqlite3.Connection):
     sota_llm = config.get('sotaLLMModel')
     src_full_path = config.get("sourceData", None)
     use_sampling = config.get("useSampling", False)
+    data_processors = config.get("dataProcessors",None)
 
+    # Call DataSampler to sample data
     data_sampler = DataSampler(os.path.expanduser(src_full_path), enable_sampling=use_sampling)
+    #Sample data and return sample path or orginal path
     src_path = data_sampler.sample_data()
+    if data_processors is not None
+        # Call DataProcessor to process data
+        data_processor=DataProcessor(src_path, data_processors)
+        # Process data and return process file path or orginal path
+        src_path=processor.processed_data
     src_data={'source':'url','input_path': src_path}
     
     if existingSynthDataPath:
