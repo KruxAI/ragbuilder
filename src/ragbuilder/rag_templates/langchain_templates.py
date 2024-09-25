@@ -130,15 +130,37 @@ def _format_retriever_config(retriever, search_kwargs):
     return retriever_entry
 
 def generate_config_for_trial_optuna(trial):
-    chunking_strategy = trial.suggest_categorical('chunking_strategy', arr_chunking_strategy)
-    embedding_model = trial.suggest_categorical('embedding_model', arr_embedding_model)
-    llm = trial.suggest_categorical('llm', arr_llm)
-    contextual_compression = trial.suggest_categorical('contextual_compression', arr_contextual_compression)
-    search_kwargs = trial.suggest_categorical('search_kwargs', arr_search_kwargs)
+    if len(arr_chunking_strategy) == 1:
+        chunking_strategy = arr_chunking_strategy[0]
+    else:
+        chunking_strategy = trial.suggest_categorical('chunking_strategy', arr_chunking_strategy)
+    
+    if len(arr_embedding_model) == 1:
+        embedding_model = arr_embedding_model[0]
+    else:
+        embedding_model = trial.suggest_categorical('embedding_model', arr_embedding_model)
+
+    if len(arr_llm) == 1:
+        llm = arr_llm[0]
+    else:
+        llm = trial.suggest_categorical('llm', arr_llm)
+
+    if len(arr_contextual_compression) == 1:
+        contextual_compression = arr_contextual_compression[0]
+    else:
+        contextual_compression = trial.suggest_categorical('contextual_compression', arr_contextual_compression)
+
+    if len(arr_search_kwargs) == 1:
+        search_kwargs = arr_search_kwargs[0]
+    else:
+        search_kwargs = trial.suggest_categorical('search_kwargs', arr_search_kwargs)
 
     chunking_kwargs = {}
     if chunking_strategy not in no_chunk_req_loaders:
-        chunk_size = trial.suggest_categorical('chunk_size', arr_chunk_size)
+        if len(arr_chunk_size) == 1:
+            chunk_size = arr_chunk_size[0]
+        else:
+            chunk_size = trial.suggest_categorical('chunk_size', arr_chunk_size)
         chunking_kwargs = {
             'chunk_strategy': chunking_strategy,
             'chunk_size': chunk_size,

@@ -1,6 +1,6 @@
 {% extends "layouts.html" %}
 {% block content %}
-<div class="container">
+<div class="container" id="summary-container" data-run-id="{{ run_id }}">
     <div class="row mb-4">
         <div class="col">
             <h1 class="display-6">RagBuilder: Performance Dashboard</h1>
@@ -42,66 +42,87 @@
             </div>
         </div>
     </div> -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="input-group">
-                <div class="input-group-prepend">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Status</button>
-                    <div class="dropdown-menu">
-                        <a class="dropdown-item" href="#">All</a>
-                        <a class="dropdown-item" href="#">Completed</a>
-                        <a class="dropdown-item" href="#">Pending</a>
+    <div class="container">
+        <ul class="nav nav-tabs" id="summaryTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="table-tab" data-bs-toggle="tab" data-bs-target="#table" type="button" role="tab" aria-controls="table" aria-selected="true">Table</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="visualizations-tab" data-bs-toggle="tab" data-bs-target="#visualizations" type="button" role="tab" aria-controls="visualizations" aria-selected="false">Visualizations</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="summaryTabsContent">
+            <div class="tab-pane fade show active" id="table" role="tabpanel" aria-labelledby="table-tab">
+                <div class="row my-4">
+                    <div class="col">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Status</button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" href="#">All</a>
+                                    <a class="dropdown-item" href="#">Completed</a>
+                                    <a class="dropdown-item" href="#">Pending</a>
+                                </div>
+                            </div>
+                            <input type="text" class="form-control" placeholder="Search..." id="search">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button">Filter</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <input type="text" class="form-control" placeholder="Search..." id="search">
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary" type="button">Filter</button>
+                <div class="row">
+                    <div class="col">
+                        <table class="table table-hover table-sm" id="ragTable">
+                            <thead class="thead-light">
+                            <tr>
+                                <th>Run ID</th>
+                                <th class="eval_id">Eval ID</th>
+                                <th>RAG Config</th>
+                                <th class="text-right">Answer Correctness</th>
+                                <th class="text-right">Context Precision</th>
+                                <th class="text-right">Context Recall</th>
+                                <th class="text-right">Tokens</th>
+                                <th class="text-right">Cost / 1K Queries</th>
+                                <th class="text-center">Latency</th>
+                                <th class="timestamp">Timestamp</th>
+                                <th>Details</th>
+                                <th>Code Snippet</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for eval in evals %}
+                                <tr>
+                                    <td>{{ eval.run_id }}</td>
+                                    <td class="eval_id">{{ eval.eval_id }}</td>
+                                    <td>
+                                        <span class="expandable-text" data-toggle="tooltip" title="{{ eval.rag_config }}">{{ eval.rag_config[:20] }}<span class="ellipsis">...</span></span>
+                                        <pre class="full-text" style="display: none;">{{ eval.rag_config }}</pre>
+                                        <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
+                                    </td>
+                                    <td class="text-right">{{ eval.avg_answer_correctness }}</td>
+                                    <td class="text-right">{{ eval.avg_context_precision }}</td>
+                                    <td class="text-right">{{ eval.avg_context_recall }}</td>
+                                    <td class="text-right">{{ eval.avg_tokens }}</td>
+                                    <td class="text-right">${{ eval.avg_cost_per_query }}</td>
+                                    <td class="text-center">🕓 {{ eval.avg_latency }}s</td>
+                                    <td>{{ eval.eval_ts }}</td>
+                                    <td><a href="/details/{{ eval.eval_id }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Details</span></a></td>
+                                    <td><a href="#" class="btn btn-outline-success btn-sm view-code-snippet" data-code="{{ eval.code_snippet }}"><span style="font-size:smaller;">View Code snippet</span></a></td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <table class="table table-hover table-sm" id="ragTable">
-                <thead class="thead-light">
-                <tr>
-                    <th>Run ID</th>
-                    <th>Eval ID</th>
-                    <th>RAG Config</th>
-                    <th class="text-right">Answer Correctness</th>
-                    <th class="text-right">Context Precision</th>
-                    <th class="text-right">Context Recall</th>
-                    <th class="text-right">Tokens</th>
-                    <th class="text-right">Cost / 1K Queries</th>
-                    <th class="text-center">Latency</th>
-                    <th class="timestamp">Timestamp</th>
-                    <th>Details</th>
-                    <th>Code Snippet</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for eval in evals %}
-                    <tr>
-                        <td>{{ eval.run_id }}</td>
-                        <td>{{ eval.eval_id }}</td>
-                        <td>
-                            <span class="expandable-text" data-toggle="tooltip" title="{{ eval.rag_config }}">{{ eval.rag_config[:20] }}<span class="ellipsis">...</span></span>
-                            <pre class="full-text" style="display: none;">{{ eval.rag_config }}</pre>
-                            <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
-                        </td>
-                        <td class="text-right">{{ eval.avg_answer_correctness }}</td>
-                        <td class="text-right">{{ eval.avg_context_precision }}</td>
-                        <td class="text-right">{{ eval.avg_context_recall }}</td>
-                        <td class="text-right">{{ eval.avg_tokens }}</td>
-                        <td class="text-right">${{ eval.avg_cost_per_query }}</td>
-                        <td class="text-center">🕓 {{ eval.avg_latency }}s</td>
-                        <td>{{ eval.eval_ts }}</td>
-                        <td><a href="/details/{{ eval.eval_id }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Details</span></a></td>
-                        <td><a href="#" class="btn btn-outline-success btn-sm view-code-snippet" data-code="{{ eval.code_snippet }}"><span style="font-size:smaller;">View Code snippet</span></a></td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+            </div> 
+            <div class="tab-pane fade" id="visualizations" role="tabpanel" aria-labelledby="visualizations-tab">
+                <div id="error-message"></div>
+                <div id="optimization-history-plot"></div>
+                <div id="parameter-importance-plot"></div>
+                <div id="pareto-front-plot"></div>
+                <div id="parameter-slice-plot"></div>
+            </div>   
         </div>
     </div>
 </div>
@@ -127,19 +148,322 @@
 
 {{ modal }}
 
-<script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-<script src="//cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
-<script src="//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
-<script src="//cdn.jsdelivr.net/npm/colresizable@1.6.0/colResizable-1.6.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.3.2/mdb.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/colresizable@1.6.0/colResizable-1.6.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.3.2/mdb.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script src="{{ url_for('static', path='main.js') }}"></script>
 <!-- Script to show RAG Config as a exandable/ collapsable text. -->
 <script>
+    var runId = document.getElementById('summary-container').getAttribute('data-run-id');
+    console.log(runId);
+    
     $(document).ready(function() {
+        // Show visualizations
+        $('#visualizations-tab').on('shown.bs.tab', function () {
+            fetchStudyData();
+        });
+
+        function fetchStudyData() {
+            $.ajax({
+                type: "GET",
+                url: "/api/study/{{ run_id }}",
+                success: function (study) {
+                    console.log(JSON.stringify(study));
+                    plotParameterImportance(study.parameter_importance, study.directions);
+                    plotOptimizationHistory(study.trials, study.directions);
+                    plotParetoFront(study.trials, study.pareto_front, study.directions);
+                    plotSlice(study.trials, study.directions);
+                },
+                error: function (error) {
+                    console.error(error);
+                    $("#error-message").text("Failed to fetch study data. Please try again later.").show();
+                }
+            });
+        }
+
+        function plotParameterImportance(importanceData, directions) {
+            var data = directions.map((direction, i) => ({
+                x: Object.values(importanceData).map(imp => imp[i]),
+                y: Object.keys(importanceData),
+                type: 'bar',
+                orientation: 'h',
+                name: direction
+            }));
+            var layout = {
+                title: {
+                    text:'Parameter Importance',
+                    font: {
+                        family: 'Roboto Light, sans-serif',
+                        weight: 300,
+                        size: 18
+                    }
+                },
+                xaxis: {title: 'Importance'},
+                yaxis: {title: 'Parameter', tickangle: -45},
+                font: {
+                    size: 10 
+                },
+                margin: { r: 150, t: 150, b: 50, l: 100 },
+                barmode: 'group'
+            };
+            Plotly.newPlot('parameter-importance-plot', data, layout);
+        }
+
+        function plotOptimizationHistory(trials, directions) {
+            var completedTrials = trials.filter(trial => trial.state === "COMPLETE");
+            var data = directions.map((direction, i) => {
+                // Calculate best values
+                let bestValues = [];
+                let bestSoFar = direction === "MAXIMIZE" ? -Infinity : Infinity;
+                completedTrials.forEach(trial => {
+                    if (direction === "MAXIMIZE") {
+                        bestSoFar = Math.max(bestSoFar, trial.values[i]);
+                    } else {
+                        bestSoFar = Math.min(bestSoFar, trial.values[i]);
+                    }
+                    bestValues.push(bestSoFar);
+                });
+                let hoverText = completedTrials.map(trial => {
+                    let params = Object.entries(trial.params).map(([key, value]) => `${key}: ${value}`).join('<br>');
+                    return `Trial ${trial.number}<br>Value: ${trial.values[i]}<br>${params}`;
+                });
+                return [
+                    {
+                        x: completedTrials.map(trial => trial.number),
+                        y: completedTrials.map(trial => trial.values[i]),
+                        type: 'scatter',
+                        mode: 'markers',
+                        name: `Objective Value`,
+                        marker: { size: 8 },
+                        text: hoverText,
+                        hoverinfo: 'text'
+                    },
+                    {
+                        x: completedTrials.map(trial => trial.number),
+                        y: bestValues,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: `Best Value`,
+                        line: { color: 'red', width: 2 }
+                    }
+                ];
+            }).flat();
+            var layout = {
+                title: {
+                    text:'Optimization History',
+                    font: {
+                        family: 'Roboto Light, sans-serif',
+                        weight: 300,
+                        size: 18
+                    }
+                },
+                xaxis: {title: 'Trial Number'},
+                yaxis: {title: 'Objective Values'},
+                showlegend: true,
+                legend: {
+                    x: 1.05,
+                    xanchor: 'left',
+                    y: 1,
+                    yanchor: 'top'
+                },
+                font: {
+                    size: 10
+                },
+                margin: { r: 150, t: 150, b: 50, l: 50 },
+                hovermode: 'closest'
+            };
+            Plotly.newPlot('optimization-history-plot', data, layout);
+        }
+
+        function plotParetoFront(allTrials, paretoFront, directions) {
+            if (directions.length !== 2) {
+                 console.warn("Pareto front visualization is currently only supported for 2 objectives");
+                 return;
+             }            
+            // Prepare data for all trials
+            var allTrialsData = {
+                x: allTrials.map(trial => trial.values[0]),
+                y: allTrials.map(trial => trial.values[1]),
+                mode: 'markers',
+                type: 'scatter',
+                marker: {
+                    size: 8,
+                    color: allTrials.map(trial => trial.number),
+                    colorscale: 'Blues',
+                    colorbar: {title: 'Trial #', x: 1.05, thickness: 15},
+                    showscale: true
+                },
+                text: allTrials.map(trial => `Trial ${trial.number}<br>Obj1: ${trial.values[0]}<br>Obj2: ${trial.values[1]}<br>x: ${trial.params.x}<br>y: ${trial.params.y}`),
+                hoverinfo: 'text',
+                name: 'All Trials'
+            };
+
+            // Prepare data for Pareto front trials
+            var paretoFrontData = {
+                x: paretoFront.map(trial => trial.values[0]),
+                y: paretoFront.map(trial => trial.values[1]),
+                mode: 'markers',
+                type: 'scatter',
+                marker: {
+                    size: 10,
+                    color: paretoFront.map(trial => trial.number),
+                    colorscale: 'Reds',
+                    colorbar: {title: 'Best Trial #', x: 1.15, thickness: 15},
+                    showscale: true
+                },
+                text: paretoFront.map(trial => `Trial ${trial.number}<br>Obj1: ${trial.values[0]}<br>Obj2: ${trial.values[1]}<br>x: ${trial.params.x}<br>y: ${trial.params.y}`),
+                hoverinfo: 'text',
+                name: 'Pareto Front'
+            };
+
+            var data = [allTrialsData, paretoFrontData];
+
+            var layout = {
+                title: {
+                    text:'Pareto-front Plot',
+                    font: {
+                        family: 'Roboto Light, sans-serif',
+                        weight: 300,
+                        size: 18
+                    }
+                },
+                xaxis: {title: `Objective 0 (${directions[0]})`},
+                yaxis: {title: `Objective 1 (${directions[1]})`},
+                hovermode: 'closest',
+                showlegend: true,
+                legend: {
+                    x: 1,
+                    xanchor: 'right',
+                    y: 1
+                },
+                font: {
+                    size: 10 
+                },
+                margin: { r: 100, t: 150, b: 50, l: 50 }
+            };
+
+            Plotly.newPlot('pareto-front-plot', data, layout);
+        }
+
+        function plotSlice(trials, directions) {
+            const completedTrials = trials.filter(trial => trial.state === "COMPLETE");
+            
+            // Get all unique parameters from trials
+            const allParams = [...new Set(completedTrials.flatMap(trial => Object.keys(trial.params)))];
+
+            // Create a color scale
+            const colorScale = [
+                [0, 'rgb(220, 220, 220)'],
+                [0.5, 'rgb(100, 140, 200)'],
+                [1, 'rgb(30, 60, 120)']
+            ];
+
+            // Helper function to determine parameter type
+            function getParamType(values) {
+                const firstValue = values.find(v => v.x !== undefined)?.x;
+                if (typeof firstValue === 'boolean') return 'boolean';
+                if (typeof firstValue === 'string') return 'category';
+                return 'linear';
+            }
+
+            // Create subplots
+            const subplots = allParams.map((param, index) => {
+                const values = completedTrials.map(trial => ({
+                    x: trial.params[param],
+                    y: trial.values[0],  // Assuming we're plotting for the first objective
+                    trial: trial.number
+                })).filter(v => v.x !== undefined);
+
+                const paramType = getParamType(values);
+
+                // Sort values
+                if (paramType === 'category') {
+                    values.sort((a, b) => a.x.localeCompare(b.x));
+                } else if (paramType === 'linear') {
+                    values.sort((a, b) => a.x - b.x);
+                }
+
+                return {
+                    x: paramType === 'boolean' || paramType === 'linear' ? values.map(v => v.x.toString()) : values.map(v => v.x),
+                    y: values.map(v => v.y),
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: param,
+                    text: values.map(v => `Trial: ${v.trial}<br>${param}: ${v.x}<br>Objective: ${v.y.toFixed(4)}`),
+                    hoverinfo: 'text',
+                    marker: {
+                        color: values.map(v => v.trial),
+                        colorscale: colorScale,
+                        showscale: index === 0,
+                        colorbar: index === 0 ? {
+                            title: 'Trial',
+                            thickness: 15,
+                            len: 0.5,
+                            y: 0.5,
+                            yanchor: 'middle',
+                            x: 1.05,
+                            xanchor: 'left'
+                        } : undefined
+                    },
+                    xaxis: `x${index + 1}`,
+                    yaxis: `y${index + 1}`
+                };
+            });
+
+            // Calculate layout
+            const numParams = allParams.length;
+            const numCols = Math.ceil(Math.sqrt(numParams));
+            const numRows = Math.ceil(numParams / numCols);
+
+            const layout = {
+                title: {
+                    text:'Parameter Slice Plot',
+                    font: {
+                        family: 'Roboto Light, sans-serif',
+                        weight: 300,
+                        size: 18
+                    }
+                },
+                grid: { rows: numRows, columns: numCols, pattern: 'independent' },
+                height: numRows * 380,
+                width: numCols * 400,
+                showlegend: false,
+                hovermode: 'closest',
+                font: {
+                    size: 9 
+                },
+                margin: { r: 100, t: 150, b: 50, l: 50 }
+            };
+
+            // Add axis titles
+            allParams.forEach((param, index) => {
+                const paramType = getParamType(subplots[index].x.map((x, i) => ({ x, y: subplots[index].y[i] })));
+                layout[`xaxis${index + 1}`] = { 
+                    title: {
+                        text: param,
+                        font: {
+                            size: 10  // Adjust this value for x-axis label font size
+                        }
+                    },
+                    anchor: `y${index + 1}`,
+                    type: paramType === 'linear' ? 'linear' : 'category'
+                };
+                layout[`yaxis${index + 1}`] = { 
+                    title: index % numCols === 0 ? 'Objective Value' : '',
+                    anchor: `x${index + 1}`
+                };
+            });
+
+            Plotly.newPlot('parameter-slice-plot', subplots, layout);
+        }
+    
         // Initialize Bootstrap tooltips
         $('[data-toggle="tooltip"]').tooltip();
 

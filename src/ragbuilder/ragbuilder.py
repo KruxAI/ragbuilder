@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.logger import logger 
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import sqlite3
 import markdown
 import threading
@@ -19,6 +19,7 @@ import logging
 import requests
 import uvicorn
 import warnings
+import optuna
 from pathlib import Path
 from urllib.parse import urlparse
 from ragbuilder.executor import rag_builder, \
@@ -143,7 +144,15 @@ async def summary(request: Request, run_id: int, db: sqlite3.Connection = Depend
     evals = cur.fetchall()
     db.close()
     description = evals[0]['description'] if evals else "Unnamed Project"
-    return templates.TemplateResponse(request=request, name='summary.html', context={"evals": evals, "description": description})
+    return templates.TemplateResponse(
+        request=request, 
+        name='summary.html', 
+        context={
+            "evals": evals, 
+            "description": description,
+            "run_id": run_id
+        }
+    )
 
 @app.get('/details/{eval_id}', response_class=HTMLResponse)
 async def details(request: Request, eval_id: int, db: sqlite3.Connection = Depends(get_db)):
@@ -170,12 +179,84 @@ async def details(request: Request, eval_id: int, db: sqlite3.Connection = Depen
     db.close()
     return templates.TemplateResponse(request=request, name='details.html', context={"details": details})
 
-# @app.get("/read_docs", response_class=HTMLResponse)
-# def docs(request: Request):
-#     with open("README.md", "r") as f:
-#         markdown_text = f.read()
-#     html = markdown.markdown(markdown_text)
-#     return templates.TemplateResponse(request=request, name='docs.html', context={"content": html})
+
+class TrialData(BaseModel):
+    number: int
+    values: List[Optional[float]]
+    params: Dict[str, Any]
+    state: str
+
+class StudyData(BaseModel):
+    study_name: str
+    directions: List[str]
+    pareto_front: List[TrialData]
+    trials: List[TrialData]
+    n_trials: int
+    parameter_importance: Dict[str, List[float]]
+
+@app.get("/api/study/{run_id}", response_model=StudyData)
+def get_study_data(run_id: int):
+    try:
+        logger.debug(f"Loading study data for run_id: {run_id}")
+        study = optuna.load_study(study_name=str(run_id), storage=f"sqlite:///{DATABASE}")
+        # print(f"Study data loaded: {study}")
+        
+        logger.debug(f"Setting up trials data...")
+        trials_data = [
+            TrialData(
+                number=trial.number,
+                values=trial.values if trial.values is not None else [],
+                params=trial.params,
+                state=trial.state.name
+            )
+            for trial in study.trials
+        ]
+        # print(f"Trials data set up: {trials_data}")
+
+        logger.debug(f"Setting up pareto front data...")
+        pareto_front = [
+            TrialData(
+                number=trial.number,
+                values=trial.values,
+                params=trial.params,
+                state=trial.state.name
+            )
+            for trial in study.best_trials
+        ]
+        # print(f"Pareto front data set up: {pareto_front}")
+
+        # Calculate parameter importance
+        logger.debug(f"Calculating parameter importance...")
+        importance = {}
+        for i in range(len(study.directions)):
+            importance_i = optuna.importance.get_param_importances(study, target=lambda t: t.values[i])
+            for param, imp in importance_i.items():
+                if param not in importance:
+                    importance[param] = [0] * len(study.directions)
+                importance[param][i] = imp
+        # print(f"Parameter importance calculated: {importance}")
+        
+        logger.debug(f"Setting up study data...")
+        # print(f"Study name: {study.study_name}, type = {type(study.study_name)}")
+        # print(f"Directions: {[d.name for d in study.directions]}")
+        # print(f"Pareto front: {pareto_front}")
+        # # print(f"Trials data: {trials_data}")
+        # print(f"Number of trials: {len(study.trials)}")
+        # print(f"Parameter importance: {importance}")
+
+        study_data = StudyData(
+            study_name=study.study_name,
+            directions=[d.name for d in study.directions],
+            pareto_front=pareto_front,
+            trials=trials_data,
+            n_trials=len(study.trials),
+            parameter_importance=importance
+        )
+        
+        return study_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/read_docs", response_class=RedirectResponse)
 def docs():
     return RedirectResponse(url="https://github.com/KruxAI/ragbuilder/blob/main/README.md")
