@@ -15,7 +15,6 @@ DATA_PROCESSORS = [
     "gpp:strip_multiple_whitespaces",
     "gpp:strip_short",
     "gpp:stem_text",
-    "custom:custom_normalizer",  # Custom function
     # Add more processors from other libraries as needed
 ]
 
