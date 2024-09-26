@@ -454,7 +454,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     src_full_path = config.get("sourceData", None)
     use_sampling = config.get("useSampling", False)
     data_processors = config.get("dataProcessors",None)
-
+    # build this array data_processors
     # Call DataSampler to sample data
     data_sampler = DataSampler(os.path.expanduser(src_full_path), enable_sampling=use_sampling)
     #Sample data and return sample path or orginal path
