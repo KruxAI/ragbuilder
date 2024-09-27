@@ -287,23 +287,48 @@ $(document).ready(function () {
         }
     });
 
-    const initialState = {};
-
-    $('#compression-opts input[type="checkbox"]').not('#contextualCompression').each(function() {
-        initialState[this.id] = this.checked;
-    });
-
     $('#contextualCompression').change(function() {
-        const isChecked = this.checked;
-        $('#compression-opts input[type="checkbox"]').not('#contextualCompression').each(function() {
-            if (isChecked) {
-                $(this).prop('disabled', false).prop('checked', initialState[this.id]);
-            } else {
-                initialState[this.id] = this.checked;
-                $(this).prop('disabled', true).prop('checked', false);
-            }
-        });
+        if (!this.checked) {
+            $('#mxbai-rerank-base-v1, #mxbai-rerank-large-v1, #bge-reranker-base, #flashrank, #cohere, #jina, #colbert, #rankllm, #longContextReorder, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('checked', false).prop('disabled', true);
+        } else {
+            $('#mxbai-rerank-base-v1, #mxbai-rerank-large-v1, #bge-reranker-base, #flashrank, #cohere, #jina, #colbert, #rankllm, #longContextReorder, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('disabled', false);
+        }
     });
+    // let lastState = {};
+
+    // function updateLastState() {
+    //     $('#compression-opts input[type="checkbox"]').not('#contextualCompression').each(function() {
+    //         lastState[this.id] = this.checked;
+    //     });
+    // }
+
+    // updateLastState();
+
+    // $('#compression').change(function() {
+    //     const isChecked = this.checked;
+    //     $('#compression-opts input[type="checkbox"]').prop('disabled', !isChecked);
+        
+    //     if (isChecked) {
+    //         $('#contextualCompression').prop('checked', true);
+    //         $('#compression-opts input[type="checkbox"]').prop('checked', true);
+    //         updateLastState();
+    //     } else {
+    //         $('#compression-opts input[type="checkbox"]').prop('checked', false);
+    //         updateLastState();
+    //     }
+    // });
+
+    // $('#contextualCompression').change(function() {
+    //     const isChecked = this.checked;
+    //     $('#compression-opts input[type="checkbox"]').not('#contextualCompression').each(function() {
+    //         if (isChecked) {
+    //             $(this).prop('disabled', false).prop('checked', lastState[this.id]);
+    //         } else {
+    //             lastState[this.id] = this.checked;
+    //             $(this).prop('disabled', true).prop('checked', false);
+    //         }
+    //     });
+    // });
 
     // Show or hide the number of runs input based on the selected optimization option
     $('input[name="optimization"]').change(function () {
