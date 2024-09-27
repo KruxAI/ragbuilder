@@ -6,6 +6,7 @@ import logging
 from urllib.parse import urlparse
 from pathlib import Path
 import requests
+from unstructured.partition.auto import partition
 logger = logging.getLogger("ragbuilder")
 # List of processor names, categorized by their library or origin
 DATA_PROCESSORS = [
@@ -29,7 +30,6 @@ def resolve_processor(processor_name: str):
         return globals()[func_name]  # For custom functions defined in the script
     elif library == "nltk":
         return getattr(nltk, func_name)
-    # Add more elif blocks for other libraries (e.g., spaCy) if needed
     else:
         raise ValueError(f"Unknown library: {library}")
 
@@ -55,31 +55,30 @@ class DataProcessor:
             elif path.is_file():
                 return self.process_file(str(path))
             elif path.is_dir():
-                return self.process_direcotory(str(path))
+                return self.process_directory(str(path))
         data = self.data_source
         for processor in self.data_processors:
             data = processor(data)  # Apply each processor to the data
         return data
 
-    def process_direcotory(self, dir_path: str) -> str:
+    def process_directory(self, dir_path: str) -> str:
         processed_dir = f"{dir_path}_processed"
         os.makedirs(processed_dir, exist_ok=True)
         files = [f for f in Path(dir_path).glob('**/*') if f.is_file() and str(f.relative_to(dir_path)) != '.DS_Store']
-        # args = [(str(f), f'{processed_dir}/{str(f.relative_to(dir_path))}.processed') for f in files]
         for f in files:
             self.process_file(f,processed_dir,filename=f.name)
         return processed_dir
     
     def process_file(self, file_path: str,process_dir: str=None,filename:str=None) -> str: 
         if process_dir is None:
-            processed_file = f"{file_path}.processed"
+            processed_file = f"{file_path}_processed"
         else:
             processed_file = f"{process_dir}/{filename}.processed"
-        with open(file_path, 'r', encoding='utf-8') as f:
-            file_content = f.read()
-        processed_content = file_content
+        with open(file_path, "rb") as f:
+            elements = partition(file=f, include_page_breaks=True)
+            file_content="\n".join([str(el) for el in elements])
         for processor in self.data_processors:
-            processed_content = processor(processed_content)
+            processed_content = processor(file_content)
         with open(processed_file, 'w', encoding='utf-8') as f:
             f.write(processed_content)
         return processed_file
@@ -109,20 +108,28 @@ class DataProcessor:
             raise
 
 # #directory
-# print("process dirs")
-# filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfolder'
-# processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
-# print(processor.processed_data) 
+print("process dirs")
+filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfolder'
+processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
+print(processor.processed_data) 
 
 
-# #file
-# print("process files")
-# filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfile.txt'
-# processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
-# print(processor.processed_data) 
+#file
+print("process files")
+filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfile.txt'
+processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
+print(processor.processed_data) 
 
 
 # print("process urls")
-# url='https://ashwinaravind.github.io/'
-# processor = DataProcessor(data_source=url, data_processors=["gpp:remove_stopwords"])
-# print(processor.processed_data)  # Output: 'temp_url_content_123456.processed' (temporary file)
+url='https://ashwinaravind.github.io/'
+processor = DataProcessor(data_source=url, data_processors=["gpp:remove_stopwords"])
+print(processor.processed_data)  # Output: 'temp_url_content_123456.processed' (temporary file)
+
+
+#file
+print("unstructured files")
+filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/arxiv.pdf'
+processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
+print(processor.processed_data) 
+
