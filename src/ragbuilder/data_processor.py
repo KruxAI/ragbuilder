@@ -64,9 +64,21 @@ class DataProcessor:
     def process_directory(self, dir_path: str) -> str:
         processed_dir = f"{dir_path}_processed"
         os.makedirs(processed_dir, exist_ok=True)
-        files = [f for f in Path(dir_path).glob('**/*') if f.is_file() and str(f.relative_to(dir_path)) != '.DS_Store']
+
+        # Get all files recursively, excluding '.DS_Store'
+        files = [f for f in Path(dir_path).rglob('*') if f.is_file() and f.name != '.DS_Store']
+
         for f in files:
-            self.process_file(f,processed_dir,filename=f.name)
+            # Get the relative path of the file to maintain folder structure in processed output
+            relative_path = f.relative_to(dir_path)
+            output_file_dir = Path(processed_dir) / relative_path.parent
+
+            # Create subdirectories if necessary
+            output_file_dir.mkdir(parents=True, exist_ok=True)
+
+            # Process the file and save it in the corresponding subdirectory
+            self.process_file(f, str(output_file_dir), filename=f.name)
+        
         return processed_dir
     
     def process_file(self, file_path: str,process_dir: str=None,filename:str=None) -> str: 
@@ -114,22 +126,22 @@ processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_sto
 print(processor.processed_data) 
 
 
-#file
-print("process files")
-filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfile.txt'
-processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
-print(processor.processed_data) 
+# #file
+# print("process files")
+# filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfile.txt'
+# processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
+# print(processor.processed_data) 
 
 
-# print("process urls")
-url='https://ashwinaravind.github.io/'
-processor = DataProcessor(data_source=url, data_processors=["gpp:remove_stopwords"])
-print(processor.processed_data)  # Output: 'temp_url_content_123456.processed' (temporary file)
+# # print("process urls")
+# url='https://ashwinaravind.github.io/'
+# processor = DataProcessor(data_source=url, data_processors=["gpp:remove_stopwords"])
+# print(processor.processed_data)  # Output: 'temp_url_content_123456.processed' (temporary file)
 
 
-#file
-print("unstructured files")
-filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/arxiv.pdf'
-processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
-print(processor.processed_data) 
+# #file
+# print("unstructured files")
+# filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/arxiv.pdf'
+# processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
+# print(processor.processed_data) 
 
