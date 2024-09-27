@@ -105,7 +105,6 @@ def getCompressors(**kwargs):
     - DocumentCompressorPipeline object based on the specified compressors.
     """
     compressor_config = kwargs.get('compressor',None)
-    compressor_config = ['BAAI/bge-reranker-base']
     print(compressor_config)
     search_kwargs=kwargs.get('search_kwargs',None)
     arr_transformer=[]
