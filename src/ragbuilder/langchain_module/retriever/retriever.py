@@ -18,6 +18,16 @@ from langchain.retrievers.document_compressors import *
 setup_logging()
 logger = logging.getLogger("ragbuilder")
 
+rerankers_to_check = [
+    'mixedbread-ai/mxbai-rerank-large-v1',
+    'flashrank',
+    'cohere',
+    'jina',
+    'colbert',
+    'mixedbread-ai/mxbai-rerank-base-v1',
+    'rankllm',
+    'BAAI/bge-reranker-base'
+]
 
 def getRetriever(**kwargs):
     """
@@ -37,11 +47,11 @@ def getRetriever(**kwargs):
         logger.info("Vector Retriever Invoked")
         document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
         if document_compressor_pipeline is not None:
-            if 'CrossEncoderReranker' in document_compressor_pipeline:
-                print('CrossEncoderReranker')
+            if any(reranker in document_compressor_pipeline for reranker in rerankers_to_check):
+                print('Rerankers')
                 code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': 100}})"""
             else:
-                print('No CrossEncoderReranker')
+                print('No Rerankers')
                 code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
         else:
             code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
