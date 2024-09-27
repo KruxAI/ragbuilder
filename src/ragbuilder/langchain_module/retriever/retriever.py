@@ -142,7 +142,7 @@ def getCompressors(**kwargs):
         return {'code_string':code_string,'import_string':import_string}
     
     if 'mixedbread-ai/mxbai-rerank-large-v1' in compressor_config:
-        code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-base-v1", verbose=0)
+        code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-large-v1", verbose=0)
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
@@ -197,7 +197,7 @@ arr_comp.append(compressor)
         import_string = f"""from rerankers import Reranker"""
         return {'code_string':code_string,'import_string':import_string}
 
-    if 'CrossEncoderReranker' in compressor_config:
+    if 'BAAI/bge-reranker-base' in compressor_config:
         search_kwargs=kwargs.get('search_kwargs',None)
         code_string= f"""
 model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
