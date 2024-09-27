@@ -80,3 +80,6 @@ neo4j
 optuna
 tenacity==8.4.2
 gensim
+rerankers
+rerankers[flashrank]
+rerankers[gpt]

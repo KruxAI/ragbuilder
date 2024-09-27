@@ -91,7 +91,10 @@ setup(
         'langsmith',
         'optuna',
         'tenacity==8.4.2',
-        'gensim'
+        'gensim',
+        'rerankers',
+        'rerankers[flashrank]',
+        'rerankers[gpt]'
         # 'llama-index',
         # 'llama-index-vector-stores-chroma',
         # 'llama-index-readers-web',

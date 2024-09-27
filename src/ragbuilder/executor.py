@@ -67,6 +67,7 @@ from langchain.retrievers import (
     SelfQueryRetriever,
     TimeWeightedVectorStoreRetriever
 )
+from rerankers import Reranker
 from langchain_core.documents import Document
 from langchain.retrievers.document_compressors import *
 from langchain_community.document_transformers import *
