@@ -18,6 +18,16 @@ from langchain.retrievers.document_compressors import *
 setup_logging()
 logger = logging.getLogger("ragbuilder")
 
+rerankers_to_check = [
+    'mixedbread-ai/mxbai-rerank-large-v1',
+    'flashrank',
+    'cohere',
+    'jina',
+    'colbert',
+    'mixedbread-ai/mxbai-rerank-base-v1',
+    'rankllm',
+    'BAAI/bge-reranker-base'
+]
 
 def getRetriever(**kwargs):
     """
@@ -37,11 +47,11 @@ def getRetriever(**kwargs):
         logger.info("Vector Retriever Invoked")
         document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
         if document_compressor_pipeline is not None:
-            if 'CrossEncoderReranker' in document_compressor_pipeline:
-                print('CrossEncoderReranker')
+            if any(reranker in document_compressor_pipeline for reranker in rerankers_to_check):
+                print('Rerankers')
                 code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': 100}})"""
             else:
-                print('No CrossEncoderReranker')
+                print('No Rerankers')
                 code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
         else:
             code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
@@ -142,7 +152,7 @@ def getCompressors(**kwargs):
         return {'code_string':code_string,'import_string':import_string}
     
     if 'mixedbread-ai/mxbai-rerank-large-v1' in compressor_config:
-        code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-base-v1", verbose=0)
+        code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-large-v1", verbose=0)
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
@@ -196,14 +206,13 @@ arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""
         return {'code_string':code_string,'import_string':import_string}
-
-    if 'CrossEncoderReranker' in compressor_config:
-        search_kwargs=kwargs.get('search_kwargs',None)
-        code_string= f"""
-model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
-arr_comp.append(CrossEncoderReranker(model=model, top_n={search_kwargs}))"""
-        import_string = f"""from langchain.retrievers.document_compressors import CrossEncoderReranker
-from langchain_community.cross_encoders import HuggingFaceCrossEncoder"""
+    
+    if 'BAAI/bge-reranker-base' in compressor_config:
+        code_string= f"""ranker = Reranker("BAAI/bge-reranker-base")
+compressor = ranker.as_langchain_compressor(k={search_kwargs})
+arr_comp.append(compressor)
+"""
+        import_string = f"""from rerankers import Reranker"""
         return {'code_string':code_string,'import_string':import_string}
 
     pipeline_compressor = DocumentCompressorPipeline(transformers=arr_transformer)
