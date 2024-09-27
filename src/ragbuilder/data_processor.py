@@ -3,6 +3,8 @@ import nltk  # For example, if you want to add NLTK functions
 # import spacy or other libraries if needed
 import os
 import logging
+from multiprocessing import Pool
+from tqdm import tqdm
 from urllib.parse import urlparse
 from pathlib import Path
 import requests
@@ -60,43 +62,54 @@ class DataProcessor:
         for processor in self.data_processors:
             data = processor(data)  # Apply each processor to the data
         return data
-
     def process_directory(self, dir_path: str) -> str:
         processed_dir = f"{dir_path}_processed"
         os.makedirs(processed_dir, exist_ok=True)
 
-        # Get all files recursively, excluding '.DS_Store'
         files = [f for f in Path(dir_path).rglob('*') if f.is_file() and f.name != '.DS_Store']
+        args = [(str(f), f'{processed_dir}/{str(f.relative_to(dir_path))}.processed') for f in files]
+        print(args)
 
-        for f in files:
-            # Get the relative path of the file to maintain folder structure in processed output
-            relative_path = f.relative_to(dir_path)
-            output_file_dir = Path(processed_dir) / relative_path.parent
-
-            # Create subdirectories if necessary
-            output_file_dir.mkdir(parents=True, exist_ok=True)
-
-            # Process the file and save it in the corresponding subdirectory
-            self.process_file(f, str(output_file_dir), filename=f.name)
-        
+            # Use the Pool within the main guard
+        with Pool() as pool:
+                results = list(tqdm(
+                    pool.starmap(self.process_file, args),
+                    total=len(files),
+                    desc=f"Processing directory {dir_path} (file-level)"
+                ))
         return processed_dir
     
-    def process_file(self, file_path: str, process_dir: str=None, filename:str=None) -> str: 
-        if process_dir is None:
-            processed_file = f"{file_path}_processed"
-        else:
-            processed_file = f"{process_dir}/{filename}.processed"
+    def process_file(self, file_path: str, processed_file: str = None) -> str: 
+        if not processed_file:
+            # Generate a processed file path based on the original file path
+            processed_file = f"{file_path}.processed"
+            
+        # Ensure the directory for the processed file exists
         
+        processed_dir = os.path.dirname(processed_file)
+        if processed_dir != '':
+            os.makedirs(processed_dir, exist_ok=True)
+
+        print(file_path, processed_file)
         logger.info(f"Preprocessing file: {file_path} (this may take a while)...")
+        
+        # Read the original file and process it
         with open(file_path, "rb") as f:
             elements = partition(file=f, include_page_breaks=True)
-            file_content="\n".join([str(el) for el in elements])
+            file_content = "\n".join([str(el) for el in elements])
+        
+        # Process the content with the defined processors
+        processed_content = file_content  # Start with the original content
         for processor in self.data_processors:
-            processed_content = processor(file_content)
+            processed_content = processor(processed_content)  # Update processed_content in each iteration
+
+        # Write the processed content to the new file
         with open(processed_file, 'w', encoding='utf-8') as f:
             f.write(processed_content)
+        
         logger.info(f"Preprocessing complete for {file_path}. Saved to {processed_file}")
         return processed_file
+
 
     def process_url(self) -> str:
         try:
@@ -119,32 +132,30 @@ class DataProcessor:
 
             return processed_file
         except Exception as e:
-            logger.error(f"Error sampling URL {self.data_source}: {str(e)}")
+            logger.error(f"Error Processing URL {self.data_source}: {str(e)}")
             raise
 
-# #directory
-print("process dirs")
-filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfolder'
-processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
-print(processor.processed_data) 
+# if __name__ == "__main__":
+#     # #directory
+#     print("process dirs")
+#     filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfolder'
+#     processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
+#     print(processor.processed_data) 
+#     # #file
+#     print("process files")
+#     filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfile.txt'
+#     processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
+#     print(processor.processed_data) 
 
 
-# #file
-# print("process files")
-# filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/testfile.txt'
-# processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
-# print(processor.processed_data) 
+#     print("process urls")
+#     url='https://ashwinaravind.github.io/'
+#     processor = DataProcessor(data_source=url, data_processors=["gpp:remove_stopwords"])
+#     print(processor.processed_data)  # Output: 'temp_url_content_123456.processed' (temporary file)
 
 
-# # print("process urls")
-# url='https://ashwinaravind.github.io/'
-# processor = DataProcessor(data_source=url, data_processors=["gpp:remove_stopwords"])
-# print(processor.processed_data)  # Output: 'temp_url_content_123456.processed' (temporary file)
-
-
-# #file
-# print("unstructured files")
-# filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/arxiv.pdf'
-# processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
-# print(processor.processed_data) 
-
+#     #file
+#     print("unstructured files")
+#     filename='/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/arxiv.pdf'
+#     processor = DataProcessor(data_source=filename, data_processors=["gpp:remove_stopwords"])
+#     print(processor.processed_data) 
