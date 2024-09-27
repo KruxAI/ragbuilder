@@ -90,7 +90,8 @@ setup(
         'langchain_milvus',
         'langsmith',
         'optuna',
-        'tenacity==8.4.2'
+        'tenacity==8.4.2',
+        'gensim'
         # 'llama-index',
         # 'llama-index-vector-stores-chroma',
         # 'llama-index-readers-web',

@@ -29,15 +29,52 @@
                                     <input type="text" class="form-control" id="sourceData" placeholder="~/development/src_data">
                                     <span id="sourceDataError"></span>
                                     <small id="dataSizeInfo" class="form-text fw-light text-muted" style="display: none;"></small>
+                                </div>
+                            </div>
+                            <div class="row mt-3 mx-3">
+                                <div class="col-md-2"></div>
+                                <div class="col-md-4">
                                     <div id="samplingOption" class="form-check mt-2" style="display: none;">
                                         <input class="form-check-input" type="checkbox" id="useSampling">
-                                        <label class="form-check-label" for="useSampling">
-                                            Use data sampling
+                                        <label class="form-check-label h6" for="useSampling">
+                                            Perform Data Sampling
                                         </label>
                                         <small id="samplingInfo" class="form-text fw-light text-muted" style="display: none;">
                                             <i class="fa-solid fa-triangle-exclamation" style="color: #f4d66c;"></i> 
                                             Note: If we'll be generating synthetic test data, it will be based on the sampled dataset for consistency.
                                         </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div id="dataPreProcessingOption" class="mt-2" style="display: none;">
+                                        <div class="treeview treeview-primary" data-mdb-selectable="true">
+                                            <ul role="tree">
+                                                <li aria-level="1" role="tree-item">
+                                                    <a class="treeview-category h6 collapsed" data-mdb-collapse-init data-mdb-target="#data-preprocessing" role="button" aria-expanded="false">
+                                                        <i class="fas fa-angle-right chevron-icon mx-1"></i>
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="dataPreprocessing" unchecked>
+                                                        Perform Data Pre-processing
+                                                    </a>
+                                                    <ul class="collapse" id="data-preprocessing" role="group">
+                                                        <li aria-level="2" role="tree-item" class="treeview-category mt-1">
+                                                            <input type="checkbox" class="mx-1 form-check-input" id="gpp:remove_stopwords" unchecked> Remove Stopwords
+                                                        </li>
+                                                        <li aria-level="2" role="tree-item" class="treeview-category mt-1">
+                                                            <input type="checkbox" class="mx-1 form-check-input" id="gpp:strip_tags" unchecked> Strip tags
+                                                        </li>
+                                                        <li aria-level="2" role="tree-item" class="treeview-category mt-1">
+                                                            <input type="checkbox" class="mx-1 form-check-input" id="gpp:strip_punctuation" unchecked> Strip Punctuation
+                                                        </li>
+                                                        <li aria-level="2" role="tree-item" class="treeview-category mt-1">
+                                                            <input type="checkbox" class="mx-1 form-check-input" id="gpp:strip_multiple_whitespaces" unchecked> Strip multiple whitespaces
+                                                        </li>
+                                                        <li aria-level="2" role="tree-item" class="treeview-category mt-1">
+                                                            <input type="checkbox" class="mx-1 form-check-input" id="gpp:stem_text" unchecked> Stem text
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

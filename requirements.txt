@@ -79,3 +79,4 @@ langsmith
 neo4j
 optuna
 tenacity==8.4.2
+gensim

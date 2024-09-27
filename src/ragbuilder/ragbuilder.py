@@ -22,16 +22,14 @@ import warnings
 import optuna
 from pathlib import Path
 from urllib.parse import urlparse
-from ragbuilder.executor import rag_builder, \
-    rag_builder_bayes_optmization, \
-    rag_builder_bayes_optimization_optuna, \
-    get_model_obj
+from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization, rag_builder_bayes_optimization_optuna, get_model_obj
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
 from ragbuilder.rag_templates.top_n_templates import get_templates
 from ragbuilder.analytics import track_event
 from ragbuilder.sampler import DataSampler
+from ragbuilder.data_processor import DataProcessor
 from ragbuilder.evaldb_dmls import *
 
 # fastapi_setup_logging(logger)
@@ -441,6 +439,7 @@ class ProjectData(BaseModel):
     generatorEmbedding: Optional[str] = Field(default=None)
     numRuns: Optional[str] = Field(default=None)
     nJobs: Optional[int] = Field(default=None)
+    dataProcessors: Optional[List[str]] = Field(default=None)
 
 @app.post("/rbuilder")
 def rbuilder_route(project_data: ProjectData, db: sqlite3.Connection = Depends(get_db)):
@@ -536,9 +535,20 @@ def parse_config(config: dict, db: sqlite3.Connection):
     sota_llm = config.get('sotaLLMModel')
     src_full_path = config.get("sourceData", None)
     use_sampling = config.get("useSampling", False)
-
+    data_processors = config.get("dataProcessors", None)
+    # build this array data_processors
+    # Call DataSampler to sample data
     data_sampler = DataSampler(os.path.expanduser(src_full_path), enable_sampling=use_sampling)
+    #Sample data and return sample path or orginal path
     src_path = data_sampler.sample_data()
+    if data_processors is not None and len(data_processors) > 0:
+        # Call DataProcessor to process data
+        data_processor=DataProcessor(src_path, data_processors)
+        # Process data and return process file path or orginal path
+        src_path=data_processor.processed_data
+    else:
+        logger.info(f"No data processors selected. Using original data.")
+        
     src_data={'source':'url','input_path': src_path}
     
     if existingSynthDataPath:
