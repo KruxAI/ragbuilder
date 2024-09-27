@@ -45,6 +45,7 @@ function updateDataSizeInfo(size, exceedsThreshold) {
 
     $('#dataSizeInfo').text(infoText).show();
     $('#samplingOption').show();
+    $('#dataPreProcessingOption').show();
 }
 
 
@@ -134,7 +135,7 @@ $(document).ready(function () {
     });
 
     document.querySelectorAll('[data-mdb-toggle="collapse"]').forEach(element => {
-        new mdb.Collapse(element);
+        new mdb.Collapse(element, {toggle: false});
     });
 
     // Handle parent checkbox selection
@@ -592,6 +593,12 @@ $(document).ready(function () {
     });
 
     $('#confirmSelections').click(function () {
+        const dataProcessors = $('#data-preprocessing input[type="checkbox"]:checked')
+            .map(function() {
+                return this.id;
+            })
+            .get();
+
         const projectData = {
             description: $('#description').val(),
             sourceData: $('#sourceData').val(),
@@ -660,6 +667,8 @@ $(document).ready(function () {
             evalLLM: getModel('evalLLM', 'customEvalLLM'),
             optimization: $('input[name="optimization"]:checked').attr('id')
         };
+
+        projectData.dataProcessors = dataProcessors;
 
         if ($('#compareTemplates').is(':checked')) {
             $('input[name="templateCheckbox"]:checked').each(function() {
