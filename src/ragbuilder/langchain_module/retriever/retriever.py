@@ -105,6 +105,7 @@ def getCompressors(**kwargs):
     - DocumentCompressorPipeline object based on the specified compressors.
     """
     compressor_config = kwargs.get('compressor',None)
+    compressor_config = ['BAAI/bge-reranker-base']
     print(compressor_config)
     search_kwargs=kwargs.get('search_kwargs',None)
     arr_transformer=[]
@@ -196,14 +197,13 @@ arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""
         return {'code_string':code_string,'import_string':import_string}
-
+    
     if 'BAAI/bge-reranker-base' in compressor_config:
-        search_kwargs=kwargs.get('search_kwargs',None)
-        code_string= f"""
-model = HuggingFaceCrossEncoder(model_name="BAAI/bge-reranker-base")
-arr_comp.append(CrossEncoderReranker(model=model, top_n={search_kwargs}))"""
-        import_string = f"""from langchain.retrievers.document_compressors import CrossEncoderReranker
-from langchain_community.cross_encoders import HuggingFaceCrossEncoder"""
+        code_string= f"""ranker = Reranker("BAAI/bge-reranker-base")
+compressor = ranker.as_langchain_compressor(k={search_kwargs})
+arr_comp.append(compressor)
+"""
+        import_string = f"""from rerankers import Reranker"""
         return {'code_string':code_string,'import_string':import_string}
 
     pipeline_compressor = DocumentCompressorPipeline(transformers=arr_transformer)
