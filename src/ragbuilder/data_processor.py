@@ -81,11 +81,13 @@ class DataProcessor:
         
         return processed_dir
     
-    def process_file(self, file_path: str,process_dir: str=None,filename:str=None) -> str: 
+    def process_file(self, file_path: str, process_dir: str=None, filename:str=None) -> str: 
         if process_dir is None:
             processed_file = f"{file_path}_processed"
         else:
             processed_file = f"{process_dir}/{filename}.processed"
+        
+        logger.info(f"Preprocessing file: {file_path} (this may take a while)...")
         with open(file_path, "rb") as f:
             elements = partition(file=f, include_page_breaks=True)
             file_content="\n".join([str(el) for el in elements])
@@ -93,6 +95,7 @@ class DataProcessor:
             processed_content = processor(file_content)
         with open(processed_file, 'w', encoding='utf-8') as f:
             f.write(processed_content)
+        logger.info(f"Preprocessing complete for {file_path}. Saved to {processed_file}")
         return processed_file
 
     def process_url(self) -> str:
