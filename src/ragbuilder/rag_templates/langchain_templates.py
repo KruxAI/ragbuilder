@@ -18,7 +18,7 @@ retriever_combinations = arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25R
 arr_baseline_retrievers = ['vectorSimilarity', 'bm25Retriever']
 arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
 arr_contextual_compression = [True, False]
-compressor_combinations = arr_compressors = ["EmbeddingsRedundantFilter", "EmbeddingsClusteringFilter", "LLMChainFilter", "LongContextReorder", "CrossEncoderReranker"]
+compressor_combinations = arr_compressors = ['EmbeddingsRedundantFilter', 'EmbeddingsClusteringFilter', 'LLMChainFilter', 'LongContextReorder', 'CrossEncoderReranker','cohere','jina','mixedbread-ai/mxbai-rerank-large-v1','flashrank','colbert']
 arr_search_kwargs = ['5', '10', '20']
 vectorDB="chromaDB" # Default fallback value
 

@@ -105,7 +105,9 @@ def getCompressors(**kwargs):
     - DocumentCompressorPipeline object based on the specified compressors.
     """
     compressor_config = kwargs.get('compressor',None)
+    compressor_config=['colbert'] # ['cohere','jina','mixedbread-ai/mxbai-rerank-large-v1','flashrank','colbert']
     print(compressor_config)
+    search_kwargs=kwargs.get('search_kwargs',None)
     arr_transformer=[]
     if 'LLMChainExtractor' in compressor_config:
         code_string= f"""arr_comp.append(LLMChainExtractor.from_llm(llm))"""
@@ -139,7 +141,48 @@ def getCompressors(**kwargs):
         code_string= f"""arr_comp.append(LongContextReorder())"""
         import_string = f"""from langchain_community.document_transformers import LongContextReorder"""
         return {'code_string':code_string,'import_string':import_string}
-        
+    
+    if 'mixedbread-ai/mxbai-rerank-large-v1' in compressor_config:
+        code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-base-v1", verbose=0)
+compressor = ranker.as_langchain_compressor(k={search_kwargs})
+arr_comp.append(compressor)
+"""
+        import_string = f"""from rerankers import Reranker"""
+        return {'code_string':code_string,'import_string':import_string}
+    
+    if 'flashrank' in compressor_config:
+        code_string= f"""ranker = Reranker("flashrank", verbose=0)
+compressor = ranker.as_langchain_compressor(k={search_kwargs})
+arr_comp.append(compressor)
+"""
+        import_string = f"""from rerankers import Reranker"""
+        return {'code_string':code_string,'import_string':import_string}
+    
+    if 'cohere' in compressor_config:
+        code_string= f"""ranker = Reranker("cohere", lang='en', api_key = os.getenv('COHERE_API_KEY'))
+compressor = ranker.as_langchain_compressor(k={search_kwargs})
+arr_comp.append(compressor)
+"""
+        import_string = f"""from rerankers import Reranker"""
+        return {'code_string':code_string,'import_string':import_string}
+
+    if 'jina' in compressor_config:
+        code_string= f"""ranker = Reranker("jina", api_key = os.getenv('JINA_API_KEY'))
+compressor = ranker.as_langchain_compressor(k={search_kwargs})
+arr_comp.append(compressor)
+"""
+        import_string = f"""from rerankers import Reranker"""
+        return {'code_string':code_string,'import_string':import_string}
+    
+    if 'colbert' in compressor_config:
+        code_string= f"""ranker = Reranker("colbert")
+compressor = ranker.as_langchain_compressor(k={search_kwargs})
+arr_comp.append(compressor)
+"""
+        import_string = f"""from rerankers import Reranker"""
+        return {'code_string':code_string,'import_string':import_string}
+
+
     if 'CrossEncoderReranker' in compressor_config:
         search_kwargs=kwargs.get('search_kwargs',None)
         code_string= f"""

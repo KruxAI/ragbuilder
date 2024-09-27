@@ -40,7 +40,7 @@ LOG_FILENAME = logger.handlers[0].baseFilename
 LOG_DIRNAME = Path(LOG_FILENAME).parent
 BASE_DIR = Path(__file__).resolve().parent
 logger.info(f"LOG_FILENAME = {LOG_FILENAME}")
-
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 url = "http://localhost:8005"
 
 app = FastAPI()
