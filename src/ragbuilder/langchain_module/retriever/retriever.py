@@ -105,7 +105,6 @@ def getCompressors(**kwargs):
     - DocumentCompressorPipeline object based on the specified compressors.
     """
     compressor_config = kwargs.get('compressor',None)
-    compressor_config=['colbert'] # ['cohere','jina','mixedbread-ai/mxbai-rerank-large-v1','flashrank','colbert']
     print(compressor_config)
     search_kwargs=kwargs.get('search_kwargs',None)
     arr_transformer=[]
@@ -182,6 +181,21 @@ arr_comp.append(compressor)
         import_string = f"""from rerankers import Reranker"""
         return {'code_string':code_string,'import_string':import_string}
 
+    if 'mixedbread-ai/mxbai-rerank-base-v1' in compressor_config:
+        code_string= f"""ranker = Reranker("cross-encoder")
+compressor = ranker.as_langchain_compressor(k={search_kwargs})
+arr_comp.append(compressor)
+"""
+        import_string = f"""from rerankers import Reranker"""
+        return {'code_string':code_string,'import_string':import_string}
+    
+    if 'rankllm' in compressor_config:
+        code_string= f"""ranker = Reranker("rankllm",api_key = os.getenv('OPENAI_API_KEY'))
+compressor = ranker.as_langchain_compressor(k={search_kwargs})
+arr_comp.append(compressor)
+"""
+        import_string = f"""from rerankers import Reranker"""
+        return {'code_string':code_string,'import_string':import_string}
 
     if 'CrossEncoderReranker' in compressor_config:
         search_kwargs=kwargs.get('search_kwargs',None)

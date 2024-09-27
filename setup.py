@@ -92,7 +92,8 @@ setup(
         'optuna',
         'tenacity==8.4.2',
         'rerankers',
-        'rerankers[flashrank]'
+        'rerankers[flashrank]',
+        'rerankers[gpt]'
         # 'llama-index',
         # 'llama-index-vector-stores-chroma',
         # 'llama-index-readers-web',
