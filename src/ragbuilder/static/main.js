@@ -287,13 +287,22 @@ $(document).ready(function () {
         }
     });
 
-    // Disable Compressors if contextualCompression is unselected
+    const initialState = {};
+
+    $('#compression-opts input[type="checkbox"]').not('#contextualCompression').each(function() {
+        initialState[this.id] = this.checked;
+    });
+
     $('#contextualCompression').change(function() {
-        if (!this.checked) {
-            $('#longContextReorder, #crossEncoderReranker, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('checked', false).prop('disabled', true);
-        } else {
-            $('#longContextReorder, #crossEncoderReranker, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('disabled', false);
-        }
+        const isChecked = this.checked;
+        $('#compression-opts input[type="checkbox"]').not('#contextualCompression').each(function() {
+            if (isChecked) {
+                $(this).prop('disabled', false).prop('checked', initialState[this.id]);
+            } else {
+                initialState[this.id] = this.checked;
+                $(this).prop('disabled', true).prop('checked', false);
+            }
+        });
     });
 
     // Show or hide the number of runs input based on the selected optimization option
@@ -672,11 +681,18 @@ $(document).ready(function () {
         
         if ($('#contextualCompression').is(':checked')) {
                 projectData.compressors = {
-                    LongContextReorder: $('#longContextReorder').is(':checked'),
-                    CrossEncoderReranker: $('#crossEncoderReranker').is(':checked'),
-                    EmbeddingsRedundantFilter: $('#embeddingsRedundantFilter').is(':checked'),
-                    EmbeddingsClusteringFilter: $('#embeddingsClusteringFilter').is(':checked'),
-                    LLMChainFilter: $('#llmChainFilter').is(':checked')
+                    "mixedbread-ai/mxbai-rerank-base-v1": $('#mxbai-rerank-base-v1').is(':checked'),
+                    "mixedbread-ai/mxbai-rerank-large-v1": $('#mxbai-rerank-large-v1').is(':checked'),
+                    "BAAI/bge-reranker-base": $('#bge-reranker-base').is(':checked'),
+                    "flashrank": $('#flashrank').is(':checked'),
+                    "cohere": $('#cohere').is(':checked'),
+                    "jina": $('#jina').is(':checked'),
+                    "colbert": $('#colbert').is(':checked'),
+                    "rankllm": $('#rankllm').is(':checked'),
+                    "LongContextReorder": $('#longContextReorder').is(':checked'),
+                    "EmbeddingsRedundantFilter": $('#embeddingsRedundantFilter').is(':checked'),
+                    "EmbeddingsClusteringFilter": $('#embeddingsClusteringFilter').is(':checked'),
+                    "LLMChainFilter": $('#llmChainFilter').is(':checked')
                 };
         }
         if ($('#existingTestData').is(':checked')) {
