@@ -51,6 +51,7 @@ def getRetriever(**kwargs):
 
     if retriever_type in ["vectorSimilarity", "vectorMMR"]:
         logger.info("Vector Retriever Invoked")
+        ##TODO: Generalize As Above and test
         document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
         if document_compressor_pipeline is not None:
             if any(reranker in document_compressor_pipeline for reranker in rerankers_to_check):
