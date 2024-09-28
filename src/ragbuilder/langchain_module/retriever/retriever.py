@@ -47,7 +47,7 @@ def getRetriever(**kwargs):
     if not retriever_type:
         raise ValueError("retriever_type must be provided in kwargs")
     
-    document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
+    document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',[])
     if any(reranker in document_compressor_pipeline for reranker in rerankers_to_check):
         search_kwargs=100
 
