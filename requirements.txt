@@ -79,3 +79,6 @@ langsmith
 neo4j
 optuna
 tenacity==8.4.2
+rerankers
+rerankers[flashrank]
+rerankers[gpt]

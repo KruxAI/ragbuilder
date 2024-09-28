@@ -287,14 +287,48 @@ $(document).ready(function () {
         }
     });
 
-    // Disable Compressors if contextualCompression is unselected
     $('#contextualCompression').change(function() {
         if (!this.checked) {
-            $('#longContextReorder, #crossEncoderReranker, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('checked', false).prop('disabled', true);
+            $('#mxbai-rerank-base-v1, #mxbai-rerank-large-v1, #bge-reranker-base, #flashrank, #cohere, #jina, #colbert, #rankllm, #longContextReorder, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('checked', false).prop('disabled', true);
         } else {
-            $('#longContextReorder, #crossEncoderReranker, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('disabled', false);
+            $('#mxbai-rerank-base-v1, #mxbai-rerank-large-v1, #bge-reranker-base, #flashrank, #cohere, #jina, #colbert, #rankllm, #longContextReorder, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('disabled', false);
         }
     });
+    // let lastState = {};
+
+    // function updateLastState() {
+    //     $('#compression-opts input[type="checkbox"]').not('#contextualCompression').each(function() {
+    //         lastState[this.id] = this.checked;
+    //     });
+    // }
+
+    // updateLastState();
+
+    // $('#compression').change(function() {
+    //     const isChecked = this.checked;
+    //     $('#compression-opts input[type="checkbox"]').prop('disabled', !isChecked);
+        
+    //     if (isChecked) {
+    //         $('#contextualCompression').prop('checked', true);
+    //         $('#compression-opts input[type="checkbox"]').prop('checked', true);
+    //         updateLastState();
+    //     } else {
+    //         $('#compression-opts input[type="checkbox"]').prop('checked', false);
+    //         updateLastState();
+    //     }
+    // });
+
+    // $('#contextualCompression').change(function() {
+    //     const isChecked = this.checked;
+    //     $('#compression-opts input[type="checkbox"]').not('#contextualCompression').each(function() {
+    //         if (isChecked) {
+    //             $(this).prop('disabled', false).prop('checked', lastState[this.id]);
+    //         } else {
+    //             lastState[this.id] = this.checked;
+    //             $(this).prop('disabled', true).prop('checked', false);
+    //         }
+    //     });
+    // });
 
     // Show or hide the number of runs input based on the selected optimization option
     $('input[name="optimization"]').change(function () {
@@ -672,11 +706,18 @@ $(document).ready(function () {
         
         if ($('#contextualCompression').is(':checked')) {
                 projectData.compressors = {
-                    LongContextReorder: $('#longContextReorder').is(':checked'),
-                    CrossEncoderReranker: $('#crossEncoderReranker').is(':checked'),
-                    EmbeddingsRedundantFilter: $('#embeddingsRedundantFilter').is(':checked'),
-                    EmbeddingsClusteringFilter: $('#embeddingsClusteringFilter').is(':checked'),
-                    LLMChainFilter: $('#llmChainFilter').is(':checked')
+                    "mixedbread-ai/mxbai-rerank-base-v1": $('#mxbai-rerank-base-v1').is(':checked'),
+                    "mixedbread-ai/mxbai-rerank-large-v1": $('#mxbai-rerank-large-v1').is(':checked'),
+                    "BAAI/bge-reranker-base": $('#bge-reranker-base').is(':checked'),
+                    "flashrank": $('#flashrank').is(':checked'),
+                    "cohere": $('#cohere').is(':checked'),
+                    "jina": $('#jina').is(':checked'),
+                    "colbert": $('#colbert').is(':checked'),
+                    "rankllm": $('#rankllm').is(':checked'),
+                    "LongContextReorder": $('#longContextReorder').is(':checked'),
+                    "EmbeddingsRedundantFilter": $('#embeddingsRedundantFilter').is(':checked'),
+                    "EmbeddingsClusteringFilter": $('#embeddingsClusteringFilter').is(':checked'),
+                    "LLMChainFilter": $('#llmChainFilter').is(':checked')
                 };
         }
         if ($('#existingTestData').is(':checked')) {
