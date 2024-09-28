@@ -56,6 +56,7 @@ import dotenv
 from langchain_community.document_loaders import *
 from langchain_text_splitters import *
 from langchain_community.retrievers import AmazonKendraRetriever
+from ragatouille import RAGPretrainedModel
 from langchain.retrievers import (
     ContextualCompressionRetriever,
     EnsembleRetriever,
