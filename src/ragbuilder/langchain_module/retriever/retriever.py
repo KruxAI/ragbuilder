@@ -41,9 +41,7 @@ def getRetriever(**kwargs):
     - Retriever object based on the specified retriever_type.
     """
     retriever_type = kwargs.get('retriever_type')
-    print('retriever_type',retriever_type,kwargs)
-    search_kwargs=kwargs.get('search_kwargs',5)
-    print('search_kwargs',search_kwargs)
+    search_kwargs=kwargs.get('search_kwargs',None)
     if not retriever_type:
         raise ValueError("retriever_type must be provided in kwargs")
     
