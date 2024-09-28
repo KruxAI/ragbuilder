@@ -83,3 +83,4 @@ rerankers
 rerankers[flashrank]
 rerankers[gpt]
 gensim
+ragatouille

@@ -14,7 +14,8 @@ from langchain_community.retrievers import BM25Retriever
 
 from langchain.storage import InMemoryStore
 from langchain.retrievers.document_compressors import *
-
+import time
+import random
 setup_logging()
 logger = logging.getLogger("ragbuilder")
 
@@ -40,15 +41,20 @@ def getRetriever(**kwargs):
     - Retriever object based on the specified retriever_type.
     """
     retriever_type = kwargs.get('retriever_type')
+    search_kwargs=kwargs.get('search_kwargs',None)
     if not retriever_type:
         raise ValueError("retriever_type must be provided in kwargs")
+    
+    document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',[])
+    if any(reranker in document_compressor_pipeline for reranker in rerankers_to_check):
+        search_kwargs=100
 
     if retriever_type in ["vectorSimilarity", "vectorMMR"]:
         logger.info("Vector Retriever Invoked")
+        ##TODO: Generalize As Above and test
         document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
         if document_compressor_pipeline is not None:
             if any(reranker in document_compressor_pipeline for reranker in rerankers_to_check):
-                print('Rerankers')
                 code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': 100}})"""
             else:
                 print('No Rerankers')
@@ -100,7 +106,23 @@ from langchain.storage import InMemoryStore"""
         code_string= f"""retriever=BM25Retriever.from_documents(docs)"""
         import_string = f"""from langchain_community.retrievers import  BM25Retriever"""
         return {'code_string':code_string,'import_string':import_string}
-
+    elif retriever_type == "colbertRetriever":
+        print("Colbert Retriever Invoked")
+        print("Colbert Retriever Invoked",str(search_kwargs))
+        timestamp = str(int(time.time()*1000+random.randint(1, 1000)))
+        index_name = "testindex-ragbuilder-" + timestamp
+        code_string= f"""
+RAG = RAGPretrainedModel.from_pretrained('colbert-ir/colbertv2.0')
+full_document = format_docs(docs)
+RAG.index(
+            collection=[full_document],
+            index_name="{index_name}",
+            split_documents=True,
+        )
+retriever = RAG.as_langchain_retriever(k={search_kwargs})
+"""
+        import_string = f"""from ragatouille import RAGPretrainedModel"""
+        return {'code_string':code_string,'import_string':import_string}
     else:
         raise ValueError(f"Unsupported retriever_type: {retriever_type}")
 

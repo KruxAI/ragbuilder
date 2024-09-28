@@ -515,6 +515,7 @@ $(document).ready(function () {
                             <li><div class="row"><div class="col-8">Vector DB - Similarity Search: </div>${$('#vectorSimilarity').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-8">Vector DB - MMR: </div>${$('#vectorMMR').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-8">BM25 Retriever: </div>${$('#bm25Retriever').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Colbert Retriever: </div>${$('#colbertRetriever').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-8">Multi Query Retriever: </div>${$('#multiQuery').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-8">Parent Doc Retriever - Full Documents: </div>${$('#parentDocFullDoc').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-8">Parent Doc Retriever - Large Chunks: </div>${$('#parentDocLargeChunk').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
@@ -669,6 +670,7 @@ $(document).ready(function () {
                 vectorSimilarity: $('#vectorSimilarity').is(':checked'),
                 vectorMMR: $('#vectorMMR').is(':checked'),
                 bm25Retriever: $('#bm25Retriever').is(':checked'),
+                colbertRetriever: $('#colbertRetriever').is(':checked'),
                 multiQuery: $('#multiQuery').is(':checked'),
                 parentDocFullDoc: $('#parentDocFullDoc').is(':checked'),
                 parentDocLargeChunk: $('#parentDocLargeChunk').is(':checked')

@@ -14,7 +14,7 @@ MAX_MULTI_COMPRESSOR_COMBOS=4
 arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
 arr_chunk_size = [1000, 2000, 3000]
 arr_embedding_model = ['OpenAI:text-embedding-3-small','OpenAI:text-embedding-3-large','OpenAI:text-embedding-ada-002']
-retriever_combinations = arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
+retriever_combinations = arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk','colbertRetriever']
 arr_baseline_retrievers = ['vectorSimilarity', 'bm25Retriever']
 arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
 arr_contextual_compression = [True, False]
@@ -48,7 +48,7 @@ def init(db='ChromaDB', min=500, max=2000, other_embedding=[], other_llm=[]):
     arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
     arr_chunk_size = _get_arr_chunk_size(min, max, step_size=chunk_step_size)
     arr_embedding_model = ['OpenAI:text-embedding-3-small','OpenAI:text-embedding-3-large','OpenAI:text-embedding-ada-002']
-    arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk']
+    arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk','colbertRetriever']
     retriever_combinations = [retriever for retriever in arr_retriever if retriever not in arr_baseline_retrievers]
     arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
     arr_contextual_compression = [True, False]
