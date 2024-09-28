@@ -94,7 +94,8 @@ setup(
         'rerankers',
         'rerankers[flashrank]',
         'rerankers[gpt]',
-        'gensim'
+        'gensim',
+        'ragatouille'
         # 'llama-index',
         # 'llama-index-vector-stores-chroma',
         # 'llama-index-readers-web',

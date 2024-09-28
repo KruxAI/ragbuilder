@@ -41,17 +41,21 @@ def getRetriever(**kwargs):
     - Retriever object based on the specified retriever_type.
     """
     retriever_type = kwargs.get('retriever_type')
-    print('retriever_type',retriever_type)
-    search_kwargs=kwargs['search_kwargs']
+    print('retriever_type',retriever_type,kwargs)
+    search_kwargs=kwargs.get('search_kwargs',5)
+    print('search_kwargs',search_kwargs)
     if not retriever_type:
         raise ValueError("retriever_type must be provided in kwargs")
+    
+    document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
+    if any(reranker in document_compressor_pipeline for reranker in rerankers_to_check):
+        search_kwargs=100
 
     if retriever_type in ["vectorSimilarity", "vectorMMR"]:
         logger.info("Vector Retriever Invoked")
         document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
         if document_compressor_pipeline is not None:
             if any(reranker in document_compressor_pipeline for reranker in rerankers_to_check):
-                search_kwargs=100
                 code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': 100}})"""
             else:
                 print('No Rerankers')
@@ -104,7 +108,8 @@ from langchain.storage import InMemoryStore"""
         import_string = f"""from langchain_community.retrievers import  BM25Retriever"""
         return {'code_string':code_string,'import_string':import_string}
     elif retriever_type == "colbertRetriever":
-        logger.info("Colbert Retriever Invoked")
+        print("Colbert Retriever Invoked")
+        print("Colbert Retriever Invoked",str(search_kwargs))
         timestamp = str(int(time.time()*1000+random.randint(1, 1000)))
         index_name = "testindex-ragbuilder-" + timestamp
         code_string= f"""
