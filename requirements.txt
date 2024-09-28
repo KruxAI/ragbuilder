@@ -82,3 +82,4 @@ tenacity==8.4.2
 rerankers
 rerankers[flashrank]
 rerankers[gpt]
+gensim
