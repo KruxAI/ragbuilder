@@ -68,7 +68,7 @@ class DataProcessor:
 
         files = [f for f in Path(dir_path).rglob('*') if f.is_file() and f.name != '.DS_Store']
         args = [(str(f), f'{processed_dir}/{str(f.relative_to(dir_path))}.processed') for f in files]
-        print(args)
+        # print(args)
 
             # Use the Pool within the main guard
         with Pool() as pool:
@@ -90,7 +90,7 @@ class DataProcessor:
         if processed_dir != '':
             os.makedirs(processed_dir, exist_ok=True)
 
-        print(file_path, processed_file)
+        # print(file_path, processed_file)
         logger.info(f"Preprocessing file: {file_path} (this may take a while)...")
         
         # Read the original file and process it

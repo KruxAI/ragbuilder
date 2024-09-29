@@ -19,6 +19,7 @@ arr_baseline_retrievers = ['vectorSimilarity', 'bm25Retriever']
 arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
 arr_contextual_compression = [True, False]
 compressor_combinations = arr_compressors = [
+    "None",
     "mixedbread-ai/mxbai-rerank-base-v1",
     "mixedbread-ai/mxbai-rerank-large-v1",
     "BAAI/bge-reranker-base",
@@ -53,6 +54,7 @@ def init(db='ChromaDB', min=500, max=2000, other_embedding=[], other_llm=[]):
     arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
     arr_contextual_compression = [True, False]
     compressor_combinations = arr_compressors = [
+        "None",
         "mixedbread-ai/mxbai-rerank-base-v1",
         "mixedbread-ai/mxbai-rerank-large-v1",
         "BAAI/bge-reranker-base",
@@ -103,13 +105,6 @@ def filter_exclusions(exclude_elements):
     if set(arr_chunking_strategy).issubset(no_chunk_req_loaders):
         arr_chunk_size=arr_chunk_size[:1] # Trim to 1 value - will be irrelevant since we only have loaders that don't require chunk_size
 
-    # Handle contextual compression exclusion
-    if 'contextualCompression' in exclude_elements:
-        arr_contextual_compression = [False]
-        arr_compressors = ['None']
-    else:
-        arr_contextual_compression = [True, False]
-
 def count_combos():
     return reduce(lambda x, y: 
                 x * len(y), 
@@ -118,8 +113,8 @@ def count_combos():
                     arr_chunk_size,
                     arr_search_kwargs,
                     arr_embedding_model, 
+                    arr_baseline_retrievers,
                     retriever_combinations,
-                    arr_contextual_compression,
                     compressor_combinations,
                     arr_llm
                 ], 1
@@ -171,11 +166,6 @@ def generate_config_for_trial_optuna(trial):
     else:
         llm = trial.suggest_categorical('llm', arr_llm)
 
-    if len(arr_contextual_compression) == 1:
-        contextual_compression = arr_contextual_compression[0]
-    else:
-        contextual_compression = trial.suggest_categorical('contextual_compression', arr_contextual_compression)
-
     if len(arr_search_kwargs) == 1:
         search_kwargs = arr_search_kwargs[0]
     else:
@@ -204,7 +194,7 @@ def generate_config_for_trial_optuna(trial):
 
     # Now, select 'n' - the num of retrievers from MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers)
     n_retrievers = trial.suggest_int('n_retrievers', 0, MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers))
-    print(f'n_retrievers: {n_retrievers}')
+    logger.info(f'n_retrievers: {n_retrievers}')
 
     # Now choose those n retrievers
     for i in range(n_retrievers):
@@ -213,20 +203,8 @@ def generate_config_for_trial_optuna(trial):
             selected_retrievers.append(retriever)
 
     retriever_kwargs = {'retrievers': [_format_retriever_config(retriever, search_kwargs) for retriever in selected_retrievers]}
-    print(f'retriever_kwargs: {retriever_kwargs}')
+    logger.debug(f'retriever_kwargs: {retriever_kwargs}')
 
-    # for i, retriever in enumerate(arr_retriever):
-    #     if trial.suggest_categorical(f'use_{retriever}', [True, False]):
-    #         retriever_kwargs['retrievers'].append(_format_retriever_config(retriever, search_kwargs))
-
-    
-    # Ensure at least one retriever is selected
-    # if not retriever_kwargs['retrievers']:
-    #     fallback_retriever = trial.suggest_categorical('fallback_retriever', arr_retriever)
-    #     retriever_kwargs['retrievers'].append(_format_retriever_config(fallback_retriever, search_kwargs))
-        
-    # For parentDoc retrievers, change chunking strategy to RecursiveCharacterTextSplitter 
-    # if it's not already a RecursiveCharacterTextSplitter or CharacterTextSplitter
     if any(r["retriever_type"] in ['parentDocFullDoc', 'parentDocLargeChunk'] for r in retriever_kwargs['retrievers']) \
         and chunking_strategy not in chunk_req_loaders:
         chunking_kwargs = {
@@ -235,136 +213,19 @@ def generate_config_for_trial_optuna(trial):
             'chunk_overlap': chunk_overlap
         }
 
-    retriever_kwargs["contextual_compression_retriever"] = contextual_compression
-    if contextual_compression:
-        compressors_lst=[]
-        for i, compressor in enumerate(arr_compressors):
-            if trial.suggest_categorical(f'use_{compressor}', [True, False]):
-                compressors_lst.append(compressor)
-
-        if not compressors_lst:
-            fallback_compressor = trial.suggest_categorical('fallback_compressor', arr_compressors)
-            compressors_lst.append(fallback_compressor)
-
-        retriever_kwargs["document_compressor_pipeline"] = compressors_lst
-        if "EmbeddingsClusteringFilter" in compressors_lst:
-            retriever_kwargs["EmbeddingsClusteringFilter_kwargs"] = {
-                "embeddings": embedding_model, 
-                "num_clusters": 4, 
-                "num_closest": 1, 
-                "sorted": True
-            }
-
-    config = {
-        'framework': 'langchain',
-        'chunking_kwargs': chunking_kwargs,
-        'vectorDB_kwargs' : {'vectorDB': vectorDB},
-        'embedding_kwargs': {'embedding_model': embedding_model},
-        'retriever_kwargs': retriever_kwargs,
-        'retrieval_model': llm,
-        'compressors': compressors_lst if contextual_compression else []
-    }
-    return config
-
-def generate_config_space(exclude_elements=None):
-    global retriever_combinations, compressor_combinations
-    logger.info(f"Filtering exclusions...")
-    filter_exclusions(exclude_elements)
-    #TODO: If chunking strategy includes only ones from no_chunk_req_loaders, 
-    # and retrievers includes parentDoc retriever, then handle it here
-
-    logger.info(f"Generating config space...")
-    logger.debug(f"arr_retriever = {arr_retriever}")
-    logger.debug(f"arr_compressors = {arr_compressors}")
-    retriever_combinations = _generate_combinations(arr_retriever)
-    compressor_combinations = _generate_combinations(arr_compressors)
-    # cnt_combos=count_combos()
-    logger.debug(f"retriever_combinations = {retriever_combinations}")
-    logger.debug(f"compressor_combinations = {compressor_combinations}")
-    logger.debug(f"chunking_strategy = {Categorical(tuple(arr_chunking_strategy), name='chunking_strategy')}")
-    # logger.debug(f"chunk_size = {Integer(min(arr_chunk_size), max(arr_chunk_size), name='chunk_size')}")
-    logger.debug(f"chunk_size = {Categorical(tuple(arr_chunk_size), name='chunk_size')}")
-    logger.debug(f"embedding_model = {Categorical(tuple(arr_embedding_model), name='embedding_model')}")
-    logger.debug(f"retrievers = {Categorical(retriever_combinations, name='retrievers')}")
-    logger.debug(f"llm = {Categorical(tuple(arr_llm), name='llm')}")
-    logger.debug(f"contextual_compression = {Categorical(tuple(arr_contextual_compression), name='contextual_compression')}")
-    logger.debug(f"compressors = {Categorical(compressor_combinations, name='compressors')}")
-    logger.debug(f"search_k = {Categorical(tuple(arr_search_kwargs), name='search_k')}")
-
-
-    space=[
-        Categorical(tuple(arr_chunking_strategy), name='chunking_strategy'),
-        # Integer(min(arr_chunk_size), max(arr_chunk_size), name='chunk_size'),
-        Categorical(tuple(arr_chunk_size), name='chunk_size'),
-        Categorical(tuple(arr_search_kwargs), name='search_k'),
-        Categorical(tuple(arr_embedding_model), name='embedding_model'),
-        Categorical(retriever_combinations, name='retrievers'),
-        # Categorical(tuple(retriever_combinations), name='retrievers')#,
-        Categorical(tuple(arr_contextual_compression), name='contextual_compression'),
-        Categorical(compressor_combinations, name='compressors'),
-        Categorical(tuple(arr_llm), name='llm')
-    ]
-    logger.info(f"space = {space}")
-    return space
-
-def generate_config_from_params(params):
-    logger.info(f"params={params}")
-    chunking_strategy=params['chunking_strategy']
-    chunk_size=int(params['chunk_size'])
-    search_kwargs=int(params['search_k'])
-    embedding_model=params['embedding_model']
-    retrievers=params['retrievers']
-    contextual_compression=bool(params['contextual_compression'])
-    compressors=params['compressors']
-    llm=params['llm']
-    logger.info(f"chunking_strategy={chunking_strategy}")
-    logger.info(f"chunk_size={chunk_size}")
-    logger.info(f"search_k={search_kwargs}")
-    logger.info(f"embedding_model={embedding_model}")
-    logger.info(f"retrievers={retrievers}")
-    logger.info(f"contextual_compression={contextual_compression}")
-    logger.info(f"compressors={compressors}")
-    logger.info(f"llm={llm}")
-
-    chunking_kwargs = {}
-    if chunking_strategy not in no_chunk_req_loaders:
-        chunking_kwargs = {
-            'chunk_strategy': chunking_strategy,
-            'chunk_size': chunk_size,
-            'chunk_overlap': chunk_overlap
-        }
+    if len(arr_compressors) == 1:
+        compressor = 'None'
+    elif len(arr_compressors) == 2: 
+        compressor = arr_compressors[1] # 0th index is 'None' - pick the only compressor
     else:
-        chunking_kwargs = {
-            'chunk_strategy': chunking_strategy
-        }
-
-    retrievers_lst=retrievers.split('|') if '|' in retrievers else [retrievers]
-    compressors_lst=compressors.split('|') if '|' in compressors else [compressors]
-
-    # TODO: Re-think and re-do this ugly piece of shit below
-    # For parentDoc retrievers, change chunking strategy to RecursiveCharacterTextSplitter if it's not already a RecursiveCharacterTextSplitter or CharacterTextSplitter
-    if any(r in ['parentDocFullDoc', 'parentDocLargeChunk'] for r in retrievers_lst) and chunking_strategy not in chunk_req_loaders:
-        chunking_kwargs = {
-            'chunk_strategy': 'RecursiveCharacterTextSplitter',
-            'chunk_size': arr_chunk_size[0],
-            'chunk_overlap': chunk_overlap
-        }
-
-    retriever_kwargs = {'retrievers': []}    
-    for retriever in retrievers_lst:
-        if retriever == 'vectorSimilarity':
-            retriever_entry = {'retriever_type': 'vectorSimilarity', 'search_type': 'similarity', 'search_kwargs': search_kwargs}
-        elif retriever == 'vectorMMR':
-            retriever_entry = {'retriever_type': 'vectorMMR', 'search_type': 'mmr', 'search_kwargs': search_kwargs}
-        else:
-            retriever_entry = {'retriever_type': retriever, 'search_type': 'similarity', 'search_kwargs': search_kwargs}
-        retriever_kwargs['retrievers'].append(retriever_entry)
-
-    retriever_kwargs["contextual_compression_retriever"] = contextual_compression
-    if contextual_compression:
-        # retriever_kwargs["document_compressor_pipeline"] = list(compressors)
-        retriever_kwargs["document_compressor_pipeline"] = compressors_lst
-        if "EmbeddingsClusteringFilter" in compressors_lst:
+        compressor = trial.suggest_categorical('reranker_compressor', arr_compressors)
+    
+    if compressor == 'None':
+        retriever_kwargs["contextual_compression_retriever"] = False
+    else:
+        retriever_kwargs["contextual_compression_retriever"] = True
+        retriever_kwargs["document_compressor_pipeline"] = [compressor]
+        if compressor == "EmbeddingsClusteringFilter":
             retriever_kwargs["EmbeddingsClusteringFilter_kwargs"] = {
                 "embeddings": embedding_model, 
                 "num_clusters": 4, 
@@ -379,7 +240,7 @@ def generate_config_from_params(params):
         'embedding_kwargs': {'embedding_model': embedding_model},
         'retriever_kwargs': retriever_kwargs,
         'retrieval_model': llm,
-        'compressors': compressors_lst if contextual_compression else []
+        'compressors': [compressor] if compressor != 'None' else []
     }
     return config
 
