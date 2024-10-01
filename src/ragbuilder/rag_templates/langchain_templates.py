@@ -245,6 +245,7 @@ def generate_config_for_trial_optuna(trial):
     return config
 
 def nuancedCombos(exclude_elements=None):
+    global arr_compressors
     logger.info(f"Filtering exclusions...")
 
     filter_exclusions(exclude_elements)
@@ -265,6 +266,7 @@ def nuancedCombos(exclude_elements=None):
             for chunk_size in arr_chunk_size:
                 combinations.append(combination + ([chunk_size],))
     
+    arr_compressors = [compressor for compressor in arr_compressors if compressor not in ['None']]
     all_combinations = []
     for combination in combinations:
         for retrievers in itertools.combinations(arr_retriever, 1):
