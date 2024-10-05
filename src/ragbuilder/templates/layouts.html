@@ -318,7 +318,7 @@
                                                         <input type="checkbox" class="mx-1 form-check-input" id="bm25Retriever" checked> BM25 Retriever
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="colbertRetriever" checked> Colbert Retriever
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="colbertRetriever" unchecked> Colbert Retriever
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="multiQuery" checked> Multi Query Retriever
@@ -370,44 +370,44 @@
                                                     Re-ranking/ Compression
                                                 </a>
                                                 <ul class="collapse show" id="compression-opts" role="group">
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
+                                                    <!-- <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="contextualCompression" checked> Contextual Compression
+                                                    </li> -->
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="mxbai-rerank-base-v1" checked> Mixedbread-ai/mxbai-rerank-base-v1
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="mxbai-rerank-base-v1" checked> Mixedbread-ai/mxbai-rerank-base-v1
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="mxbai-rerank-large-v1" checked> Mixedbread-ai/mxbai-rerank-large-v1
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="mxbai-rerank-large-v1" checked> Mixedbread-ai/mxbai-rerank-large-v1
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="bge-reranker-base" checked> BAAI/bge-reranker-base
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="bge-reranker-base" checked> BAAI/bge-reranker-base
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="flashrank" checked> Flashrank/ms-marco-MiniLM-L-12-v2
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="flashrank" checked> Flashrank/ms-marco-MiniLM-L-12-v2
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="cohere" unchecked> Cohere/rerank-english-v3.0
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="cohere" unchecked> Cohere/rerank-english-v3.0
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="jina" unchecked> Jina/jina-reranker-v1-base-en
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="jina" unchecked> Jina/jina-reranker-v1-base-en
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="colbert" checked> Colbert v2.0
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="colbert" checked> Colbert v2.0
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="rankllm" unchecked> Rankllm/gpt-4o
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="rankllm" checked> Rankllm/gpt-4o
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="longContextReorder" checked> Long Context Reorder
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="longContextReorder" checked> Long Context Reorder
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="embeddingsRedundantFilter" unchecked> Embedding Redundant Filter
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="embeddingsRedundantFilter" unchecked> Embedding Redundant Filter
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="embeddingsClusteringFilter" unchecked> Embedding Clustering Filter
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="embeddingsClusteringFilter" unchecked> Embedding Clustering Filter
-                                                    </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-3 form-check-input" id="llmChainFilter" unchecked> LLM Chain Filter
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmChainFilter" unchecked> LLM Chain Filter
                                                     </li>
                                                 </ul>
                                             </li>

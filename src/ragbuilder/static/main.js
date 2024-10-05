@@ -288,13 +288,13 @@ $(document).ready(function () {
         }
     });
 
-    $('#contextualCompression').change(function() {
-        if (!this.checked) {
-            $('#mxbai-rerank-base-v1, #mxbai-rerank-large-v1, #bge-reranker-base, #flashrank, #cohere, #jina, #colbert, #rankllm, #longContextReorder, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('checked', false).prop('disabled', true);
-        } else {
-            $('#mxbai-rerank-base-v1, #mxbai-rerank-large-v1, #bge-reranker-base, #flashrank, #cohere, #jina, #colbert, #rankllm, #longContextReorder, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('disabled', false);
-        }
-    });
+    // $('#contextualCompression').change(function() {
+    //     if (!this.checked) {
+    //         $('#mxbai-rerank-base-v1, #mxbai-rerank-large-v1, #bge-reranker-base, #flashrank, #cohere, #jina, #colbert, #rankllm, #longContextReorder, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('checked', false).prop('disabled', true);
+    //     } else {
+    //         $('#mxbai-rerank-base-v1, #mxbai-rerank-large-v1, #bge-reranker-base, #flashrank, #cohere, #jina, #colbert, #rankllm, #longContextReorder, #embeddingsRedundantFilter, #embeddingsClusteringFilter, #llmChainFilter').prop('disabled', false);
+    //     }
+    // });
     // let lastState = {};
 
     // function updateLastState() {
@@ -530,16 +530,20 @@ $(document).ready(function () {
                         </ul>
                     </div>    
                     <div class="col-md-6 mt-3">
-                        <p><strong>Compression:</strong></p>
+                        <p><strong>Re-ranking/ Compression:</strong></p>
                         <ul>
-                            <li><div class="row"><div class="col-8">Contextual Compression: </div>${$('#contextualCompression').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle mx-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
-                            <ul>
-                                <li><div class="row"><div class="col-8">Long Context Reorder: </div>${$('#longContextReorder').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
-                                <li><div class="row"><div class="col-8">Cross Encoder Re-ranker: </div>${$('#crossEncoderReranker').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
-                                <li><div class="row"><div class="col-8">Embedding Redundant Filter: </div>${$('#embeddingsRedundantFilter').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
-                                <li><div class="row"><div class="col-8">Embedding Clustering Filter: </div>${$('#embeddingsClusteringFilter').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
-                                <li><div class="row"><div class="col-8">LLM Chain Filter: </div>${$('#llmChainFilter').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
-                            </ul>        
+                            <li><div class="row"><div class="col-8">Mixedbread-ai/mxbai-rerank-base-v1: </div>${$('#mxbai-rerank-base-v1').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Mixedbread-ai/mxbai-rerank-large-v1: </div>${$('#mxbai-rerank-large-v1').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">BAAI/bge-reranker-base: </div>${$('#bge-reranker-base').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Flashrank/ms-marco-MiniLM-L-12-v2: </div>${$('#flashrank').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Cohere/rerank-english-v3.0: </div>${$('#cohere').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Jina/jina-reranker-v1-base-en: </div>${$('#jina').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Colbert v2.0: </div>${$('#colbert').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Rankllm/gpt-4o: </div>${$('#rankllm').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Long Context Reorder: </div>${$('#longContextReorder').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Embedding Redundant Filter: </div>${$('#embeddingsRedundantFilter').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">Embedding Clustering Filter: </div>${$('#embeddingsClusteringFilter').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
+                            <li><div class="row"><div class="col-8">LLM Chain Filter: </div>${$('#llmChainFilter').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                         </ul>
                     </div>    
                     <div class="col-md-6 mt-3">
@@ -680,7 +684,20 @@ $(document).ready(function () {
                 search_k_10: $('#topK10').is(':checked'),
                 search_k_20: $('#topK20').is(':checked')
             },
-            contextualCompression: $('#contextualCompression').is(':checked'),
+            compressors: {
+                "mixedbread-ai/mxbai-rerank-base-v1": $('#mxbai-rerank-base-v1').is(':checked'),
+                "mixedbread-ai/mxbai-rerank-large-v1": $('#mxbai-rerank-large-v1').is(':checked'),
+                "BAAI/bge-reranker-base": $('#bge-reranker-base').is(':checked'),
+                "flashrank": $('#flashrank').is(':checked'),
+                "cohere": $('#cohere').is(':checked'),
+                "jina": $('#jina').is(':checked'),
+                "colbert": $('#colbert').is(':checked'),
+                "rankllm": $('#rankllm').is(':checked'),
+                "LongContextReorder": $('#longContextReorder').is(':checked'),
+                "EmbeddingsRedundantFilter": $('#embeddingsRedundantFilter').is(':checked'),
+                "EmbeddingsClusteringFilter": $('#embeddingsClusteringFilter').is(':checked'),
+                "LLMChainFilter": $('#llmChainFilter').is(':checked')
+            },
             llm: {
                 "OpenAI:gpt-4o-mini": $('#gpt4oMini').is(':checked'),
                 "OpenAI:gpt-4o": $('#gpt4o').is(':checked'),
@@ -714,23 +731,7 @@ $(document).ready(function () {
             projectData.sotaEmbeddingModel =  getModel('sotaEmbeddingModel', 'customSotaEmbeddingModel');
             projectData.sotaLLMModel =  getModel('sotaLLMModel', 'customSotaLLMModel');
         }
-        
-        if ($('#contextualCompression').is(':checked')) {
-                projectData.compressors = {
-                    "mixedbread-ai/mxbai-rerank-base-v1": $('#mxbai-rerank-base-v1').is(':checked'),
-                    "mixedbread-ai/mxbai-rerank-large-v1": $('#mxbai-rerank-large-v1').is(':checked'),
-                    "BAAI/bge-reranker-base": $('#bge-reranker-base').is(':checked'),
-                    "flashrank": $('#flashrank').is(':checked'),
-                    "cohere": $('#cohere').is(':checked'),
-                    "jina": $('#jina').is(':checked'),
-                    "colbert": $('#colbert').is(':checked'),
-                    "rankllm": $('#rankllm').is(':checked'),
-                    "LongContextReorder": $('#longContextReorder').is(':checked'),
-                    "EmbeddingsRedundantFilter": $('#embeddingsRedundantFilter').is(':checked'),
-                    "EmbeddingsClusteringFilter": $('#embeddingsClusteringFilter').is(':checked'),
-                    "LLMChainFilter": $('#llmChainFilter').is(':checked')
-                };
-        }
+
         if ($('#existingTestData').is(':checked')) {
             projectData.testDataPath = $('#testDataPath').val();
         } else if ($('#useExistingSynthData').is(':checked')) {

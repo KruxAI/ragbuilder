@@ -22,7 +22,7 @@ import warnings
 import optuna
 from pathlib import Path
 from urllib.parse import urlparse
-from ragbuilder.executor import rag_builder, rag_builder_bayes_optmization, rag_builder_bayes_optimization_optuna, get_model_obj
+from ragbuilder.executor import rag_builder, rag_builder_bayes_optimization_optuna, get_model_obj
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
@@ -414,7 +414,6 @@ class ProjectData(BaseModel):
     vectorDB: str
     retriever: dict[str, bool]
     topK: dict[str, bool]
-    contextualCompression: bool
     llm: dict[str, bool]
     huggingfaceLLMModel: str
     groqLLMModel: str

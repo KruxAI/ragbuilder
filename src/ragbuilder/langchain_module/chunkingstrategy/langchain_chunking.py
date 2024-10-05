@@ -83,7 +83,10 @@ headers_to_split_on = [
     ("##", "Header 2"),
     ("###", "Header 3")]
 {splitter_name} = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on, strip_headers=False)
-splits={splitter_name}.split_text(docs[0].page_content)"""
+splits = []
+for doc in docs:
+    splits.extend({splitter_name}.split_text(doc.page_content))
+"""
         import_string = f"""from langchain.text_splitter import MarkdownHeaderTextSplitter"""
         return {'code_string':code_string,'import_string':import_string}
     except KeyError as e:
