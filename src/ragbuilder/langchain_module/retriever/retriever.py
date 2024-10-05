@@ -173,7 +173,7 @@ def getCompressors(**kwargs):
         return {'code_string':code_string,'import_string':import_string}
     
     if 'mixedbread-ai/mxbai-rerank-large-v1' in compressor_config:
-        code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-large-v1", verbose=0)
+        code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-large-v1", model_type='cross-encoder', verbose=0)
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
@@ -181,7 +181,7 @@ arr_comp.append(compressor)
         return {'code_string':code_string,'import_string':import_string}
     
     if 'flashrank' in compressor_config:
-        code_string= f"""ranker = Reranker("flashrank", verbose=0)
+        code_string= f"""ranker = Reranker("flashrank", model_type='FlashRankRanker', verbose=0)
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
@@ -189,7 +189,7 @@ arr_comp.append(compressor)
         return {'code_string':code_string,'import_string':import_string}
     
     if 'cohere' in compressor_config:
-        code_string= f"""ranker = Reranker("cohere", lang='en', api_key = os.getenv('COHERE_API_KEY'))
+        code_string= f"""ranker = Reranker("cohere", model_type='APIRanker', lang='en', api_key = os.getenv('COHERE_API_KEY'))
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
@@ -197,7 +197,7 @@ arr_comp.append(compressor)
         return {'code_string':code_string,'import_string':import_string}
 
     if 'jina' in compressor_config:
-        code_string= f"""ranker = Reranker("jina", api_key = os.getenv('JINA_API_KEY'))
+        code_string= f"""ranker = Reranker("jina", model_type='APIRanker', api_key = os.getenv('JINA_API_KEY'))
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
@@ -205,7 +205,7 @@ arr_comp.append(compressor)
         return {'code_string':code_string,'import_string':import_string}
     
     if 'colbert' in compressor_config:
-        code_string= f"""ranker = Reranker("colbert")
+        code_string= f"""ranker = Reranker("colbert", model_type='ColBERTRanker')
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
@@ -213,7 +213,8 @@ arr_comp.append(compressor)
         return {'code_string':code_string,'import_string':import_string}
 
     if 'mixedbread-ai/mxbai-rerank-base-v1' in compressor_config:
-        code_string= f"""ranker = Reranker("cross-encoder")
+        # code_string= f"""ranker = Reranker("cross-encoder")
+        code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-base-v1", model_type='cross-encoder', verbose=1)
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
@@ -221,7 +222,7 @@ arr_comp.append(compressor)
         return {'code_string':code_string,'import_string':import_string}
     
     if 'rankllm' in compressor_config:
-        code_string= f"""ranker = Reranker("rankllm",api_key = os.getenv('OPENAI_API_KEY'))
+        code_string= f"""ranker = Reranker("rankllm", model_type='RankLLMRanker', api_key = os.getenv('OPENAI_API_KEY'))
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
@@ -229,7 +230,7 @@ arr_comp.append(compressor)
         return {'code_string':code_string,'import_string':import_string}
     
     if 'BAAI/bge-reranker-base' in compressor_config:
-        code_string= f"""ranker = Reranker("BAAI/bge-reranker-base")
+        code_string= f"""ranker = Reranker("BAAI/bge-reranker-base", model_type='APIRanker')
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
