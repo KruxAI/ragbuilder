@@ -2,6 +2,14 @@
 ![RagBuilder logo](./assets/ragbuilder_light.png#gh-light-mode-only)
 
 # 
+
+[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
+[![GitHub release](https://img.shields.io/github/release/KruxAI/ragbuilder.svg)](https://GitHub.com/KruxAI/ragbuilder/releases/)
+[![GitHub license](https://badgen.net/github/license/KruxAI/ragbuilder)](https://github.com/KruxAI/ragbuilder/blob/master/LICENSE)
+[![GitHub commits](https://badgen.net/github/commits/KruxAI/ragbuilder)](https://GitHub.com/KruxAI/ragbuilder/commit/)
+[![GitHub forks](https://img.shields.io/github/forks/KruxAI/ragbuilder.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/KruxAI/ragbuilder/network/)
+[![GitHub stars](https://img.shields.io/github/stars/KruxAI/ragbuilder.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/KruxAI/ragbuilder/stargazers/)
+
 RagBuilder is a toolkit that helps you create optimal Production-ready Retrieval-Augmented-Generation (RAG) setup for your data automatically. By performing hyperparameter tuning on various RAG parameters (Eg: chunking strategy: semantic, character etc., chunk size: 1000, 2000 etc.), RagBuilder evaluates these configurations against a test dataset to identify the best-performing setup for your data. Additionally, RagBuilder includes several state-of-the-art, pre-defined RAG templates that have shown strong performance across diverse datasets. So just bring your data, and RagBuilder will generate a production-grade RAG setup in just minutes.
 
 
