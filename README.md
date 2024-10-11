@@ -5,7 +5,10 @@
 RagBuilder is a toolkit that helps you create optimal Production-ready Retrieval-Augmented-Generation (RAG) setup for your data automatically. By performing hyperparameter tuning on various RAG parameters (Eg: chunking strategy: semantic, character etc., chunk size: 1000, 2000 etc.), RagBuilder evaluates these configurations against a test dataset to identify the best-performing setup for your data. Additionally, RagBuilder includes several state-of-the-art, pre-defined RAG templates that have shown strong performance across diverse datasets. So just bring your data, and RagBuilder will generate a production-grade RAG setup in just minutes.
 
 
-https://github.com/KruxAI/ragbuilder/blob/main/assets/Ragbuilder_demo.mp4
+## Demo Video
+
+[![Watch the demo video](https://img.youtube.com/vi/8b4a5013-b1b7-40ee-820b-32c46fd99a2a/maxresdefault.jpg)](https://github.com/KruxAI/ragbuilder/blob/main/assets/Ragbuilder_demo.mp4)
+
 
 ## Table of Contents
 
