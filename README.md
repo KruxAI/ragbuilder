@@ -13,6 +13,7 @@ https://github.com/user-attachments/assets/8b4a5013-b1b7-40ee-820b-32c46fd99a2a
 - [Installation](#installation)
 - [Set your OpenAI API key](#set-your-openai-api-key)
 - [Quickstart Guide](#quickstart-guide)
+- [Licence](#licence)
 
 ## Features
     
@@ -215,3 +216,8 @@ By setting up these environment variables, you enable the RagBuilder project to 
 
 ### Usage Analytics
 We collect basic usage metrics to understand how our tool is performing for users. Specifically, we track the number of runs initiated and how many complete successfully. As a startup, being data-driven is crucial for us, which is why we monitor these metrics. Rest assured, we do not collect any personal data or information that could identify you, your company, or access your data. You can see exactly what we track by reviewing the code [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L381) and [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L537).
+
+
+## Licence
+
+The ragbuilder is licence under [Apache-2.0 license](Licence)
