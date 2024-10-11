@@ -118,7 +118,7 @@ docker run  -p 55003:8005  -e OPENAI_API_KEY=sk-....
 
 This will start the Ragbuilder Uvicorn app and open the browser. If the browser window doesn't open automatically, go to [http://localhost:55003/](http://localhost:55003/) in your browser to access the RagBuilder dashboard.
 
-*Note: If you are crearting your own synthetic dataset for evaluation, save the csv file in the same directory where the docker run command is being executed and provide the file name only*
+*Note: If you are creating your own synthetic dataset for evaluation, save the csv file in the same directory where the docker run command is being executed and provide the file name only*
 
 ## Quickstart Guide
 
@@ -190,7 +190,7 @@ The environment variables are essential for authenticating and configuring vario
 
 ### Example `.env` File
 
-Create a file named `.env` in the directory where you will run the `ragbuilder` command and add the following content, replacing the placeholder values with your actual keys and connection string. Ensure not to use quoutes for keys or values
+Create a file named `.env` in the directory where you will run the `ragbuilder` command and add the following content, replacing the placeholder values with your actual keys and connection string. Ensure not to use quotes for keys or values
 
 ```env
 # Environment variables for the RagBuilder project
