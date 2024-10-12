@@ -163,7 +163,7 @@
           <form id="chatForm" class="mt-3">
             <div class="input-group mb-3">
               <input type="text" id="userMessage" class="form-control" placeholder="Type your message..." required>
-              <button class="btn btn-primary" type="submit" id="sendMessage">Send</button>
+              <button class="btn btn-primary" type="submit" id="sendMessage" disabled>Send</button>
             </div>
           </form>
         </div>
@@ -543,107 +543,11 @@
             });
         });
     });
-    
-    let currentSessionId = null;
 
     $(document).on('click', '.open-chat', function(e) {
         e.preventDefault();
         const evalId = $(this).data('eval-id');
-        $('.chat-messages').empty();
-        $('.chat-messages').append('<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p>Initializing chat session...</p></div>');
-        $('#chatModal').modal('show');
-        
-        // Create a new chat session
-        $.ajax({
-            url: `/create_chat_session/${evalId}`,
-            method: 'POST',
-            success: function(response) {
-                currentSessionId = response.session_id;
-                $('.chat-messages').empty();
-            },
-            error: function(error) {
-                console.error('Error creating chat session:', error);
-                $('.chat-messages').empty();
-                $('.chat-messages').append('<div class="text-center text-danger"><p>Failed to create chat session. Please try again.</p></div>');
-            }
-        });
-    });
-
-    $('#chatForm').submit(function(e) {
-        e.preventDefault();
-        const message = $('#userMessage').val();
-        if (!message.trim() || !currentSessionId) return;
-
-        // Add user message to chat
-        $('.chat-messages').append(`
-            <div class="d-flex justify-content-end mb-4">
-                <div class="msg_cotainer_send">
-                    ${message}
-                </div>
-                <div class="img_cont_send">
-                    &ensp;<img src="/static/user-avatar.png" class="rounded-circle user_img_send">
-                </div>
-            </div>
-        `);
-
-        $('#userMessage').val('');
-        $('#sendMessage').prop('disabled', true);
-
-        // Add AI response placeholder
-        $('.chat-messages').append(`
-            <div class="d-flex justify-content-start mb-4 ai-response-spinner">
-                <div class="img_cont_msg">
-                    <img src="/static/ai-avatar.png" class="rounded-circle user_img_msg">&ensp;
-                </div>
-                <div class="msg_cotainer">
-                    <div class="spinner-border spinner-border-sm" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    Generating response...
-                </div>
-            </div>
-        `);
-
-        $('.chat-messages').scrollTop($('.chat-messages')[0].scrollHeight);
-
-        // Send message to backend
-        $.ajax({
-            url: `/chat/${currentSessionId}`,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ message: message }),
-            success: function(response) {
-                $('.ai-response-spinner').remove();
-                // Add AI response to chat
-                $('.chat-messages').append(`
-                    <div class="d-flex justify-content-start mb-4">
-                        <div class="img_cont_msg">
-                            <img src="/static/ai-avatar.png" class="rounded-circle user_img_msg">&ensp;
-                        </div>
-                        <div class="msg_cotainer">
-                            ${response.answer}
-                        </div>
-                    </div>
-                `);
-                $('.chat-messages').scrollTop($('.chat-messages')[0].scrollHeight);
-            },
-            error: function(error) {
-                $('.ai-response-spinner').remove();
-                console.error('Error sending message:', error);
-                $('.chat-messages').append(`<div class="text-danger">Error: Failed to get response</div>`);
-            },
-            complete: function() {
-                $('#sendMessage').prop('disabled', false);
-            }
-        });
-    });
-
-    $('#userMessage').on('input', function() {
-        $('#sendMessage').prop('disabled', $(this).val().trim() === '');
-    });
-
-    $('#chatModal').on('hidden.bs.modal', function () {
-        currentSessionId = null;
+        window.open(`/chat/${evalId}`, '_blank');
     });
 </script>
 
