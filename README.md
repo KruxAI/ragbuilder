@@ -1,3 +1,4 @@
+<a name="readme-top"></a>
 ![RagBuilder logo](./assets/ragbuilder_dark.png#gh-dark-mode-only)
 ![RagBuilder logo](./assets/ragbuilder_light.png#gh-light-mode-only)
 
@@ -223,3 +224,16 @@ By setting up these environment variables, you enable the RagBuilder project to 
 
 ### Usage Analytics
 We collect basic usage metrics to understand how our tool is performing for users. Specifically, we track the number of runs initiated and how many complete successfully. As a startup, being data-driven is crucial for us, which is why we monitor these metrics. Rest assured, we do not collect any personal data or information that could identify you, your company, or access your data. You can see exactly what we track by reviewing the code [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L381) and [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L537).
+
+
+## Contributors
+
+<a href="https://github.com/KruxAI/ragbuilder/graphs/contributors">
+  <img alt="contributors" src="https://contrib.rocks/image?repo=KruxAI/ragbuilder"/>
+</a>
+
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
+    <a href="#readme-top" style="text-decoration: none; color: #007bff; font-weight: bold;">
+        ↑ Back to Top ↑
+    </a>
+</p>
