@@ -517,7 +517,7 @@ class RagBuilder:
         try:
         #execution os string
             logger.debug(f"Generated Code\n{self.router}")
-            self.rag = self._exec(self.router)
+            self.rag = _exec(self.router)
             # print(f"self.rag = {self.rag}")
         except Exception as e:
             logger.error(f"Error creating RAG object from generated code. ERROR: {e}")
