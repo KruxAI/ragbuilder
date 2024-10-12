@@ -230,7 +230,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             )
         result=rageval.evaluate()
         logger.debug(f'progress_state={progress_state.get_progress()}')
-        rag_manager.cache_rag(rageval.id, rag_builder)
+        rag_manager.cache_rag(rageval.id, rag_builder.rag)
     
     if kwargs['include_granular_combos']:
         # Objective function for Bayesian optimization on the custom RAG configurations
@@ -295,7 +295,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                     if not progress_state.get_progress()['first_eval_complete']:
                         progress_state.set_first_eval_complete()
                     
-                    rag_manager.cache_rag(rageval.id, rag_builder)
+                    rag_manager.cache_rag(rageval.id, rag_builder.rag)
                     return result['answer_correctness'] 
                 return float('NaN')
                 
@@ -405,7 +405,7 @@ def rag_builder(**kwargs):
                     )
                 result=rageval.evaluate()
                 logger.debug(f'progress_state={progress_state.get_progress()}')
-                rag_manager.cache_rag(rageval.id, rag_builder)
+                rag_manager.cache_rag(rageval.id, rag_builder.rag)
         if configs['type'] == 'CUSTOM':
             for val in configs['configs'].values():
                 progress_state.increment_progress()
@@ -428,7 +428,7 @@ def rag_builder(**kwargs):
                     is_async=RUN_CONFIG_IS_ASYNC
                     )
                 result=rageval.evaluate()
-                rag_manager.cache_rag(rageval.id, rag_builder)
+                rag_manager.cache_rag(rageval.id, rag_builder.rag)
     return result
 
 import importlib
@@ -573,7 +573,7 @@ def byor_ragbuilder(test_ds,eval_llm,eval_embedding):
                     )
                 result=rageval.evaluate()
                 logger.debug(f'progress_state={progress_state.get_progress()}')
-                rag_manager.cache_rag(rageval.id, rag_builder)
+                rag_manager.cache_rag(rageval.id, rag_builder.rag)
 
 class RagManager:
     def __init__(self):
