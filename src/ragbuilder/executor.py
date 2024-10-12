@@ -12,6 +12,7 @@ import json
 import openai
 import optuna
 import math
+import sqlite3
 from optuna.storages import RDBStorage
 from optuna.trial import TrialState
 from tenacity import retry, stop_after_attempt, wait_random_exponential, before_sleep_log, retry_if_exception_type, retry_if_result
@@ -219,7 +220,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
         # result=0
         logger.info(f"Evaluating RAG Config #{progress_state.get_progress()['current_run']}... (this may take a while)")
         rageval=eval.RagEvaluator(
-            rag_builder, # code for rag function
+            rag_builder,
             test_ds, 
             llm = llm, 
             embeddings = embeddings, 
@@ -229,6 +230,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
             )
         result=rageval.evaluate()
         logger.debug(f'progress_state={progress_state.get_progress()}')
+        rag_manager.cache_rag(rageval.id, rag_builder.rag)
     
     if kwargs['include_granular_combos']:
         # Objective function for Bayesian optimization on the custom RAG configurations
@@ -289,8 +291,11 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                     if percent_none > 0.2:
                         logger.warning(f"More than 20% of the records have 'answer_correctness' as None. Skipping this config...")
                         return float('NaN')
+                    
                     if not progress_state.get_progress()['first_eval_complete']:
                         progress_state.set_first_eval_complete()
+                    
+                    rag_manager.cache_rag(rageval.id, rag_builder.rag)
                     return result['answer_correctness'] 
                 return float('NaN')
                 
@@ -400,6 +405,7 @@ def rag_builder(**kwargs):
                     )
                 result=rageval.evaluate()
                 logger.debug(f'progress_state={progress_state.get_progress()}')
+                rag_manager.cache_rag(rageval.id, rag_builder.rag)
         if configs['type'] == 'CUSTOM':
             for val in configs['configs'].values():
                 progress_state.increment_progress()
@@ -422,6 +428,7 @@ def rag_builder(**kwargs):
                     is_async=RUN_CONFIG_IS_ASYNC
                     )
                 result=rageval.evaluate()
+                rag_manager.cache_rag(rageval.id, rag_builder.rag)
     return result
 
 import importlib
@@ -465,6 +472,19 @@ class SOTARAGBuilder:
 class RagBuilderException(Exception):
     pass
 
+@retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, min=4, max=60),
+        retry=(retry_if_result(lambda result: result is None)
+                | retry_if_exception_type(openai.APITimeoutError)
+                | retry_if_exception_type(openai.APIError)
+                | retry_if_exception_type(openai.APIConnectionError)
+                | retry_if_exception_type(openai.RateLimitError)),
+        before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
+def _exec(code):
+    locals_dict={}
+    exec(code, None, locals_dict)
+    ragchain=locals_dict['rag_pipeline']()
+    return ragchain
+
 class RagBuilder:
     def __init__(self, val):
         self.config = val
@@ -479,12 +499,6 @@ class RagBuilder:
         self.embedding_kwargs=val['embedding_kwargs']
         self.retriever_kwargs=val['retriever_kwargs']
         # self.prompt_text =  val['prompt_text'] 
-
-        # self.router(Configs) # Calls appropriate code generator calls codeGen Within returns Code string
-        # namespace={}
-        # exec(rag_func_str, namespace) # executes code
-        # ragchain=namespace['ragchain'] catch the func object
-        # self.runCode=ragchain()
 
         # output of router is genrated code as string
         self.router=rag.codeGen(
@@ -503,24 +517,11 @@ class RagBuilder:
         try:
         #execution os string
             logger.debug(f"Generated Code\n{self.router}")
-            self.rag = self._exec()
+            self.rag = _exec(self.router)
             # print(f"self.rag = {self.rag}")
         except Exception as e:
             logger.error(f"Error creating RAG object from generated code. ERROR: {e}")
             raise RagBuilderException(f"Error creating RAG object from generated code. ERROR: {e}")
-    
-    @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, min=4, max=60),
-           retry=(retry_if_result(lambda result: result is None)
-                   | retry_if_exception_type(openai.APITimeoutError)
-                   | retry_if_exception_type(openai.APIError)
-                   | retry_if_exception_type(openai.APIConnectionError)
-                   | retry_if_exception_type(openai.RateLimitError)),
-           before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
-    def _exec(self):
-        locals_dict={}
-        exec(self.router, None, locals_dict)
-        ragchain=locals_dict['rag_pipeline']()
-        return ragchain
 
     def __repr__(self):
         try:
@@ -572,4 +573,43 @@ def byor_ragbuilder(test_ds,eval_llm,eval_embedding):
                     )
                 result=rageval.evaluate()
                 logger.debug(f'progress_state={progress_state.get_progress()}')
-    
+                rag_manager.cache_rag(rageval.id, rag_builder.rag)
+
+class RagManager:
+    def __init__(self):
+        self.cache: Dict[int, Any] = {}
+        self.last_accessed: Dict[int, float] = {}
+
+    def get_rag(self, eval_id: int, db: sqlite3.Connection):
+        if eval_id in self.cache:
+            self.last_accessed[eval_id] = time.time()
+            return self.cache[eval_id]
+
+        # Fetch configuration from database
+        cur = db.execute("SELECT code_snippet FROM rag_eval_summary WHERE eval_id = ?", (eval_id,))
+        result = cur.fetchone()
+        if not result:
+            raise ValueError(f"No configuration found for eval_id {eval_id}")
+
+        code_snippet = result['code_snippet']
+        
+        # Reconstruct RAG pipeline
+        rag = _exec(code_snippet)
+
+        self.cache[eval_id] = rag
+        self.last_accessed[eval_id] = time.time()
+        return rag
+
+    def cache_rag(self, eval_id: int, rag_builder: Any):
+        self.cache[eval_id] = rag_builder
+        self.last_accessed[eval_id] = time.time()
+
+    def clear_cache(self, max_age: int = 86400):
+        current_time = time.time()
+        to_remove = [eval_id for eval_id, last_access in self.last_accessed.items() 
+                     if current_time - last_access > max_age]
+        for eval_id in to_remove:
+            del self.cache[eval_id]
+            del self.last_accessed[eval_id]
+
+rag_manager = RagManager()

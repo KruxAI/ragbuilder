@@ -22,7 +22,7 @@ import warnings
 import optuna
 from pathlib import Path
 from urllib.parse import urlparse
-from ragbuilder.executor import rag_builder, rag_builder_bayes_optimization_optuna, get_model_obj
+from ragbuilder.executor import rag_builder, rag_builder_bayes_optimization_optuna, rag_manager, get_model_obj
 from ragbuilder.langchain_module.loader import loader as l
 from ragbuilder.langchain_module.common import setup_logging, progress_state
 from ragbuilder import generate_data
@@ -93,6 +93,37 @@ async def startup():
 # @app.on_event("shutdown")
 # def shutdown_db():
 #     db.close()
+
+class ChatSessionCreate(BaseModel):
+    eval_id: int
+
+class ChatMessage(BaseModel):
+    message: str
+
+@app.post("/create_chat_session")
+async def create_chat_session(session_data: ChatSessionCreate, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        rag = rag_manager.get_rag(session_data.eval_id, db)
+        session_id = f"{session_data.eval_id}_{int(time.time())}"
+        return {"session_id": session_id}
+    except Exception as e:
+        logger.error(f"Error creating chat session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create chat session")
+    
+@app.get("/chat/{eval_id}", response_class=HTMLResponse)
+async def chat_page(request: Request, eval_id: int):
+    return templates.TemplateResponse("chat.html", {"request": request, "eval_id": eval_id})
+    
+@app.post("/chat/{session_id}")
+async def chat(session_id: str, chat_message: ChatMessage, db: sqlite3.Connection = Depends(get_db)):
+    try:
+        eval_id = int(session_id.split('_')[0])
+        rag = rag_manager.get_rag(eval_id, db)
+        response = rag.invoke(chat_message.message)
+        return {"answer": response["answer"]}
+    except Exception as e:
+        logger.error(f"Error in chat: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process chat message")
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request, db: sqlite3.Connection = Depends(get_db)):
