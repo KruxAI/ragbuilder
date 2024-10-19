@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 setup(
     name='ragbuilder',
-    version='0.0.19',
+    version='0.0.21',
     author='Ashwin Aravind, Aravind Parameswaran',
     author_email='ashwin@krux.ai, aravind@krux.ai',
     description='RagBuilder is a toolkit designed to help you create optimal Production-ready Retrieval-Augmented Generation (RAG) pipeline for your data',
@@ -95,7 +95,10 @@ setup(
         'rerankers[flashrank]',
         'rerankers[gpt]',
         'gensim',
-        'ragatouille'
+        'ragatouille',
+        'langchain-qdrant',
+        'fastembed',
+        'langchain-weaviate'
         # 'llama-index',
         # 'llama-index-vector-stores-chroma',
         # 'llama-index-readers-web',

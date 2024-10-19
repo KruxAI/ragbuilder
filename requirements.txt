@@ -84,3 +84,6 @@ rerankers[flashrank]
 rerankers[gpt]
 gensim
 ragatouille
+langchain-qdrant
+fastembed
+langchain-weaviate
