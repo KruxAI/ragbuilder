@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libpoppler-cpp-dev \
     pkg-config \
     gcc \
+    git \
     libqpdf-dev \
     libgl1-mesa-glx \
     libglib2.0-0 \
