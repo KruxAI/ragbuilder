@@ -520,7 +520,6 @@ class RagBuilder:
         try:
         #execution os string
             logger.debug(f"Generated Code\n{self.router}")
-            logger.info(f"Generated Code\n{self.router}")
             self.rag = _exec(self.router)
             # print(f"self.rag = {self.rag}")
         except Exception as e:

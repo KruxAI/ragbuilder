@@ -48,13 +48,13 @@ import chromadb"""
         code_string= f"""c = Milvus.from_documents(splits,embedding,collection_name='{index_name}',connection_args={{"uri": MILVUS_CONNECTION_STRING}},)"""
         print(code_string)
         import_string = f"""from langchain_milvus import Milvus"""
-    elif db_type == "qdrant":
+    elif db_type == "qdrantDB":
         logger.info("qdrant DB Loaded")
         code_string= f"""sparse_embeddings = FastEmbedSparse(model_name="Qdrant/bm25")
 c = QdrantVectorStore.from_documents(splits,embedding,location=":memory:",collection_name='{index_name}',retrieval_mode=RetrievalMode.HYBRID,sparse_embedding=sparse_embeddings)"""
         import_string = f"""from langchain_qdrant import QdrantVectorStore, RetrievalMode, FastEmbedSparse
 from qdrant_client import QdrantClient"""
-    elif db_type == "weaviate":
+    elif db_type == "weaviateDB":
         logger.info("weaviate DB Loaded")
         code_string= f"""weaviate_client = weaviate.connect_to_local()
 c = WeaviateVectorStore.from_documents(docs, embedding, client=weaviate_client)"""
