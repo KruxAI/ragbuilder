@@ -70,6 +70,9 @@ from langchain.retrievers import (
     SelfQueryRetriever,
     TimeWeightedVectorStoreRetriever
 )
+import weaviate
+from langchain_weaviate.vectorstores import WeaviateVectorStore
+from langchain_qdrant import QdrantVectorStore, RetrievalMode, FastEmbedSparse
 from rerankers import Reranker
 from langchain_core.documents import Document
 from langchain.retrievers.document_compressors import *
@@ -517,6 +520,7 @@ class RagBuilder:
         try:
         #execution os string
             logger.debug(f"Generated Code\n{self.router}")
+            logger.info(f"Generated Code\n{self.router}")
             self.rag = _exec(self.router)
             # print(f"self.rag = {self.rag}")
         except Exception as e:
