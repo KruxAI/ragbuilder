@@ -34,7 +34,7 @@ https://github.com/user-attachments/assets/8b4a5013-b1b7-40ee-820b-32c46fd99a2a
 ## Installation
 
 ### Option 1: Install using install script:
-Note: For GraphRAG, Neo4J Graph Database details must be added in the .env file. For spinning up a local Neo4J Graph Database refer repo https://github.com/KruxAI/neo4j-docker
+Note: For GraphRAG, Neo4J Graph Database details must be added in the .env file. For spinning up a local Neo4J Graph Database refer to repo https://github.com/KruxAI/neo4j-docker
 #### Mac
 
 ``` sh
@@ -46,7 +46,7 @@ curl -fsSL https://install.ragbuilder.io/mac | bash
 curl -fsSL https://install.ragbuilder.io/win
 ```
 
-Run Install.bat from command prompt
+Run Install.bat from the command prompt
 ```
 install.bat
 ```
@@ -138,7 +138,7 @@ To create a new project,
 3. **Source Data:** Specify the path to your source data. This could be a URL, local directory or local file path. For the sake of our demo, let's specify the URL: https://lilianweng.github.io/posts/2023-06-23-agent/
 4. **Select Ragbuilder options:** 
    - Use Pre-defined RAG Templates - When selected, this'll include pre-defined RAG configuration templates that have demonstrated strong performance across various datasets and related use-cases. These templates will be evaluated against your data, providing you with performance metrics for each pre-defined configuration.
-   - Create Custom RAG Configurations - When selected, this'll generate multiple RAG configurations based on detailed parameters like chunking strategy, chunking size, embedding model, retriever type etc. With this option, it is recommended that you opt for the Bayesian optimization option to efficiently identify the near-optimal RAG configuration for your data. More about this in a bit.*
+   - Create Custom RAG Configurations - When selected, this will generate multiple RAG configurations based on detailed parameters like chunking strategy, chunking size, embedding model, retriever type etc. With this option, it is recommended that you opt for the Bayesian optimization option to efficiently identify the near-optimal RAG configuration for your data. More about this in a bit.*
 5. Next, in order to tailor your RAG configurations, you can unselect any specific options you wish to exclude (For eg: Unselecting "Chunking Strategy: Character" will exclude all RAG configurations that have the CharacterTextSplitter). For best results, you may want to leave all settings unchanged. But for our Quickstart demo, we will unselect everything except the below:
     - Chunking strategy: Markdown
     - Embedding model: text-embedding-3-large
@@ -148,15 +148,15 @@ To create a new project,
 6. Select optimization approach:
     - __Bayesian optimization (Recommended):__ Bayesian optimization is a strategy for the optimization of objective functions that are expensive to evaluate. It is particularly useful in scenarios where the function to be optimized is unknown and expensive to compute, such as in hyperparameter tuning for machine learning models or optimizing engineering designs. This is perfect for RAG where we have multiple moving parts, each with multiple parameters
     - __Run all Combinations:__ This option runs all possible combinations of the options selected, offering a comprehensive performance analysis of all RAG configurations for your dataset. This option is appropriate if you have selected fewer number of options. Otherwise, this option can be resource intensive as it may yield hundreds or even thousands of unique configurations to compare. *[Note]: This may take several minutes to complete.*
-8. Next, in Evaluation dataset options, you have the option to:
+8. Next, in the Evaluation dataset options, you have the option to:
     - **Use Existing Synthetic Test Data:** If synthetic test data was previously generated for your dataset, this option will appear alongside the path of the existing test data.
     - **Generate Synthetic Test Data from My Dataset:** Create a new synthetic test dataset based on your existing data.
     - **Provide a Manually Created Test Dataset:** Use your own test dataset file (CSV format with "question" and "ground_truth" columns).
-    For our demo, let's go ahead and create a synthetic test data by selecting the **Generate Synthetic Test Data**** option.
+    For our demo, let's go ahead and create synthetic test data by selecting the **Generate Synthetic Test Data**** option.
 9. Before running the tool, let's review all your selections:
 10. Review all the selections and click **Confirm**
 11. After processing we should see the dashboard with the results.
-12. Click the **View Code snippet** option in the results screen to get the code snippet of the desired RAG configuration. And voila, you've cut down several weeks/months of effort manually creating and evaluating different RAG configuration for your dataset.
+12. Click the **View Code snippet** option in the results screen to get the code snippet of the desired RAG configuration. And voila, you've cut down several weeks/months of effort manually creating and evaluating different RAG configurations for your dataset.
 
 # Environment Variables Setup for RagBuilder
 
@@ -222,4 +222,4 @@ PINECONE_API_KEY=XXXXXX
 By setting up these environment variables, you enable the RagBuilder project to authenticate and interact with the necessary external services.
 
 ### Usage Analytics
-We collect basic usage metrics to understand how our tool is performing for users. Specifically, we track the number of runs initiated and how many complete successfully. As a startup, being data-driven is crucial for us, which is why we monitor these metrics. Rest assured, we do not collect any personal data or information that could identify you, your company, or access your data. You can see exactly what we track by reviewing the code [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L381) and [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L537).
+We collect basic usage metrics to understand how our tool is performing for users. Specifically, we track the number of runs initiated and how many completed successfully. As a startup, being data-driven is crucial for us, which is why we monitor these metrics. Rest assured, we do not collect any personal data or information that could identify you, your company, or access your data. You can see exactly what we track by reviewing the code [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L381) and [here](https://github.com/KruxAI/ragbuilder/blob/main/src/ragbuilder/ragbuilder.py#L537).
