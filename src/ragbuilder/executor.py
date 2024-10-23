@@ -39,7 +39,7 @@ RUN_CONFIG_MAX_WORKERS = int(os.getenv('RUN_CONFIG_MAX_WORKERS', '16'))
 RUN_CONFIG_MAX_WAIT = int(os.getenv('RUN_CONFIG_MAX_WAIT', '180'))
 RUN_CONFIG_MAX_RETRIES = int(os.getenv('RUN_CONFIG_MAX_RETRIES', '10'))
 RUN_CONFIG_IS_ASYNC = os.getenv('RUN_CONFIG_IS_ASYNC', 'true').lower() == 'true'
-OVERRIDE_BASELINE_RETRIEVERS = os.getenv('OVERRIDE_BASELINE_RETRIEVERS', 'false').lower() == 'true'
+OVERRIDE_BASELINE_RETRIEVERS = os.getenv('OVERRIDE_BASELINE_RETRIEVERS', 'true').lower() == 'true'
 DATABASE = 'eval.db' #TODO: Define this in common.py
 # Imports needed for Executing the Generated Code
 from operator import itemgetter
