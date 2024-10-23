@@ -39,7 +39,7 @@ RUN_CONFIG_MAX_WORKERS = int(os.getenv('RUN_CONFIG_MAX_WORKERS', '16'))
 RUN_CONFIG_MAX_WAIT = int(os.getenv('RUN_CONFIG_MAX_WAIT', '180'))
 RUN_CONFIG_MAX_RETRIES = int(os.getenv('RUN_CONFIG_MAX_RETRIES', '10'))
 RUN_CONFIG_IS_ASYNC = os.getenv('RUN_CONFIG_IS_ASYNC', 'true').lower() == 'true'
-BAYESIAN_RUNS=50
+OVERRIDE_BASELINE_RETRIEVERS = os.getenv('OVERRIDE_BASELINE_RETRIEVERS', 'false').lower() == 'true'
 DATABASE = 'eval.db' #TODO: Define this in common.py
 # Imports needed for Executing the Generated Code
 from operator import itemgetter
@@ -99,7 +99,7 @@ from langchain_community.embeddings import OllamaEmbeddings
 from langchain.chains import LLMChain, HypotheticalDocumentEmbedder
 from langchain.prompts import ChatPromptTemplate
 from langchain.load import dumps, loads
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 import os
@@ -186,7 +186,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
         cnt_templates = len(selected_templates)
 
     if kwargs['include_granular_combos']:
-        lc_templates.filter_exclusions(exclude_elements=disabled_opts)
+        lc_templates.filter_exclusions(exclude_elements=disabled_opts, override_baseline_retrievers=OVERRIDE_BASELINE_RETRIEVERS)
         # space = lc_templates.generate_config_space_optuna(exclude_elements=disabled_opts)
         # logger.info(f"Config space={space}")
         cnt_combos=lc_templates.count_combos() + cnt_templates
@@ -519,7 +519,7 @@ class RagBuilder:
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
         #execution os string
-            logger.debug(f"Generated Code\n{self.router}")
+            logger.info(f"Generated Code\n{self.router}")
             self.rag = _exec(self.router)
             # print(f"self.rag = {self.rag}")
         except Exception as e:
