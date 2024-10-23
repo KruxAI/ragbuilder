@@ -197,15 +197,18 @@ def generate_config_for_trial_optuna(trial):
     for retriever in arr_baseline_retrievers:
         selected_retrievers.append(retriever)
 
-    # Now, select 'n' - the num of retrievers from MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers)
-    n_retrievers = trial.suggest_int('n_retrievers', 0, MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers))
-    logger.info(f'n_retrievers: {n_retrievers}')
+    if len(arr_baseline_retrievers) == 1:
+        selected_retrievers.append(arr_baseline_retrievers[0])
+    else:
+        # Now, select 'n' - the num of retrievers from MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers)
+        n_retrievers = trial.suggest_int('n_retrievers', 0, MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers))
+        logger.info(f'n_retrievers: {n_retrievers}')
 
-    # Now choose those n retrievers
-    for i in range(n_retrievers):
-        retriever = trial.suggest_categorical(f'retriever_{i}', retriever_combinations)
-        if retriever not in selected_retrievers:
-            selected_retrievers.append(retriever)
+        # Now choose those n retrievers
+        for i in range(n_retrievers):
+            retriever = trial.suggest_categorical(f'retriever_{i}', retriever_combinations)
+            if retriever not in selected_retrievers:
+                selected_retrievers.append(retriever)
 
     retriever_kwargs = {'retrievers': [_format_retriever_config(retriever, search_kwargs) for retriever in selected_retrievers]}
     logger.debug(f'retriever_kwargs: {retriever_kwargs}')
