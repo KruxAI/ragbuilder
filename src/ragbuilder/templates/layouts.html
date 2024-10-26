@@ -209,7 +209,7 @@
                                                     Embedding Model
                                                 </a>
                                                 <span class="fw-light text-muted extra-small" style="display: inline-block; font-size: .75em;">
-                                                    For the demo, we will use the sentence-transformers/all-MiniLM-L6-v2 model.
+                                                    For the demo, we will use the text-embedding-3-large model.
                                                 </span>
                                                 <ul class="collapse show" id="embedding-model" role="group">
                                                     <li aria-level="2" role="tree-item">
@@ -231,21 +231,21 @@
                                                         </ul>
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="embeddingHuggingFace" checked> HuggingFace
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="embeddingHuggingFace" disabled unchecked> HuggingFace
                                                     </li>
-                                                    <div class="form-group row mx-3" id="embeddingHuggingFaceModelDiv">
+                                                    <div class="form-group row mx-3" id="embeddingHuggingFaceModelDiv" style="display: none;">
                                                         <label for="embeddingHuggingFaceModel" class="col-sm-2 col-form-label">Model:</label>
                                                         <div class="col-sm-10">
                                                             <input type="text" class="form-control" id="embeddingHuggingFaceModel" placeholder="e.g., sentence-transformers/all-MiniLM-L6-v2" value="sentence-transformers/all-MiniLM-L6-v2">
                                                         </div>
                                                     </div>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="embeddingAzureOAI" disabled unchecked> Azure OpenAI
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="embeddingAzureOAI" checked> Azure OpenAI
                                                     </li>
-                                                    <div class="form-group row mx-3" id="embeddingAzureOAIModelDiv" style="display: none;">
+                                                    <div class="form-group row mx-3" id="embeddingAzureOAIModelDiv">
                                                         <label for="embeddingAzureOAIModel" class="col-sm-2 col-form-label">Model:</label>
                                                         <div class="col-sm-10">
-                                                            <input type="text" class="form-control" id="embeddingAzureOAIModel" placeholder="e.g., text-embedding-ada-002">
+                                                            <input type="text" class="form-control" id="embeddingAzureOAIModel" placeholder="e.g., text-embedding-ada-002", value="text-embedding-3-large">
                                                         </div>
                                                     </div>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
@@ -438,6 +438,9 @@
                                                     <input type="checkbox" class="mx-1 form-check-input h6" id="llm">
                                                     LLM
                                                 </a>
+                                                <span class="fw-light text-muted extra-small" style="display: inline-block; font-size: .75em;">
+                                                    For the demo, we will use the gpt-35-turbo model.
+                                                </span>
                                                 <ul class="collapse show" id="llm-opts" role="group">
                                                     <li aria-level="2" role="tree-item">
                                                         <a class="treeview-category d-flex align-items-center" data-mdb-collapse-init data-mdb-target="#openai-llms" role="button" aria-expanded="true">
@@ -553,7 +556,7 @@
                         <div id="step3" class="container-fluid" style="display: none;">
                             <h5>RAG Evaluation Settings</h5>
                             <span class="fw-light text-muted extra-small" style="display: inline-block; font-size: .75em;">
-                                For the demo, we will use the sentence-transformers/all-MiniLM-L6-v2 model.
+                                For the demo, we will use the text-embedding-3-large model.
                             </span>
                             <p class="fw-light text-muted extra-small">
                                 Select the RAG evaluation framework that you prefer along with other settings like Embedding model & LLM for evaluation (wherever applicable).
@@ -579,12 +582,12 @@
                                         <option value="text-embedding-3-large" disabled>text-embedding-3-large</option>
                                         <option value="text-embedding-ada-002" disabled>text-embedding-ada-002</option>
                                         </optgroup>
-                                        <option value="HF" selected>HuggingFace</option>
-                                        <option value="AzureOAI" disabled>Azure OpenAI</option>
+                                        <option value="HF" disabled>HuggingFace</option>
+                                        <option value="AzureOAI" selected>Azure OpenAI</option>
                                         <option value="GoogleVertexAI" disabled>Google Vertex AI</option>
                                         <option value="Ollama" disabled>Ollama</option>
                                     </select>
-                                    <input type="text" class="form-control mt-2" id="customEvalEmbedding" placeholder="e.g., sentence-transformers/all-MiniLM-L6-v2" value="sentence-transformers/all-MiniLM-L6-v2">
+                                    <input type="text" class="form-control mt-2" id="customEvalEmbedding" placeholder="e.g., sentence-transformers/all-MiniLM-L6-v2" value="text-embedding-3-large">
                                     </div>
                                 </div>
                                 <div class="form-group row mb-4">
@@ -658,16 +661,16 @@
                                                                     <div class="col-sm-8">
                                                                     <select class="form-select" id="generatorEmbedding">
                                                                         <optgroup label="OpenAI">
-                                                                        <option value="text-embedding-3-small" disabled unselected>text-embedding-3-small</option>
+                                                                        <option value="text-embedding-3-small" disabled unelected>text-embedding-3-small</option>
                                                                         <option value="text-embedding-3-large" disabled unselected>text-embedding-3-large</option>
                                                                         <option value="text-embedding-ada-002" disabled unselected>text-embedding-ada-002</option>
                                                                         </optgroup>
-                                                                        <option value="HF" selected>HuggingFace</option>
-                                                                        <option value="AzureOAI" disabled unselected>Azure OpenAI</option>
+                                                                        <option value="HF" disabled unselected>HuggingFace</option>
+                                                                        <option value="AzureOAI" selected>Azure OpenAI</option>
                                                                         <option value="GoogleVertexAI" disabled unselected>Google Vertex AI</option>
                                                                         <option value="Ollama" disabled unselected>Ollama</option>
                                                                     </select>
-                                                                    <input type="text" class="form-control mt-2" id="customGenEmbedding" placeholder="Enter Model name e.g., mxbai-embed-large" value="sentence-transformers/all-MiniLM-L6-v2">
+                                                                    <input type="text" class="form-control mt-2" id="customGenEmbedding" placeholder="Enter Model name e.g., mxbai-embed-large" value="text-embedding-3-large">
                                                                     </div>
                                                                 </div>
                                                                 <div class="mb-3 row">
