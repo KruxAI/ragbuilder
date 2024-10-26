@@ -43,7 +43,7 @@
                     <th>Disabled Options</th>
                     <th class="timestamp">Timestamp</th>
                     <th>Results</th>
-                    <th>Log</th>
+                    <!-- <th>Log</th> -->
                 </tr>
                 </thead>
                 <tbody>
@@ -78,7 +78,7 @@
                         </td>
                         <td>{{ run.run_ts }}</td>
                         <td><a href="/summary/{{ run.run_id }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Results</span></a></td>
-                        <td><a href="/view_log/{{ run.log_path | basename }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Log</span></a></td>
+                        <!-- <td><a href="/view_log/{{ run.log_path | basename }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Log</span></a></td> -->
                     </tr>
                 {% endfor %}
                 </tbody>

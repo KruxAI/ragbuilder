@@ -5,7 +5,7 @@
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="newProjectModalLabel">New Project</h5>
+                <!-- <h1 class="modal-title fs-5" id="newProjectModalLabel">New Project</h5> -->
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -275,6 +275,9 @@
                     
                                 <div class="col-md-6 mt-5">
                                     <h6 class="h6">Vector DB</h6>
+                                    <span class="fw-light text-muted extra-small" style="display: inline-block; font-size: .75em;">
+                                        For the demo, we will use the Chroma or FAISS DB.
+                                    </span>
                                         <div class="form-group form-check mx-3">
                                             <input type="radio" class="form-check-input" name="vectorDB" id="chromaDB" checked>
                                             <label class="form-check-label" for="chromaDB">Chroma DB</label>
@@ -284,27 +287,27 @@
                                             <label class="form-check-label" for="faissDB">FAISS DB</label>
                                         </div>
                                         <div class="form-group form-check mx-3">
-                                            <input type="radio" class="form-check-input" name="vectorDB" id="milvusDB" unchecked>
+                                            <input type="radio" class="form-check-input" name="vectorDB" id="milvusDB" disabled unchecked>
                                             <label class="form-check-label" for="milvusDB">Milvus DB</label>
                                         </div>
                                         <div class="form-group form-check mx-3">
-                                            <input type="radio" class="form-check-input" name="vectorDB" id="pineconeDB" unchecked>
+                                            <input type="radio" class="form-check-input" name="vectorDB" id="pineconeDB" disabled unchecked>
                                             <label class="form-check-label" for="pineconeDB">Pinecone DB</label>
                                         </div>
                                         <div class="form-group form-check mx-3">
-                                            <input type="radio" class="form-check-input" name="vectorDB" id="pgvector" unchecked>
+                                            <input type="radio" class="form-check-input" name="vectorDB" id="pgvector" disabled unchecked>
                                             <label class="form-check-label" for="pgvector">PGVector</label>
                                         </div>
                                         <div class="form-group form-check mx-3">
-                                            <input type="radio" class="form-check-input" name="vectorDB" id="singleStoreDB" unchecked>
+                                            <input type="radio" class="form-check-input" name="vectorDB" id="singleStoreDB" disabled unchecked>
                                             <label class="form-check-label" for="singleStoreDB">Singlestore DB</label>
                                         </div>
                                         <div class="form-group form-check mx-3">
-                                            <input type="radio" class="form-check-input" name="vectorDB" id="qdrantDB" unchecked>
+                                            <input type="radio" class="form-check-input" name="vectorDB" id="qdrantDB" disabled unchecked>
                                             <label class="form-check-label" for="qdrantDB">Qdrant DB</label>
                                         </div>
                                         <div class="form-group form-check mx-3">
-                                            <input type="radio" class="form-check-input" name="vectorDB" id="weaviateDB" unchecked>
+                                            <input type="radio" class="form-check-input" name="vectorDB" id="weaviateDB" disabled unchecked>
                                             <label class="form-check-label" for="weaviateDB">Weaviate DB</label>
                                         </div>
                                 </div>
@@ -444,21 +447,21 @@
                                                         </a>
                                                         <ul class="collapse show" id="openai-llms" role="group">
                                                             <li aria-level="3" role="tree-item" class="treeview-category">
-                                                                <input type="checkbox" class="mx-1 form-check-input" id="gpt4oMini" checked> GPT-4o mini
+                                                                <input type="checkbox" class="mx-1 form-check-input" id="gpt4oMini" disabled unchecked> GPT-4o mini
                                                             </li>
                                                             <li aria-level="3" role="tree-item" class="treeview-category">
-                                                                <input type="checkbox" class="mx-1 form-check-input" id="gpt4o" unchecked> GPT-4o
+                                                                <input type="checkbox" class="mx-1 form-check-input" id="gpt4o" disabled unchecked> GPT-4o
                                                             </li>
                                                             <li aria-level="3" role="tree-item" class="treeview-category">
-                                                                <input type="checkbox" class="mx-1 form-check-input" id="gpt35" unchecked> GPT-3.5 Turbo
+                                                                <input type="checkbox" class="mx-1 form-check-input" id="gpt35" disabled unchecked> GPT-3.5 Turbo
                                                             </li>
                                                             <li aria-level="3" role="tree-item" class="treeview-category">
-                                                                <input type="checkbox" class="mx-1 form-check-input" id="gpt4Turbo" unchecked> GPT-4 Turbo
+                                                                <input type="checkbox" class="mx-1 form-check-input" id="gpt4Turbo" disabled unchecked> GPT-4 Turbo
                                                             </li>
                                                         </ul>
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmHuggingFace" unchecked> HuggingFace
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmHuggingFace" disabled unchecked> HuggingFace
                                                     </li>
                                                     <div class="form-group row mx-2" id="llmHuggingFaceModelDiv" style="display: none;">
                                                         <label for="llmHuggingFaceModel" class="col-sm-2 col-form-label">Model:</label>
@@ -467,7 +470,7 @@
                                                         </div>
                                                     </div>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmGroq" unchecked> Groq
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmGroq" disabled unchecked> Groq
                                                     </li>
                                                     <div class="form-group row mx-2" id="llmGroqModelDiv" style="display: none;">
                                                         <label for="llmGroqModel" class="col-sm-2 col-form-label">Model:</label>
@@ -476,16 +479,16 @@
                                                         </div>
                                                     </div>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmAzureOAI" unchecked> Azure OpenAI
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmAzureOAI" checked> Azure OpenAI
                                                     </li>
-                                                    <div class="form-group row mx-2" id="llmAzureOAIModelDiv" style="display: none;">
+                                                    <div class="form-group row mx-2" id="llmAzureOAIModelDiv" >
                                                         <label for="llmAzureOAIModel" class="col-sm-2 col-form-label">Model:</label>
                                                         <div class="col-sm-10">
-                                                            <input type="text" class="form-control" id="llmAzureOAIModel" placeholder="e.g., gpt-35-turbo">
+                                                            <input type="text" class="form-control" id="llmAzureOAIModel" placeholder="e.g., gpt-35-turbo", value="gpt-35-turbo">
                                                         </div>
                                                     </div>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmGoogleVertexAI" unchecked> Google Vertex AI
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmGoogleVertexAI" disabled unchecked> Google Vertex AI
                                                     </li>
                                                     <div class="form-group row mx-2" id="llmGoogleVertexAIModelDiv" style="display: none;">
                                                         <label for="llmGoogleVertexAIModel" class="col-sm-2 col-form-label">Model:</label>
@@ -494,7 +497,7 @@
                                                         </div>
                                                     </div>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmOllama" unchecked> Ollama
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="llmOllama" disabled unchecked> Ollama
                                                     </li>
                                                     <div class="form-group row mx-2" id="llmOllamaModelDiv" style="display: none;">
                                                         <label for="llmOllamaModel" class="col-sm-2 col-form-label">Model:</label>
@@ -522,7 +525,7 @@
                                     <div id="optimizationSettingsContainer" class="ms-4 row">
                                         <div id="numRunsContainer" class="col-md-5">
                                           <label for="numRuns" class="form-label">Number of Runs:</label>
-                                          <input type="number" class="form-control d-inline-block" id="numRuns" name="numRuns" value="50" min="1" step="1" style="width: 80px;">
+                                          <input type="number" class="form-control d-inline-block" id="numRuns" name="numRuns" value="10" min="1" step="1" style="width: 80px;">
                                         </div>
                                         <div id="nJobsContainer" class="col-md-7">
                                           <label for="nJobs" class="form-label">Number of Parallel Jobs:</label>
@@ -549,6 +552,9 @@
                         </div>
                         <div id="step3" class="container-fluid" style="display: none;">
                             <h5>RAG Evaluation Settings</h5>
+                            <span class="fw-light text-muted extra-small" style="display: inline-block; font-size: .75em;">
+                                For the demo, we will use the sentence-transformers/all-MiniLM-L6-v2 model.
+                            </span>
                             <p class="fw-light text-muted extra-small">
                                 Select the RAG evaluation framework that you prefer along with other settings like Embedding model & LLM for evaluation (wherever applicable).
                             </p>
@@ -569,16 +575,16 @@
                                     <div class="col-sm-4">
                                     <select class="form-select" id="evalEmbedding">
                                         <optgroup label="OpenAI">
-                                        <option value="text-embedding-3-small">text-embedding-3-small</option>
-                                        <option value="text-embedding-3-large" selected>text-embedding-3-large</option>
-                                        <option value="text-embedding-ada-002">text-embedding-ada-002</option>
+                                        <option value="text-embedding-3-small" disabled>text-embedding-3-small</option>
+                                        <option value="text-embedding-3-large" disabled>text-embedding-3-large</option>
+                                        <option value="text-embedding-ada-002" disabled>text-embedding-ada-002</option>
                                         </optgroup>
-                                        <option value="HF">HuggingFace</option>
-                                        <option value="AzureOAI">Azure OpenAI</option>
-                                        <option value="GoogleVertexAI">Google Vertex AI</option>
-                                        <option value="Ollama">Ollama</option>
+                                        <option value="HF" selected>HuggingFace</option>
+                                        <option value="AzureOAI" disabled>Azure OpenAI</option>
+                                        <option value="GoogleVertexAI" disabled>Google Vertex AI</option>
+                                        <option value="Ollama" disabled>Ollama</option>
                                     </select>
-                                    <input type="text" class="form-control mt-2" id="customEvalEmbedding" style="display: none;" placeholder="Enter Model name e.g., mxbai-embed-large">
+                                    <input type="text" class="form-control mt-2" id="customEvalEmbedding" placeholder="e.g., sentence-transformers/all-MiniLM-L6-v2" value="sentence-transformers/all-MiniLM-L6-v2">
                                     </div>
                                 </div>
                                 <div class="form-group row mb-4">
@@ -586,18 +592,18 @@
                                     <div class="col-sm-4">
                                     <select class="form-select" id="evalLLM">
                                         <optgroup label="OpenAI">
-                                        <option value="gpt-4o-mini" selected>GPT-4o mini</option>
-                                        <option value="gpt-4o">GPT-4o</option>
-                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                        <option value="gpt-4o-mini" disabled>GPT-4o mini</option>
+                                        <option value="gpt-4o" disabled>GPT-4o</option>
+                                        <option value="gpt-3.5-turbo" disabled>GPT-3.5 Turbo</option>
+                                        <option value="gpt-4-turbo" disabled>GPT-4 Turbo</option>
                                         </optgroup>
-                                        <option value="HF">HuggingFace</option>
-                                        <option value="Groq">Groq</option>
-                                        <option value="AzureOAI">Azure OpenAI</option>
-                                        <option value="GoogleVertexAI">Google Vertex AI</option>
-                                        <option value="Ollama">Ollama</option>
+                                        <option value="HF" disabled>HuggingFace</option>
+                                        <option value="Groq" disabled>Groq</option>
+                                        <option value="AzureOAI" selected>Azure OpenAI</option>
+                                        <option value="GoogleVertexAI" disabled >Google Vertex AI</option>
+                                        <option value="Ollama" disabled>Ollama</option>
                                     </select>
-                                    <input type="text" class="form-control mt-2" id="customEvalLLM" style="display: none;" placeholder="Enter LLM model name e.g., llama-3.1-405B">
+                                    <input type="text" class="form-control mt-2" id="customEvalLLM" placeholder="Enter LLM model name e.g., llama-3.1-405B" value="gpt-35-turbo">
                                     </div>
                                 </div>
 
@@ -644,7 +650,7 @@
                                                                 <div class="mb-3 row">
                                                                     <label for="testSize" class="col-sm-3 col-form-label">Test size:</label>
                                                                     <div class="col-sm-8">
-                                                                        <input type="number" class="form-control" id="testSize" value="20">
+                                                                        <input type="number" class="form-control" id="testSize" value="5">
                                                                     </div>
                                                                 </div>
                                                                 <div class="mb-3 row">
@@ -652,35 +658,35 @@
                                                                     <div class="col-sm-8">
                                                                     <select class="form-select" id="generatorEmbedding">
                                                                         <optgroup label="OpenAI">
-                                                                        <option value="text-embedding-3-small">text-embedding-3-small</option>
-                                                                        <option value="text-embedding-3-large" selected>text-embedding-3-large</option>
-                                                                        <option value="text-embedding-ada-002">text-embedding-ada-002</option>
+                                                                        <option value="text-embedding-3-small" disabled unselected>text-embedding-3-small</option>
+                                                                        <option value="text-embedding-3-large" disabled unselected>text-embedding-3-large</option>
+                                                                        <option value="text-embedding-ada-002" disabled unselected>text-embedding-ada-002</option>
                                                                         </optgroup>
-                                                                        <option value="HF">HuggingFace</option>
-                                                                        <option value="AzureOAI">Azure OpenAI</option>
-                                                                        <option value="GoogleVertexAI">Google Vertex AI</option>
-                                                                        <option value="Ollama">Ollama</option>
+                                                                        <option value="HF" selected>HuggingFace</option>
+                                                                        <option value="AzureOAI" disabled unselected>Azure OpenAI</option>
+                                                                        <option value="GoogleVertexAI" disabled unselected>Google Vertex AI</option>
+                                                                        <option value="Ollama" disabled unselected>Ollama</option>
                                                                     </select>
-                                                                    <input type="text" class="form-control mt-2" id="customGenEmbedding" style="display: none;" placeholder="Enter Model name e.g., mxbai-embed-large">
+                                                                    <input type="text" class="form-control mt-2" id="customGenEmbedding" placeholder="Enter Model name e.g., mxbai-embed-large" value="sentence-transformers/all-MiniLM-L6-v2">
                                                                     </div>
                                                                 </div>
                                                                 <div class="mb-3 row">
                                                                     <label for="criticLLM" class="col-sm-3 col-form-label">Critic LLM:</label>
                                                                     <div class="col-sm-8">
                                                                     <select class="form-select" id="criticLLM">
-                                                                        <optgroup label="OpenAI">
-                                                                        <option value="gpt-4o-mini">GPT-4o mini</option>
-                                                                        <option value="gpt-4o" selected>GPT-4o</option>
-                                                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                                                                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                                                        <optgroup label="OpenAI" disabled>
+                                                                        <option value="gpt-4o-mini" disabled>GPT-4o mini</option>
+                                                                        <option value="gpt-4o" disabled>GPT-4o</option>
+                                                                        <option value="gpt-3.5-turbo" disabled>GPT-3.5 Turbo</option>
+                                                                        <option value="gpt-4-turbo" disabled>GPT-4 Turbo</option>
                                                                         </optgroup>
-                                                                        <option value="HF">HuggingFace</option>
-                                                                        <option value="Groq">Groq</option>
-                                                                        <option value="AzureOAI">Azure OpenAI</option>
-                                                                        <option value="GoogleVertexAI">Google Vertex AI</option>
-                                                                        <option value="Ollama">Ollama</option>
+                                                                        <option value="HF" disabled>HuggingFace</option>
+                                                                        <option value="Groq" disabled>Groq</option>
+                                                                        <option value="AzureOAI" selected>Azure OpenAI</option>
+                                                                        <option value="GoogleVertexAI" disabled>Google Vertex AI</option>
+                                                                        <option value="Ollama" disabled>Ollama</option>
                                                                     </select>
-                                                                    <input type="text" class="form-control mt-2" id="customCriticLLM" style="display: none;" placeholder="Enter LLM model name e.g., llama-3.1-405B">
+                                                                    <input type="text" class="form-control mt-2" id="customCriticLLM" placeholder="Enter LLM model name e.g., llama-3.1-405B" value="gpt-35-turbo">
                                                                     </div>
                                                                 </div>
                                                                 <div class="mb-3 row">
@@ -688,18 +694,18 @@
                                                                     <div class="col-sm-8">
                                                                     <select class="form-select" id="generatorLLM">
                                                                         <optgroup label="OpenAI">
-                                                                        <option value="gpt-4o-mini">GPT-4o mini</option>
-                                                                        <option value="gpt-4o" selected>GPT-4o</option>
-                                                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                                                                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                                                        <option value="gpt-4o-mini" disabled>GPT-4o mini</option>
+                                                                        <option value="gpt-4o" disabled>GPT-4o</option>
+                                                                        <option value="gpt-3.5-turbo" disabled>GPT-3.5 Turbo</option>
+                                                                        <option value="gpt-4-turbo" disabled>GPT-4 Turbo</option>
                                                                         </optgroup>
-                                                                        <option value="HF">HuggingFace</option>
-                                                                        <option value="Groq">Groq</option>
-                                                                        <option value="AzureOAI">Azure OpenAI</option>
-                                                                        <option value="GoogleVertexAI">Google Vertex AI</option>
-                                                                        <option value="Ollama">Ollama</option>
+                                                                        <option value="HF" disabled>HuggingFace</option>
+                                                                        <option value="Groq" disabled>Groq</option>
+                                                                        <option value="AzureOAI" selected>Azure OpenAI</option>
+                                                                        <option value="GoogleVertexAI" disabled>Google Vertex AI</option>
+                                                                        <option value="Ollama" disabled>Ollama</option>
                                                                     </select>
-                                                                    <input type="text" class="form-control mt-2" id="customGenLLM" style="display: none;" placeholder="Enter LLM model name e.g., llama-3.1-405B">
+                                                                    <input type="text" class="form-control mt-2" id="customGenLLM"  placeholder="Enter LLM model name e.g., llama-3.1-405B" value="gpt-35-turbo">
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -741,10 +747,10 @@
                         </div>
                         <div id="viewResultsText" class="fw-light text-muted small mb-2"></div>
                         <button id="viewResultsBtn" class="btn btn-primary mb-3" style="display: none;">View Current Results</button>
-                        <div>
+                        <!-- <div>
                             <h5>Log Output:</h5>
                             <pre id="logOutput" class="border p-3" style="height: 600px; overflow-y: scroll;"></pre>
-                        </div>
+                        </div> -->
                     </div>
 
                     <div id="completionSection" style="display: none;">
