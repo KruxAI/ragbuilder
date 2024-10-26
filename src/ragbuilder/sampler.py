@@ -27,7 +27,8 @@ class DataSampler:
             enable_sampling: bool = True, 
             sample_size_threshold: int =  SAMPLING_SIZE_THRESHOLD,
             sample_ratio: float = SAMPLING_RATIO, 
-            file_size_threshold: int = SAMPLING_FILE_SIZE_THRESHOLD
+            file_size_threshold: int = SAMPLING_FILE_SIZE_THRESHOLD,
+            absolute_sample_size: int = None
     ):
         self.data_source = data_source
         self.enable_sampling = enable_sampling
@@ -35,6 +36,9 @@ class DataSampler:
         self.sample_ratio = sample_ratio
         self.file_size_threshold = file_size_threshold
         self.random_state = 42
+        if absolute_sample_size:
+            self.sample_ratio = absolute_sample_size / self.estimate_data_size()
+            self.enable_sampling = self.sample_ratio < 1
         # self.logger = self._setup_logger()
 
     # def _setup_logger(self):

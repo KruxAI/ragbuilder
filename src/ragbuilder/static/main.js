@@ -34,18 +34,13 @@ function updateDataSizeInfo(size, exceedsThreshold) {
     const sizeInMB = size / (1024 * 1024);
     const sizeDisplay = sizeInMB >= 1024 ? `${(sizeInMB / 1024).toFixed(2)} GB` : `${sizeInMB.toFixed(2)} MB`;
     
-    let infoText = '';
-    if (exceedsThreshold) {
-        infoText = `Your dataset is relatively large (${sizeDisplay}). RAGBuilder can sample your data to provide quicker initial results. You can always run the full analysis later if you're satisfied with the initial results.`;
-        $('#useSampling').prop('checked', true);
-    } else {
-        infoText = `Your dataset size is ${sizeDisplay}. RAGBuilder can process this dataset without sampling.`;
-        $('#useSampling').prop('checked', false);
-    }
+    let infoText = `Your dataset is ${sizeDisplay}). For the demo, we will sample the data to show quicker initial results. You can always run the full analysis later if you're satisfied with the initial results.`;
+    $('#useSampling').prop('checked', true);
+    $('#useSampling').prop('disabled', true);
 
     $('#dataSizeInfo').text(infoText).show();
     $('#samplingOption').show();
-    $('#dataPreProcessingOption').show();
+    // $('#dataPreProcessingOption').show();
 }
 
 
