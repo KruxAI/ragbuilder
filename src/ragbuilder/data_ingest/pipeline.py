@@ -6,6 +6,8 @@ from langchain.vectorstores import FAISS, Chroma
 from .config import DataIngestConfig, ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase
 from typing import Any, List
 from importlib import import_module
+from urllib.parse import urlparse
+import os
 
 class DataIngestPipeline:
     def __init__(self, config: DataIngestConfig):
@@ -20,12 +22,31 @@ class DataIngestPipeline:
             return self._instantiate_custom_class(self.config.document_loader.custom_class, self.config.input_source, **(self.config.document_loader.loader_kwargs or {}))
         
         loader_kwargs = self.config.document_loader.loader_kwargs or {}
-        if self.config.document_loader.type == ParserType.UNSTRUCTURED:
-            return UnstructuredFileLoader(self.config.input_source, **loader_kwargs)
-        elif self.config.document_loader.type == ParserType.PYMUPDF:
-            return PyMuPDFLoader(self.config.input_source, **loader_kwargs)
-        else:
-            raise ValueError(f"Unsupported parser type: {self.config.document_loader.type}")
+        
+        # URL
+        if urlparse(self.config.input_source).scheme in ['http', 'https']:
+            return WebBaseLoader(self.config.input_source, **loader_kwargs)
+        
+        # Directory
+        elif os.path.isdir(self.config.input_source):
+            glob_pattern = loader_kwargs.pop('glob', '*')  # Default to all files if not specified
+            if self.config.document_loader.type == ParserType.UNSTRUCTURED:
+                loader_cls = UnstructuredFileLoader  
+            elif self.config.document_loader.type == ParserType.PYMUPDF:
+                loader_cls = PyMuPDFLoader
+            else:
+                raise ValueError(f"Unsupported document loader type: {self.config.document_loader.type}")
+            return DirectoryLoader(self.config.input_source, glob=glob_pattern, loader_cls=loader_cls, loader_kwargs=loader_kwargs)
+        
+        # Single file handling
+        elif os.path.isfile(self.config.input_source):
+            if self.config.document_loader.type == ParserType.UNSTRUCTURED:
+                return UnstructuredFileLoader(self.config.input_source, **loader_kwargs)
+            elif self.config.document_loader.type == ParserType.PYMUPDF:
+                return PyMuPDFLoader(self.config.input_source, **loader_kwargs)
+        
+        # If none of the above conditions are met
+        raise ValueError(f"Unsupported input source or parser type: {self.config.input_source}, {self.config.document_loader.type}")
 
     def _create_chunker(self):
         if self.config.chunking_strategy == ChunkingStrategy.CUSTOM:

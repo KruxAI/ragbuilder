@@ -52,6 +52,7 @@ class Optimizer:
                 chunking_strategy = self.options_config.chunking_strategies[0]
             else:
                 chunking_strategy = trial.suggest_categorical("chunking_strategy", self.options_config.chunking_strategies)
+            
             chunk_size = trial.suggest_int("chunk_size", self.options_config.chunk_size.min, self.options_config.chunk_size.max, step=self.options_config.chunk_size.stepsize)
 
             if len(self.options_config.chunk_overlap) == 1:
@@ -84,7 +85,8 @@ class Optimizer:
                 "embedding_model": embedding_model,
                 "vector_database": vector_database,
                 "top_k": self.options_config.top_k,
-                "sampling_rate": self.options_config.sampling_rate
+                "sampling_rate": self.options_config.sampling_rate,
+                "custom_chunker": self.options_config.custom_chunker if hasattr(self.options_config, 'custom_chunker') else None
             }
             self.logger.info(f"Trial parameters: {params}")
 
