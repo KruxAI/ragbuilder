@@ -809,7 +809,7 @@ $(document).ready(function () {
         if (response.first_eval_complete && !$('#viewResultsBtn').is(':visible')) {
             fetch_current_run_id();
             $('#viewResultsBtn').show();
-            $('#viewResultsText').text('First evaluation complete. You can now view current results.');
+            $('#viewResultsText').text('As each evaluation completes, you can start viewing results here.');
         }
     }
 

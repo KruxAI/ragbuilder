@@ -14,7 +14,7 @@
                         <div id="step1">
                             <div class="mt-3">
                                 <p class="fw-light text-muted small">
-                                    Please provide a brief description of your use-case, input the path to your data (URL, directory or file), and select the methods for building RAG configurations.
+                                    Please provide a brief description of your use-case, input the path to your data (URL, directory or file), and select the methods for building RAG configurations. (For the demo, we will use a URL based data source. Default is a Wikipedia article on Machine Learning, but you can use any URL.)
                                 </p>
                             </div>
                             <div class="form-group row mb-4 mt-4">
@@ -26,7 +26,7 @@
                             <div class="form-group row mb-4">
                                 <label for="sourceData" class="col-sm-2 col-form-label">Source data: </label>
                                 <div class="col-sm-10">
-                                    <input type="text" class="form-control" id="sourceData" placeholder="Enter any URL">
+                                    <input type="text" class="form-control" id="sourceData" placeholder="Enter any URL" value="https://en.wikipedia.org/wiki/Machine_learning">
                                     <span id="sourceDataError"></span>
                                     <small id="dataSizeInfo" class="form-text fw-light text-muted" style="display: none;"></small>
                                 </div>
@@ -85,7 +85,7 @@
                                 <legend class="col-form-label col-sm-2 py-0"></legend>
                                 <div class="col-sm-10">
                                     <div class="form-group form-check form-switch mb-2">
-                                        <input type="checkbox" class="form-check-input" id="compareTemplates" unchecked>
+                                        <input type="checkbox" class="form-check-input" id="compareTemplates" disabled unchecked>
                                         <label class="form-check-label" for="compareTemplates">Use Pre-defined RAG Templates</label>
                                     </div>
                                     <div class="form-group form-check form-switch mb-2">
@@ -168,14 +168,14 @@
                                                     Chunking Strategy
                                                 </a>
                                                 <ul class="collapse show" id="chunking-strategy" role="group">
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="markdown" checked> Markdown
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1 disabled">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="markdown" disabled unchecked> Markdown
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="html" checked> HTML
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="semantic" checked> Semantic
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1 disabled">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="semantic" disabled unchecked> Semantic
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="recursive" checked> Recursive
@@ -213,24 +213,24 @@
                                                 </span>
                                                 <ul class="collapse show" id="embedding-model" role="group">
                                                     <li aria-level="2" role="tree-item">
-                                                        <a class="treeview-category d-flex align-items-center" data-mdb-collapse-init data-mdb-target="#openai-models" role="button" aria-expanded="true">
+                                                        <a class="treeview-category d-flex align-items-center disabled" aria-disabled="true" data-mdb-collapse-init data-mdb-target="#openai-models" role="button" aria-expanded="true">
                                                             <i class="fas fa-angle-right chevron-icon mx-1"></i>
-                                                            <input type="checkbox" class="mx-1 form-check-input" id="openAI">
+                                                            <input type="checkbox" class="mx-1 form-check-input" id="openAI" disabled>
                                                             OpenAI
                                                         </a>
                                                         <ul class="collapse show" id="openai-models" role="group">
-                                                            <li aria-level="3" role="tree-item" class="treeview-category">
+                                                            <li aria-level="3" role="tree-item" class="treeview-category disabled">
                                                                 <input type="checkbox" class="mx-1 form-check-input" id="embeddingSmall" disabled unchecked> text-embedding-3-small
                                                             </li>
-                                                            <li aria-level="3" role="tree-item" class="treeview-category">
+                                                            <li aria-level="3" role="tree-item" class="treeview-category disabled">
                                                                 <input type="checkbox" class="mx-1 form-check-input" id="embeddingLarge" disabled unchecked> text-embedding-3-large
                                                             </li>
-                                                            <li aria-level="3" role="tree-item" class="treeview-category">
+                                                            <li aria-level="3" role="tree-item" class="treeview-category disabled">
                                                                 <input type="checkbox" class="mx-1 form-check-input" id="embeddingAda" disabled unchecked> text-embedding-ada-002
                                                             </li>
                                                         </ul>
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1 disabled">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="embeddingHuggingFace" disabled unchecked> HuggingFace
                                                     </li>
                                                     <div class="form-group row mx-3" id="embeddingHuggingFaceModelDiv" style="display: none;">
@@ -248,7 +248,7 @@
                                                             <input type="text" class="form-control" id="embeddingAzureOAIModel" placeholder="e.g., text-embedding-ada-002", value="text-embedding-3-large">
                                                         </div>
                                                     </div>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1 disabled">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="embeddingGoogleVertexAI" disabled unchecked> Google Vertex AI
                                                     </li>
                                                     <div class="form-group row mx-3" id="embeddingGoogleVertexAIModelDiv" style="display: none;">
@@ -257,7 +257,7 @@
                                                             <input type="text" class="form-control" id="embeddingGoogleVertexAIModel" placeholder="e.g., textembedding-gecko@001">
                                                         </div>
                                                     </div>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1 disabled">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="embeddingOllama" disabled unchecked> Ollama
                                                     </li>
                                                     <div class="form-group row mx-3" id="embeddingOllamaModelDiv" style="display: none;">
@@ -276,7 +276,7 @@
                                 <div class="col-md-6 mt-5">
                                     <h6 class="h6">Vector DB</h6>
                                     <span class="fw-light text-muted extra-small" style="display: inline-block; font-size: .75em;">
-                                        For the demo, we will use the Chroma or FAISS DB.
+                                        For the demo, we will use Chroma or FAISS DB.
                                     </span>
                                         <div class="form-group form-check mx-3">
                                             <input type="radio" class="form-check-input" name="vectorDB" id="chromaDB" checked>
@@ -331,11 +331,11 @@
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="bm25Retriever" checked> BM25 Retriever
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="colbertRetriever" unchecked> Colbert Retriever
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1 disabled">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="colbertRetriever" disabled unchecked> Colbert Retriever
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="multiQuery" checked> Multi Query Retriever
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1 disabled">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="multiQuery" disabled unchecked> Multi Query Retriever
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="parentDocFullDoc" checked> Parent Doc Retriever - Full Documents
@@ -390,26 +390,26 @@
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="mxbai-rerank-base-v1" checked> Mixedbread-ai/mxbai-rerank-base-v1
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="mxbai-rerank-large-v1" checked> Mixedbread-ai/mxbai-rerank-large-v1
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1 disabled">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="mxbai-rerank-large-v1" disabled unchecked> Mixedbread-ai/mxbai-rerank-large-v1
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="bge-reranker-base" checked> BAAI/bge-reranker-base
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="flashrank" checked> Flashrank/ms-marco-MiniLM-L-12-v2
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1 disabled">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="flashrank" disabled unchecked> Flashrank/ms-marco-MiniLM-L-12-v2
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="cohere" unchecked> Cohere/rerank-english-v3.0
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1 disabled">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="cohere" disabled unchecked> Cohere/rerank-english-v3.0
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="jina" unchecked> Jina/jina-reranker-v1-base-en
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1 disabled">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="jina" disabled unchecked> Jina/jina-reranker-v1-base-en
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="colbert" checked> Colbert v2.0
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1">
-                                                        <input type="checkbox" class="mx-1 form-check-input" id="rankllm" unchecked> Rankllm/gpt-4o
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mt-1 disabled">
+                                                        <input type="checkbox" class="mx-1 form-check-input" id="rankllm" disabled unchecked> Rankllm/gpt-4o
                                                     </li>
                                                     <li aria-level="2" role="tree-item" class="treeview-category mt-1">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="longContextReorder" checked> Long Context Reorder
@@ -443,27 +443,27 @@
                                                 </span>
                                                 <ul class="collapse show" id="llm-opts" role="group">
                                                     <li aria-level="2" role="tree-item">
-                                                        <a class="treeview-category d-flex align-items-center" data-mdb-collapse-init data-mdb-target="#openai-llms" role="button" aria-expanded="true">
+                                                        <a class="treeview-category d-flex align-items-center disabled" data-mdb-collapse-init data-mdb-target="#openai-llms" role="button" aria-expanded="true">
                                                             <i class="fas fa-angle-right chevron-icon mx-1"></i>
-                                                            <input type="checkbox" class="mx-1 form-check-input" id="openAIllms">
+                                                            <input type="checkbox" class="mx-1 form-check-input" id="openAIllms" disabled unchecked>
                                                             OpenAI
                                                         </a>
                                                         <ul class="collapse show" id="openai-llms" role="group">
-                                                            <li aria-level="3" role="tree-item" class="treeview-category">
+                                                            <li aria-level="3" role="tree-item" class="treeview-category disabled">
                                                                 <input type="checkbox" class="mx-1 form-check-input" id="gpt4oMini" disabled unchecked> GPT-4o mini
                                                             </li>
-                                                            <li aria-level="3" role="tree-item" class="treeview-category">
+                                                            <li aria-level="3" role="tree-item" class="treeview-category disabled">
                                                                 <input type="checkbox" class="mx-1 form-check-input" id="gpt4o" disabled unchecked> GPT-4o
                                                             </li>
-                                                            <li aria-level="3" role="tree-item" class="treeview-category">
+                                                            <li aria-level="3" role="tree-item" class="treeview-category disabled">
                                                                 <input type="checkbox" class="mx-1 form-check-input" id="gpt35" disabled unchecked> GPT-3.5 Turbo
                                                             </li>
-                                                            <li aria-level="3" role="tree-item" class="treeview-category">
+                                                            <li aria-level="3" role="tree-item" class="treeview-category disabled">
                                                                 <input type="checkbox" class="mx-1 form-check-input" id="gpt4Turbo" disabled unchecked> GPT-4 Turbo
                                                             </li>
                                                         </ul>
                                                     </li>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1 disabled">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="llmHuggingFace" disabled unchecked> HuggingFace
                                                     </li>
                                                     <div class="form-group row mx-2" id="llmHuggingFaceModelDiv" style="display: none;">
@@ -472,7 +472,7 @@
                                                             <input type="text" class="form-control" id="llmHuggingFaceModel" placeholder="e.g., meta-llama/Meta-Llama-3.1-405B">
                                                         </div>
                                                     </div>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1 disabled">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="llmGroq" disabled unchecked> Groq
                                                     </li>
                                                     <div class="form-group row mx-2" id="llmGroqModelDiv" style="display: none;">
@@ -490,7 +490,7 @@
                                                             <input type="text" class="form-control" id="llmAzureOAIModel" placeholder="e.g., gpt-35-turbo", value="gpt-4o-mini">
                                                         </div>
                                                     </div>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1 disabled">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="llmGoogleVertexAI" disabled unchecked> Google Vertex AI
                                                     </li>
                                                     <div class="form-group row mx-2" id="llmGoogleVertexAIModelDiv" style="display: none;">
@@ -499,7 +499,7 @@
                                                             <input type="text" class="form-control" id="llmGoogleVertexAIModel" placeholder="e.g., gemini-1.5-pro-001">
                                                         </div>
                                                     </div>
-                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1">
+                                                    <li aria-level="2" role="tree-item" class="treeview-category mx-3 mt-1 disabled">
                                                         <input type="checkbox" class="mx-1 form-check-input" id="llmOllama" disabled unchecked> Ollama
                                                     </li>
                                                     <div class="form-group row mx-2" id="llmOllamaModelDiv" style="display: none;">
@@ -587,7 +587,7 @@
                                         <option value="GoogleVertexAI" disabled>Google Vertex AI</option>
                                         <option value="Ollama" disabled>Ollama</option>
                                     </select>
-                                    <input type="text" class="form-control mt-2" id="customEvalEmbedding" placeholder="e.g., sentence-transformers/all-MiniLM-L6-v2" value="text-embedding-3-large">
+                                    <input type="text" class="form-control mt-2 uneditable-input" id="customEvalEmbedding" placeholder="e.g., sentence-transformers/all-MiniLM-L6-v2" value="text-embedding-3-large">
                                     </div>
                                 </div>
                                 <div class="form-group row mb-4">
@@ -606,7 +606,7 @@
                                         <option value="GoogleVertexAI" disabled >Google Vertex AI</option>
                                         <option value="Ollama" disabled>Ollama</option>
                                     </select>
-                                    <input type="text" class="form-control mt-2" id="customEvalLLM" placeholder="Enter LLM model name e.g., llama-3.1-405B" value="gpt-4o-mini">
+                                    <input type="text" class="form-control mt-2 uneditable-input" id="customEvalLLM" placeholder="Enter LLM model name e.g., llama-3.1-405B" value="gpt-4o-mini">
                                     </div>
                                 </div>
 
@@ -976,6 +976,19 @@
         }
         #chunk-size-multi-slider .noUi-active .noUi-tooltip {
             display: block;
+        }
+        .disabled {
+            color: #6c757d;  /* Gray color for disabled state */
+            opacity: 0.65;   /* Reduced opacity */
+            cursor: not-allowed;  /* Shows "not-allowed" cursor on hover */
+            pointer-events: none; /* Prevents any mouse interaction */
+            text-decoration: none; /* Removes underline if it's a link */
+        }
+
+        /* Optional: Style for the checkbox when disabled */
+        .disabled input[type="checkbox"]:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
         }
         /* .modal-header {
             background-color: #007bff;
