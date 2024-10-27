@@ -112,7 +112,7 @@ async def create_chat_session(session_data: ChatSessionCreate, db: sqlite3.Conne
     
 @app.get("/chat/{eval_id}", response_class=HTMLResponse)
 async def chat_page(request: Request, eval_id: int):
-    return templates.TemplateResponse("chat.html", {"request": request, "eval_id": eval_id})
+    return templates.TemplateResponse(request=request, name="chat.html", context={"eval_id": eval_id})
     
 @app.post("/chat/{session_id}")
 async def chat(session_id: str, chat_message: ChatMessage, db: sqlite3.Connection = Depends(get_db)):
@@ -616,6 +616,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
         # Insert generated into hashmap 
         insert_hashmap(get_hash(src_full_path, use_sampling), f_name, db)
         progress_state.toggle_synth_data_gen_progress(0)
+        if enable_analytics:
+            track_event('2')
         logger.info(f"Synthetic test data generation completed: {f_name}") 
     else:
         f_name=config["testDataPath"]
@@ -699,7 +701,8 @@ def parse_config(config: dict, db: sqlite3.Connection):
         logger.info(f"Processing finished successfully")
         _update_status(CURRENT_RUN_ID, 'Success', db)
         db.close()
-        track_event('1')
+        if enable_analytics:
+            track_event('1')
         return {
             "status": "success",
             "message": "Completed successfully.",

@@ -230,7 +230,7 @@ arr_comp.append(compressor)
         return {'code_string':code_string,'import_string':import_string}
     
     if 'BAAI/bge-reranker-base' in compressor_config:
-        code_string= f"""ranker = Reranker("BAAI/bge-reranker-base", model_type='APIRanker')
+        code_string= f"""ranker = Reranker("BAAI/bge-reranker-base", model_type='TransformerRanker')
 compressor = ranker.as_langchain_compressor(k={search_kwargs})
 arr_comp.append(compressor)
 """
