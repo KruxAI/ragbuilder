@@ -36,9 +36,12 @@ class DataSampler:
         self.sample_ratio = sample_ratio
         self.file_size_threshold = file_size_threshold
         self.random_state = 42
+        self.estimated_data_size = self.estimate_data_size()
+        print('sampler',absolute_sample_size,self.estimate_data_size())
         if absolute_sample_size:
-            self.sample_ratio = absolute_sample_size / self.estimate_data_size()
-            self.enable_sampling = self.sample_ratio < 1
+            if self.estimated_data_size:
+                self.sample_ratio = absolute_sample_size / self.estimate_data_size()
+                self.enable_sampling = self.sample_ratio < 1
         # self.logger = self._setup_logger()
 
     # def _setup_logger(self):
@@ -73,6 +76,7 @@ class DataSampler:
             headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
             response = requests.head(url, headers=headers, allow_redirects=True)
             content_length = response.headers.get('Content-Length')
+            print('content_length',content_length)
             if content_length:
                 return int(content_length)
             else:
