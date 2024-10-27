@@ -14,4 +14,4 @@ import time
 def track_event(event_str):
     enable_analytics = os.getenv('ENABLE_ANALYTICS', 'True').lower() == 'true'
     if enable_analytics:
-        mp.track(int(time.time()),event_str)
+        mp.track(int(time.time()),"demo_"+event_str)

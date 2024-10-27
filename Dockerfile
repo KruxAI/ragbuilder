@@ -1,6 +1,6 @@
 # Use an official Python runtime as a parent image
 FROM python:3.12.3-slim
-
+ENV GIT_PYTHON_REFRESH=2
 # Install required system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
