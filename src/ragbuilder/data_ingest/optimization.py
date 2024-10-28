@@ -2,29 +2,20 @@ import optuna
 import logging
 from dataclasses import dataclass
 from typing import Optional
-from .config import DataIngestOptionsConfig, DataIngestConfig
+from .config import DataIngestOptionsConfig, DataIngestConfig, LogConfig
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
-from tqdm.notebook import tqdm
-
-@dataclass
-class OptimizerLogConfig:
-    """Configuration for optimizer logging"""
-    log_level: int = logging.INFO
-    log_file: Optional[str] = None
-    show_progress_bar: bool = True
-    verbose: bool = False
-    
+from tqdm.notebook import tqdm    
 
 class Optimizer:
-    def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, log_config: OptimizerLogConfig = OptimizerLogConfig()):
+    def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator):
         self.options_config = options_config
         self.evaluator = evaluator
         self.embedding_model_map = {i: model for i, model in enumerate(self.options_config.embedding_models)}
         self.vector_db_map = {i: db for i, db in enumerate(self.options_config.vector_databases)}
-        self._setup_logging(log_config)
+        self._setup_logging(options_config.log_config)
 
-    def _setup_logging(self, log_config: OptimizerLogConfig):
+    def _setup_logging(self, log_config: LogConfig):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(log_config.log_level)
 

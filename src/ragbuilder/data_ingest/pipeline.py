@@ -50,6 +50,7 @@ class DataIngestPipeline:
 
     def _create_chunker(self):
         if self.config.chunking_strategy == ChunkingStrategy.CUSTOM:
+            print(f"Using custom chunker: {self.config.custom_chunker}")
             return self._instantiate_custom_class(self.config.custom_chunker, chunk_size=self.config.chunk_size, chunk_overlap=self.config.chunk_overlap)
         
         if self.config.chunking_strategy == ChunkingStrategy.CHARACTER:
