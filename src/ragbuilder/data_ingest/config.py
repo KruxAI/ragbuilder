@@ -3,7 +3,17 @@ from typing import List, Optional, Union, Dict, Any
 import yaml
 import time
 import random
+import logging
+from dataclasses import dataclass
 from enum import Enum
+
+@dataclass
+class LogConfig:
+    """Configuration for logging"""
+    log_level: int = logging.INFO
+    log_file: Optional[str] = None
+    show_progress_bar: bool = True
+    verbose: bool = False
 
 class ParserType(str, Enum):
     UNSTRUCTURED = "unstructured"
@@ -102,6 +112,7 @@ class DataIngestOptionsConfig(BaseConfig):
     top_k: Optional[int] = Field(default=5, description="Number of top results to consider for similarity scoring")
     sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
     optimization: Optional[OptimizationConfig] = Field(default_factory=OptimizationConfig, description="Optimization configuration")
+    log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
 
 class DataIngestConfig(BaseConfig):
     document_loader: LoaderConfig = Field(

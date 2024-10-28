@@ -39,7 +39,7 @@ RUN_CONFIG_MAX_WORKERS = int(os.getenv('RUN_CONFIG_MAX_WORKERS', '16'))
 RUN_CONFIG_MAX_WAIT = int(os.getenv('RUN_CONFIG_MAX_WAIT', '180'))
 RUN_CONFIG_MAX_RETRIES = int(os.getenv('RUN_CONFIG_MAX_RETRIES', '10'))
 RUN_CONFIG_IS_ASYNC = os.getenv('RUN_CONFIG_IS_ASYNC', 'true').lower() == 'true'
-BAYESIAN_RUNS=50
+OVERRIDE_BASELINE_RETRIEVERS = os.getenv('OVERRIDE_BASELINE_RETRIEVERS', 'true').lower() == 'true'
 DATABASE = 'eval.db' #TODO: Define this in common.py
 # Imports needed for Executing the Generated Code
 from operator import itemgetter
@@ -70,6 +70,9 @@ from langchain.retrievers import (
     SelfQueryRetriever,
     TimeWeightedVectorStoreRetriever
 )
+import weaviate
+from langchain_weaviate.vectorstores import WeaviateVectorStore
+from langchain_qdrant import QdrantVectorStore, RetrievalMode, FastEmbedSparse
 from rerankers import Reranker
 from langchain_core.documents import Document
 from langchain.retrievers.document_compressors import *
@@ -96,7 +99,7 @@ from langchain_community.embeddings import OllamaEmbeddings
 from langchain.chains import LLMChain, HypotheticalDocumentEmbedder
 from langchain.prompts import ChatPromptTemplate
 from langchain.load import dumps, loads
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 import os
@@ -183,7 +186,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
         cnt_templates = len(selected_templates)
 
     if kwargs['include_granular_combos']:
-        lc_templates.filter_exclusions(exclude_elements=disabled_opts)
+        lc_templates.filter_exclusions(exclude_elements=disabled_opts, override_baseline_retrievers=OVERRIDE_BASELINE_RETRIEVERS)
         # space = lc_templates.generate_config_space_optuna(exclude_elements=disabled_opts)
         # logger.info(f"Config space={space}")
         cnt_combos=lc_templates.count_combos() + cnt_templates

@@ -45,10 +45,11 @@ chunk_req_loaders = ['RecursiveCharacterTextSplitter','CharacterTextSplitter']
 
 def init(db='ChromaDB', min=500, max=2000, other_embedding=[], other_llm=[]):
     global arr_chunking_strategy, arr_chunk_size, arr_embedding_model, retriever_combinations, arr_retriever, arr_llm, arr_contextual_compression, \
-        compressor_combinations, arr_compressors, arr_search_kwargs, vectorDB
+        arr_baseline_retrievers, compressor_combinations, arr_compressors, arr_search_kwargs, vectorDB
     arr_chunking_strategy = ['RecursiveCharacterTextSplitter','CharacterTextSplitter','SemanticChunker','MarkdownHeaderTextSplitter','HTMLHeaderTextSplitter']
     arr_chunk_size = _get_arr_chunk_size(min, max, step_size=chunk_step_size)
     arr_embedding_model = ['OpenAI:text-embedding-3-small','OpenAI:text-embedding-3-large','OpenAI:text-embedding-ada-002']
+    arr_baseline_retrievers = ['vectorSimilarity', 'bm25Retriever']
     arr_retriever = ['vectorSimilarity', 'vectorMMR','bm25Retriever','multiQuery','parentDocFullDoc','parentDocLargeChunk','colbertRetriever']
     retriever_combinations = [retriever for retriever in arr_retriever if retriever not in arr_baseline_retrievers]
     arr_llm = ['OpenAI:gpt-4o-mini','OpenAI:gpt-4o','OpenAI:gpt-3.5-turbo','OpenAI:gpt-4-turbo']
@@ -79,8 +80,9 @@ def init(db='ChromaDB', min=500, max=2000, other_embedding=[], other_llm=[]):
     
     progress_state.reset()
 
-def filter_exclusions(exclude_elements):
-    global arr_chunking_strategy, arr_chunk_size, arr_embedding_model, arr_retriever, arr_llm, arr_contextual_compression, arr_compressors, arr_search_kwargs
+def filter_exclusions(exclude_elements, override_baseline_retrievers=False):
+    global arr_chunking_strategy, arr_chunk_size, arr_embedding_model, arr_retriever, arr_baseline_retrievers, retriever_combinations, \
+        arr_llm, arr_contextual_compression, arr_compressors, arr_search_kwargs
     
     if exclude_elements is None:
         exclude_elements = []
@@ -89,6 +91,9 @@ def filter_exclusions(exclude_elements):
     arr_chunking_strategy = [elem for elem in arr_chunking_strategy if elem not in exclude_elements]
     arr_embedding_model = [elem for elem in arr_embedding_model if elem not in exclude_elements]
     arr_retriever = [elem for elem in arr_retriever if elem not in exclude_elements]
+    if override_baseline_retrievers:
+        arr_baseline_retrievers = [elem for elem in arr_baseline_retrievers if elem not in exclude_elements]
+    retriever_combinations = [elem for elem in retriever_combinations if elem not in exclude_elements]
     arr_llm = [elem for elem in arr_llm if elem not in exclude_elements]
     arr_compressors = [elem for elem in arr_compressors if elem not in exclude_elements and 'contextualCompression' not in exclude_elements]
 
@@ -192,15 +197,18 @@ def generate_config_for_trial_optuna(trial):
     for retriever in arr_baseline_retrievers:
         selected_retrievers.append(retriever)
 
-    # Now, select 'n' - the num of retrievers from MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers)
-    n_retrievers = trial.suggest_int('n_retrievers', 0, MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers))
-    logger.info(f'n_retrievers: {n_retrievers}')
+    if len(arr_baseline_retrievers) == 1:
+        selected_retrievers.append(arr_baseline_retrievers[0])
+    else:
+        # Now, select 'n' - the num of retrievers from MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers)
+        n_retrievers = trial.suggest_int('n_retrievers', 0, MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers))
+        logger.info(f'n_retrievers: {n_retrievers}')
 
-    # Now choose those n retrievers
-    for i in range(n_retrievers):
-        retriever = trial.suggest_categorical(f'retriever_{i}', retriever_combinations)
-        if retriever not in selected_retrievers:
-            selected_retrievers.append(retriever)
+        # Now choose those n retrievers
+        for i in range(n_retrievers):
+            retriever = trial.suggest_categorical(f'retriever_{i}', retriever_combinations)
+            if retriever not in selected_retrievers:
+                selected_retrievers.append(retriever)
 
     retriever_kwargs = {'retrievers': [_format_retriever_config(retriever, search_kwargs) for retriever in selected_retrievers]}
     logger.debug(f'retriever_kwargs: {retriever_kwargs}')

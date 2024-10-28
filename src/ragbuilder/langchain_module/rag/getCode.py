@@ -17,6 +17,7 @@ from ragbuilder.langchain_module.chunkingstrategy.langchain_chunking import *
 from ragbuilder.langchain_module.embedding_model.embedding import *
 from ragbuilder.langchain_module.vectordb.vectordb import *
 from langchain_community.document_transformers import LongContextReorder
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from ragbuilder.langchain_module.common import set_params_helper_by_src
 from ragbuilder.langchain_module.common import setup_logging
 import logging
@@ -30,6 +31,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 from langchain.retrievers import MergerRetriever,EnsembleRetriever
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 """
 def codeGen(**kwargs):
     logger.info(f"Generating code...")
@@ -102,7 +104,14 @@ def rag_pipeline():
         def format_docs(docs):
             return "\\n".join(doc.page_content for doc in docs) 
         {0}
-        prompt = hub.pull("rlm/rag-prompt")
+        # prompt = hub.pull("rlm/rag-prompt")
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", '''You are a helpful assistant. Answer any questions solely based on the context provided below. If the provided context does not have the relevant facts to answer the question, say I don't know. \n\n<context>\n{{context}}\n</context>'''),
+                ("user", "{{question}}"),
+                MessagesPlaceholder(variable_name="chat_history", optional=True),
+            ]
+        )
         rag_chain = (
             RunnableParallel(context=retriever, question=RunnablePassthrough())
                 .assign(context=itemgetter("context") | RunnableLambda(format_docs))

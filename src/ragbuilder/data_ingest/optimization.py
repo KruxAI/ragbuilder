@@ -2,29 +2,20 @@ import optuna
 import logging
 from dataclasses import dataclass
 from typing import Optional
-from .config import DataIngestOptionsConfig, DataIngestConfig
+from .config import DataIngestOptionsConfig, DataIngestConfig, LogConfig
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
-from tqdm.notebook import tqdm
-
-@dataclass
-class OptimizerLogConfig:
-    """Configuration for optimizer logging"""
-    log_level: int = logging.INFO
-    log_file: Optional[str] = None
-    show_progress_bar: bool = True
-    verbose: bool = False
-    
+from tqdm.notebook import tqdm    
 
 class Optimizer:
-    def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, log_config: OptimizerLogConfig = OptimizerLogConfig()):
+    def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator):
         self.options_config = options_config
         self.evaluator = evaluator
         self.embedding_model_map = {i: model for i, model in enumerate(self.options_config.embedding_models)}
         self.vector_db_map = {i: db for i, db in enumerate(self.options_config.vector_databases)}
-        self._setup_logging(log_config)
+        self._setup_logging(options_config.log_config)
 
-    def _setup_logging(self, log_config: OptimizerLogConfig):
+    def _setup_logging(self, log_config: LogConfig):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(log_config.log_level)
 
@@ -52,6 +43,7 @@ class Optimizer:
                 chunking_strategy = self.options_config.chunking_strategies[0]
             else:
                 chunking_strategy = trial.suggest_categorical("chunking_strategy", self.options_config.chunking_strategies)
+            
             chunk_size = trial.suggest_int("chunk_size", self.options_config.chunk_size.min, self.options_config.chunk_size.max, step=self.options_config.chunk_size.stepsize)
 
             if len(self.options_config.chunk_overlap) == 1:
@@ -84,7 +76,8 @@ class Optimizer:
                 "embedding_model": embedding_model,
                 "vector_database": vector_database,
                 "top_k": self.options_config.top_k,
-                "sampling_rate": self.options_config.sampling_rate
+                "sampling_rate": self.options_config.sampling_rate,
+                "custom_chunker": self.options_config.custom_chunker if hasattr(self.options_config, 'custom_chunker') else None
             }
             self.logger.info(f"Trial parameters: {params}")
 
