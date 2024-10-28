@@ -3,6 +3,11 @@ let progressInterval;
 let smoothInterval;
 let currentRunId = null;
 
+function generateRandom10Digit() {
+    currentRunId=Math.floor(Date.now() / 1000);
+    return currentRunId;
+}
+
 function validateSourceData() {
     const sourceData = $('#sourceData').val();
 
@@ -95,18 +100,18 @@ function loadTemplates() {
     });
 }
 
-function fetch_current_run_id() {
-    $.ajax({
-        type: "GET",
-        url: "/get_current_run_id",
-        success: function(response) {
-            currentRunId = response.run_id;
-        },
-        error: function(error) {
-            console.error("Failed to fetch current run ID:", error);
-        }
-    });
-}
+// function fetch_current_run_id() {
+//     $.ajax({
+//         type: "GET",
+//         url: "/get_current_run_id",
+//         success: function(response) {
+//             currentRunId = response.run_id;
+//         },
+//         error: function(error) {
+//             console.error("Failed to fetch current run ID:", error);
+//         }
+//     });
+// }
 
 $(document).ready(function () {
     // Show modal to capture user inputs and send it to backend.
@@ -639,6 +644,7 @@ $(document).ready(function () {
             .get();
 
         const projectData = {
+            run_id: generateRandom10Digit(),
             description: $('#description').val(),
             sourceData: $('#sourceData').val(),
             useSampling: $('#useSampling').is(':checked'),
@@ -812,7 +818,7 @@ $(document).ready(function () {
 
     function checkFirstEvalComplete(response) {
         if (response.first_eval_complete && !$('#viewResultsBtn').is(':visible')) {
-            fetch_current_run_id();
+            currentRunId;
             $('#viewResultsBtn').show();
             $('#viewResultsText').text('First evaluation complete. You can now view current results.');
         }

@@ -44,7 +44,7 @@ url = "http://localhost:8005"
 app = FastAPI()
 DATABASE = 'eval.db'
 BAYES_OPT = 1
-CURRENT_RUN_ID = 0
+# CURRENT_RUN_ID = 0
 
 templates = Jinja2Templates(directory=Path(BASE_DIR, 'templates'))
 app.mount("/static", StaticFiles(directory=Path(BASE_DIR, 'static')), name="static")
@@ -314,12 +314,12 @@ def get_log_updates():
 def get_progress():
     return progress_state.get_progress()
 
-@app.get("/get_current_run_id")
-def get_current_run_id():
-    if CURRENT_RUN_ID:
-        return {"run_id": CURRENT_RUN_ID}
-    else:
-        raise HTTPException(status_code=404, detail="No active run ID found")
+# @app.get("/get_current_run_id")
+# def get_current_run_id():
+#     if CURRENT_RUN_ID:
+#         return {"run_id": CURRENT_RUN_ID}
+#     else:
+#         raise HTTPException(status_code=404, detail="No active run ID found")
 
 class SourceDataCheck(BaseModel):
     sourceData: str
@@ -429,6 +429,7 @@ def get_rag_templates():
     return JSONResponse(content={"templates": templates})
 
 class ProjectData(BaseModel):
+    run_id: int
     description: str
     sourceData: str
     useSampling: bool
@@ -526,7 +527,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     # Instead of get_db(), use the db parameter
     # Replace jsonify with direct dictionary returns
     # ...
-    global CURRENT_RUN_ID
+    # global CURRENT_RUN_ID
     enable_analytics = os.getenv('ENABLE_ANALYTICS', 'True').lower() == 'true'
     logger.info(f"enable_analytics = {enable_analytics}")
     if enable_analytics:
@@ -534,7 +535,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
     logger.info(f"Initiating parsing config: {config}")
     disabled_opts=_get_disabled_opts(config)
     logger.info(f"Disabled options: {disabled_opts}")
-    CURRENT_RUN_ID=int(time.time())
+    CURRENT_RUN_ID=config["run_id"]
     desc=config["description"]
     compare_templates=config["compareTemplates"]
     include_granular_combos=config["includeNonTemplated"]
