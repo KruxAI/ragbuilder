@@ -197,11 +197,12 @@ def generate_config_for_trial_optuna(trial):
     for retriever in arr_baseline_retrievers:
         selected_retrievers.append(retriever)
 
-    if len(arr_baseline_retrievers) == 1:
-        selected_retrievers.append(arr_baseline_retrievers[0])
+    # If no baseline retrievers are selected and there is only one retriever combination, select it
+    if len(selected_retrievers) == 0 and len(retriever_combinations) == 1:
+        selected_retrievers.append(retriever_combinations[0])
     else:
-        # Now, select 'n' - the num of retrievers from MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers)
-        n_retrievers = trial.suggest_int('n_retrievers', 0, MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers))
+        # Now, select 'n' - the num of retrievers from (MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers)) or len(retriever_combinations) whichever is lesser
+        n_retrievers = trial.suggest_int('n_retrievers', 0, min(MAX_MULTI_RETRIEVER_COMBOS - len(arr_baseline_retrievers), len(retriever_combinations)))
         logger.info(f'n_retrievers: {n_retrievers}')
 
         # Now choose those n retrievers
