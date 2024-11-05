@@ -1,16 +1,19 @@
 import optuna
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from .config import DataIngestOptionsConfig, DataIngestConfig, LogConfig
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
 from tqdm.notebook import tqdm    
+import numpy as np
 
 class Optimizer:
-    def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator):
+    def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, callback=None):
         self.options_config = options_config
         self.evaluator = evaluator
+        self.callback = callback
+        self.chunking_strategy_map = {i: chunking_strategy for i, chunking_strategy in enumerate(self.options_config.chunking_strategies)}
         self.embedding_model_map = {i: model for i, model in enumerate(self.options_config.embedding_models)}
         self.vector_db_map = {i: db for i, db in enumerate(self.options_config.vector_databases)}
         self._setup_logging(options_config.log_config)
@@ -38,64 +41,31 @@ class Optimizer:
         self.logger.info("Starting optimization process")
         def objective(trial):
             self.logger.info(f"Starting trial {trial.number + 1}/{self.options_config.optimization.n_trials}")
-
-            if len(self.options_config.chunking_strategies) == 1:
-                chunking_strategy = self.options_config.chunking_strategies[0]
-            else:
-                chunking_strategy = trial.suggest_categorical("chunking_strategy", self.options_config.chunking_strategies)
-            
-            chunk_size = trial.suggest_int("chunk_size", self.options_config.chunk_size.min, self.options_config.chunk_size.max, step=self.options_config.chunk_size.stepsize)
-
-            if len(self.options_config.chunk_overlap) == 1:
-                chunk_overlap = self.options_config.chunk_overlap[0]
-            else:
-                chunk_overlap = trial.suggest_categorical("chunk_overlap", self.options_config.chunk_overlap)
-
-
-            if len(self.options_config.embedding_models) == 1:  
-                embedding_model = self.options_config.embedding_models[0]
-            else:
-                embedding_model = self.embedding_model_map[trial.suggest_categorical("embedding_model_index", list(self.embedding_model_map.keys()))]
-
-            if len(self.options_config.vector_databases) == 1:
-                vector_database = self.options_config.vector_databases[0]
-            else:
-                vector_database = self.vector_db_map[trial.suggest_categorical("vector_database_index", list(self.vector_db_map.keys()))]
-            
-            # Avoid the InvalidDimensionException by persisting to a unique directory for each trial
-            if vector_database.persist_directory:
-                self.original_persist_directory = vector_database.persist_directory if not hasattr(self, 'original_persist_directory') else self.original_persist_directory
-                vector_database.persist_directory = f"{self.original_persist_directory}/{trial.number}"
-            
-            params = {
-                "input_source": self.options_config.input_source,
-                "test_dataset": self.options_config.test_dataset,
-                "chunking_strategy": chunking_strategy,
-                "chunk_overlap": chunk_overlap,
-                "chunk_size": chunk_size,
-                "embedding_model": embedding_model,
-                "vector_database": vector_database,
-                "top_k": self.options_config.top_k,
-                "sampling_rate": self.options_config.sampling_rate,
-                "custom_chunker": self.options_config.custom_chunker if hasattr(self.options_config, 'custom_chunker') else None
-            }
-            self.logger.info(f"Trial parameters: {params}")
-
-            config = DataIngestConfig(**params)
+            config = self._build_trial_config(trial)
             self.logger.debug(f"Running pipeline with config: {config}")
 
             pipeline = DataIngestPipeline(config)
-            index = pipeline.run()
+            pipeline.run()
             
-            score = self.evaluator.evaluate(pipeline)
-
-            return score
+            avg_score, question_details = self.evaluator.evaluate(pipeline)
+            
+            metrics = self._calculate_aggregate_metrics(question_details)
+            
+            if self.callback:
+                self.callback(trial, {
+                    "avg_score": avg_score,
+                    "question_details": question_details,
+                    "metrics": metrics,
+                    "config": config.model_dump()
+                })
+            
+            return avg_score
 
         study = optuna.create_study(
             storage=self.options_config.optimization.storage,
             study_name=self.options_config.optimization.study_name,
             load_if_exists=self.options_config.optimization.load_if_exists,
-            direction="maximize",
+            direction="minimize",
             sampler=optuna.samplers.TPESampler(),
             pruner=optuna.pruners.MedianPruner()
         )
@@ -114,15 +84,80 @@ class Optimizer:
         best_config = DataIngestConfig(
             input_source=self.options_config.input_source,
             test_dataset=self.options_config.test_dataset,
-            chunking_strategy=study.best_params["chunking_strategy"] if "chunking_strategy" in study.best_params else self.options_config.chunking_strategies[0],
+            chunking_strategy=self.chunking_strategy_map[study.best_params["chunking_strategy_id"]] if "chunking_strategy_id" in study.best_params else self.options_config.chunking_strategies[0],
             chunk_size=study.best_params["chunk_size"],
             chunk_overlap=study.best_params["chunk_overlap"] if "chunk_overlap" in study.best_params else self.options_config.chunk_overlap[0],
-            embedding_model=self.embedding_model_map[study.best_params["embedding_model_index"]] if "embedding_model_index" in study.best_params else self.options_config.embedding_models[0],
-            vector_database=self.vector_db_map[study.best_params["vector_database_index"]] if "vector_database_index" in study.best_params else self.options_config.vector_databases[0],
+            embedding_model=self.embedding_model_map[study.best_params["embedding_model_id"]] if "embedding_model_id" in study.best_params else self.options_config.embedding_models[0],
+            vector_database=self.vector_db_map[study.best_params["vector_database_id"]] if "vector_database_id" in study.best_params else self.options_config.vector_databases[0],
             top_k=self.options_config.top_k,
             sampling_rate=self.options_config.sampling_rate
         )
         return best_config, study.best_value
+
+    def _build_trial_config(self, trial) -> DataIngestConfig:
+        """Build config from trial parameters"""
+        if len(self.options_config.chunking_strategies) == 1:
+            chunking_strategy = self.options_config.chunking_strategies[0]
+        else:
+            # chunking_strategy = trial.suggest_categorical("chunking_strategy", self.options_config.chunking_strategies)
+            chunking_strategy = self.chunking_strategy_map[trial.suggest_categorical("chunking_strategy_index", list(self.chunking_strategy_map.keys()))]
+        
+        chunk_size = trial.suggest_int("chunk_size", self.options_config.chunk_size.min, self.options_config.chunk_size.max, step=self.options_config.chunk_size.stepsize)
+
+        if len(self.options_config.chunk_overlap) == 1:
+            chunk_overlap = self.options_config.chunk_overlap[0]
+        else:
+            chunk_overlap = trial.suggest_categorical("chunk_overlap", self.options_config.chunk_overlap)
+
+
+        if len(self.options_config.embedding_models) == 1:  
+            embedding_model = self.options_config.embedding_models[0]
+        else:
+            embedding_model = self.embedding_model_map[trial.suggest_categorical("embedding_model_index", list(self.embedding_model_map.keys()))]
+
+        if len(self.options_config.vector_databases) == 1:
+            vector_database = self.options_config.vector_databases[0]
+        else:
+            vector_database = self.vector_db_map[trial.suggest_categorical("vector_database_index", list(self.vector_db_map.keys()))]
+        
+        # Avoid the InvalidDimensionException by persisting to a unique directory for each trial
+        if vector_database.persist_directory:
+            self.original_persist_directory = vector_database.persist_directory if not hasattr(self, 'original_persist_directory') else self.original_persist_directory
+            vector_database.persist_directory = f"{self.original_persist_directory}/{trial.number}"
+        
+        params = {
+            "input_source": self.options_config.input_source,
+            "test_dataset": self.options_config.test_dataset,
+            "chunking_strategy": chunking_strategy,
+            "chunk_overlap": chunk_overlap,
+            "chunk_size": chunk_size,
+            "embedding_model": embedding_model,
+            "vector_database": vector_database,
+            "top_k": self.options_config.top_k,
+            "sampling_rate": self.options_config.sampling_rate,
+            "custom_chunker": self.options_config.custom_chunker if hasattr(self.options_config, 'custom_chunker') else None
+        }
+        self.logger.info(f"Trial parameters: {params}")
+        return DataIngestConfig(**params)
+
+    def _calculate_aggregate_metrics(self, question_details: List[Dict]) -> Dict[str, Any]:
+        """Calculate aggregate metrics from detailed results"""
+        successful_evals = [d for d in question_details if "error" not in d]
+        
+        if not successful_evals:
+            return {
+                "avg_latency": None,
+                "total_questions": len(question_details),
+                "successful_questions": 0,
+                "error_rate": 1.0
+            }
+        
+        return {
+            "avg_latency": np.mean([d["latency"] for d in successful_evals]),
+            "total_questions": len(question_details),
+            "successful_questions": len(successful_evals),
+            "error_rate": 1 - (len(successful_evals) / len(question_details))
+        }
 
 def _run_optimization_core(options_config: DataIngestOptionsConfig):
     evaluator = SimilarityEvaluator(options_config.test_dataset, options_config.top_k)

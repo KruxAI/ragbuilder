@@ -2,6 +2,7 @@ from langchain_community.document_loaders import UnstructuredFileLoader, PyMuPDF
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter, TokenTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain.vectorstores import FAISS, Chroma
 from .config import DataIngestConfig, ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase
 from typing import Any, List
@@ -49,13 +50,13 @@ class DataIngestPipeline:
         raise ValueError(f"Unsupported input source or parser type: {self.config.input_source}, {self.config.document_loader.type}")
 
     def _create_chunker(self):
-        if self.config.chunking_strategy == ChunkingStrategy.CUSTOM:
-            print(f"Using custom chunker: {self.config.custom_chunker}")
-            return self._instantiate_custom_class(self.config.custom_chunker, chunk_size=self.config.chunk_size, chunk_overlap=self.config.chunk_overlap)
+        if self.config.chunking_strategy.type == ChunkingStrategy.CUSTOM:
+            print(f"Using custom chunker: {self.config.chunking_strategy.custom_class}")
+            return self._instantiate_custom_class(self.config.chunking_strategy.custom_class, chunk_size=self.config.chunk_size, chunk_overlap=self.config.chunk_overlap, **(self.config.chunking_strategy.chunker_kwargs or {}))
         
-        if self.config.chunking_strategy == ChunkingStrategy.CHARACTER:
+        if self.config.chunking_strategy.type == ChunkingStrategy.CHARACTER:
             return CharacterTextSplitter(chunk_size=self.config.chunk_size, chunk_overlap=self.config.chunk_overlap)
-        elif self.config.chunking_strategy == ChunkingStrategy.RECURSIVE:
+        elif self.config.chunking_strategy.type == ChunkingStrategy.RECURSIVE:
             return RecursiveCharacterTextSplitter(chunk_size=self.config.chunk_size, chunk_overlap=self.config.chunk_overlap)
         else:
             raise ValueError(f"Unsupported chunking strategy: {self.config.chunking_strategy}")
@@ -69,6 +70,8 @@ class DataIngestPipeline:
             return OpenAIEmbeddings(model=self.config.embedding_model.model, **model_kwargs)
         elif self.config.embedding_model.type == EmbeddingModel.HUGGINGFACE:
             return HuggingFaceEmbeddings(model_name=self.config.embedding_model.model, **model_kwargs)
+        elif self.config.embedding_model.type == EmbeddingModel.OLLAMA:
+            return OllamaEmbeddings(model=self.config.embedding_model.model, **model_kwargs)
         else:
             raise ValueError(f"Unsupported embedding model: {self.config.embedding_model.type}")
 
@@ -96,6 +99,7 @@ class DataIngestPipeline:
             raise ValueError(f"Unsupported vector database: {self.config.vector_database.type}")
 
     def _instantiate_custom_class(self, class_path: str, *args, **kwargs):
+        print('class_path: ', class_path)
         if class_path.startswith('.'):
             # Relative import
             module_name, class_name = class_path.rsplit('.', 1)

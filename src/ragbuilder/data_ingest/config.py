@@ -29,6 +29,7 @@ class ChunkingStrategy(str, Enum):
 class EmbeddingModel(str, Enum):
     OPENAI = "openai"
     HUGGINGFACE = "huggingface"
+    OLLAMA = "ollama"
     CUSTOM = "custom"
 
 class VectorDatabase(str, Enum):
@@ -39,6 +40,11 @@ class VectorDatabase(str, Enum):
 class LoaderConfig(BaseModel):
     type: ParserType
     loader_kwargs: Optional[Dict[str, Any]] = None
+    custom_class: Optional[str] = None
+
+class ChunkingStrategyConfig(BaseModel):
+    type: ChunkingStrategy
+    chunker_kwargs: Optional[Dict[str, Any]] = None
     custom_class: Optional[str] = None
 
 class ChunkSizeConfig(BaseModel):
@@ -94,11 +100,15 @@ class DataIngestOptionsConfig(BaseConfig):
         default_factory=lambda: [LoaderConfig(type=ParserType.UNSTRUCTURED)], 
         description="Document loader configurations"
     )
-    chunking_strategies: Optional[List[str]] = Field(
-        default_factory=lambda: [strategy for strategy in ChunkingStrategy if strategy != ChunkingStrategy.CUSTOM], 
+    chunking_strategies: Optional[List[ChunkingStrategyConfig]] = Field(
+        default_factory=lambda: [ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE)],
         description="Chunking strategies to try"
     )
-    custom_chunker: Optional[str] = Field(default=None, description="Custom chunker class. E.g., 'my_module.MyCustomChunker'")
+    # chunking_strategies: Optional[List[str]] = Field(
+    #     default_factory=lambda: [strategy for strategy in ChunkingStrategy if strategy != ChunkingStrategy.CUSTOM], 
+    #     description="Chunking strategies to try"
+    # )
+    # custom_chunker: Optional[str] = Field(default=None, description="Custom chunker class. E.g., 'my_module.MyCustomChunker'")
     chunk_size: Optional[ChunkSizeConfig] = Field(default_factory=ChunkSizeConfig, description="Chunk size configuration")
     chunk_overlap: Optional[List[int]] = Field(default=[100], description="List of chunk overlap values to try")
     embedding_models: Optional[List[EmbeddingConfig]] = Field(
@@ -119,8 +129,9 @@ class DataIngestConfig(BaseConfig):
         default_factory=lambda: LoaderConfig(type=ParserType.UNSTRUCTURED), 
         description="Document loader configuration"
     )
-    chunking_strategy: str = Field(default=ChunkingStrategy.RECURSIVE, description="Chunking strategy")
-    custom_chunker: Optional[str] = Field(default=None, description="Custom chunker class. E.g., 'my_module.MyCustomChunker'")
+    # chunking_strategy: str = Field(default=ChunkingStrategy.RECURSIVE, description="Chunking strategy")
+    chunking_strategy: ChunkingStrategyConfig = Field(default_factory=lambda: ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE), description="Chunking strategy")
+    # custom_chunker: Optional[str] = Field(default=None, description="Custom chunker class. E.g., 'my_module.MyCustomChunker'")
     chunk_size: int = Field(default=1000, description="Chunk size")
     chunk_overlap: int = Field(default=100, description="Chunk overlap")
     embedding_model: EmbeddingConfig = Field(

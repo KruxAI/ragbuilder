@@ -3,13 +3,14 @@ from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 from langchain.schema.output_parser import StrOutputParser
 
 class ContextualChunker:
     def __init__(self, chunk_size: int, chunk_overlap: int, llm=None):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self.llm = llm or ChatOpenAI()
+        self.llm = llm or ChatOpenAI(model='gpt-4o-mini', temperature=0.2) # ChatOllama(model='llama3.1:latest', temperature=0.2, base_url='http://localhost:11434')
 
     def split_documents(self, documents: List[Document]) -> List[Document]:
         splitter = RecursiveCharacterTextSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)

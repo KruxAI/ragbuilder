@@ -1,24 +1,131 @@
 from abc import ABC, abstractmethod
 from .pipeline import DataIngestPipeline
-from typing import List
+from typing import List, Optional, Dict, Any, Tuple
 import numpy as np
+from datetime import datetime
 
 
 class Evaluator(ABC):
     @abstractmethod
-    def evaluate(self, pipeline: DataIngestPipeline) -> float:
+    def evaluate(self, pipeline: DataIngestPipeline) -> Tuple[float, List[Dict[str, Any]]]:
+        """
+        Evaluate the pipeline and return both average score and detailed results.
+        
+        Returns:
+            Tuple containing:
+                - float: Average evaluation score
+                - List[Dict]: Detailed results for each test question
+        """
         pass
 
-class SimilarityEvaluator(Evaluator):
-    def __init__(self, test_dataset: str, top_k=5):
-        self.top_k = top_k
-        with open(test_dataset, 'r') as f:
-            self.test_questions = f.readlines()
 
-    def evaluate(self, pipeline: DataIngestPipeline) -> float:
-        total_score = 0
+class SimilarityEvaluator(Evaluator):
+    def __init__(self, 
+                 test_dataset: str, 
+                 top_k: int = 5,
+                 position_weights: Optional[List[float]] = None,
+                 relevance_threshold: float = 0.75):
+        """
+        Args:
+            test_dataset: Path to file containing test questions
+            top_k: Number of top results to consider
+            position_weights: List of weights for each position. If None, uses default declining weights
+            relevance_threshold: Minimum relevance score threshold for a result to be considered useful
+        """
+        self.top_k = top_k
+        self.relevance_threshold = relevance_threshold
+        
+        # Default position weights if none provided
+        self.position_weights = position_weights if position_weights is not None else \
+            [1.0 - (i / (2 * self.top_k)) for i in range(self.top_k)]
+        
+        # Normalize weights to sum to 1
+        weight_sum = sum(self.position_weights)
+        self.position_weights = [w / weight_sum for w in self.position_weights]
+        
+        # Load test questions
+        with open(test_dataset, 'r') as f:
+            self.test_questions = [q.strip() for q in f.readlines() if q.strip()]
+
+    def _calculate_weighted_score(self, relevance_scores: List[float]) -> float:
+        """Calculate position-weighted average of relevance scores."""
+        # Pad scores if fewer than top_k results
+        padded_scores = relevance_scores + [0.0] * (self.top_k - len(relevance_scores))
+        
+        # If no score meets threshold, return 0
+        if min(padded_scores) > self.relevance_threshold:
+            return 0.0
+        
+        # Calculate weighted score
+        return sum(score * weight 
+                  for score, weight in zip(padded_scores[:self.top_k], self.position_weights))
+
+    def evaluate(self, pipeline: DataIngestPipeline) -> Tuple[float, List[Dict[str, Any]]]:
+        """
+        Evaluate the pipeline using position-weighted relevance scores.
+        
+        Returns:
+            Tuple containing:
+                - float: Average weighted relevance score across all test questions
+                - List[Dict]: Detailed results for each question
+        """
+        if not self.test_questions:
+            raise ValueError("No test questions found in the test dataset")
+
+        total_score = 0.0
+        question_details = []
+        eval_timestamp = datetime.utcnow().isoformat()
+
         for question in self.test_questions:
-            results = pipeline.indexer.similarity_search_with_relevance_scores(question, k=self.top_k)
-            relevance_scores = [score for _, score in results]
-            total_score += np.mean(relevance_scores)
-        return total_score / len(self.test_questions)
+            try:
+                # Record start time for latency calculation
+                start_time = datetime.now()
+                
+                # Get results from pipeline
+                results = pipeline.indexer.similarity_search_with_relevance_scores(
+                    question, 
+                    k=self.top_k
+                )
+                
+                # Calculate latency
+                latency = (datetime.now() - start_time).total_seconds()
+                
+                # Extract scores and chunks
+                relevance_scores = [score for _, score in results]
+                retrieved_chunks = [
+                    {
+                        "content": chunk.page_content,
+                        "metadata": chunk.metadata,
+                        "score": score
+                    } 
+                    for chunk, score in results
+                ]
+                
+                # Calculate question score
+                question_score = self._calculate_weighted_score(relevance_scores)
+                total_score += question_score
+                
+                # Collect detailed results
+                question_details.append({
+                    "question": question,
+                    "retrieved_chunks": retrieved_chunks,
+                    "relevance_scores": relevance_scores,
+                    "weighted_score": question_score,
+                    "latency": latency,
+                    "eval_timestamp": eval_timestamp
+                })
+                
+            except Exception as e:
+                print(f"Error evaluating question '{question[:50]}...': {str(e)}")
+                # Add failed evaluation to details
+                question_details.append({
+                    "question": question,
+                    "error": str(e),
+                    "eval_timestamp": eval_timestamp
+                })
+                continue
+
+        avg_score = total_score / len(self.test_questions)
+        return avg_score, question_details
+
+
