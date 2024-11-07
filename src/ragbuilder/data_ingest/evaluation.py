@@ -3,6 +3,7 @@ from .pipeline import DataIngestPipeline
 from typing import List, Optional, Dict, Any, Tuple
 import numpy as np
 from datetime import datetime
+import time
 
 
 class Evaluator(ABC):
@@ -74,7 +75,7 @@ class SimilarityEvaluator(Evaluator):
 
         total_score = 0.0
         question_details = []
-        eval_timestamp = datetime.utcnow().isoformat()
+        eval_timestamp = int(time.time()*1000)
 
         for question in self.test_questions:
             try:
@@ -88,7 +89,7 @@ class SimilarityEvaluator(Evaluator):
                 )
                 
                 # Calculate latency
-                latency = (datetime.now() - start_time).total_seconds()
+                latency = (datetime.now() - start_time).total_seconds()*1000.0
                 
                 # Extract scores and chunks
                 relevance_scores = [score for _, score in results]

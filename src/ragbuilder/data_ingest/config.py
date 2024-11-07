@@ -74,6 +74,7 @@ class OptimizationConfig(BaseModel):
     storage: Optional[str] = Field(default=None, description="Storage URL for Optuna (e.g., 'sqlite:///optuna.db')")
     study_name: Optional[str] = Field(default=f"data_ingest_{int(time.time()*1000+random.randint(1, 1000))}", description="Name of the Optuna study")
     load_if_exists: Optional[bool] = Field(default=False, description="Load existing study if it exists")
+    overwrite_study: Optional[bool] = Field(default=False, description="Overwrite existing study if it exists")
 
 class BaseConfig(BaseModel):
     input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
@@ -123,6 +124,8 @@ class DataIngestOptionsConfig(BaseConfig):
     sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
     optimization: Optional[OptimizationConfig] = Field(default_factory=OptimizationConfig, description="Optimization configuration")
     log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
+    database_logging: Optional[bool] = Field(default=True, description="Whether to log results to the DB")
+    database_path: Optional[str] = Field(default="eval.db", description="Path to the SQLite database file")
 
 class DataIngestConfig(BaseConfig):
     document_loader: LoaderConfig = Field(

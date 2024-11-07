@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 from .config import DataIngestOptionsConfig, DataIngestConfig, LogConfig
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
+from .callbacks import DBLoggerCallback
 from tqdm.notebook import tqdm    
 import numpy as np
 
@@ -12,7 +13,25 @@ class Optimizer:
     def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, callback=None):
         self.options_config = options_config
         self.evaluator = evaluator
-        self.callback = callback
+        self.callbacks = []
+        self._setup_logging(options_config.log_config)
+
+        # Setup DB logging callback if enabled
+        if options_config.database_logging:
+            try:
+                db_callback = DBLoggerCallback(
+                    study_name=options_config.optimization.study_name,
+                    config=options_config
+                )
+                self.callbacks.append(db_callback)
+                self.logger.info("Database logging enabled")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize database logging: {e}")
+        
+        # Add any additional callbacks
+        if callback:
+            self.callbacks.append(callback)
+
         self.chunking_strategy_map = {i: chunking_strategy for i, chunking_strategy in enumerate(self.options_config.chunking_strategies)}
         self.embedding_model_map = {i: model for i, model in enumerate(self.options_config.embedding_models)}
         self.vector_db_map = {i: db for i, db in enumerate(self.options_config.vector_databases)}
@@ -50,16 +69,30 @@ class Optimizer:
             avg_score, question_details = self.evaluator.evaluate(pipeline)
             
             metrics = self._calculate_aggregate_metrics(question_details)
-            
-            if self.callback:
-                self.callback(trial, {
+
+            # Store results in study's user attributes
+            trial.study.set_user_attr(
+                f"trial_{trial.number}_results",
+                {
                     "avg_score": avg_score,
                     "question_details": question_details,
                     "metrics": metrics,
                     "config": config.model_dump()
-                })
+                }
+            )
+            
+            for callback in self.callbacks:
+                try:
+                    callback(trial.study, trial)
+                except Exception as e:
+                    self.logger.warning(f"Callback error: {e}")
             
             return avg_score
+
+        if self.options_config.optimization.overwrite_study and \
+            self.options_config.optimization.study_name in optuna.study.get_all_study_names(storage=self.options_config.optimization.storage):
+            self.logger.info(f"Overwriting existing study: {self.options_config.optimization.study_name}")
+            optuna.delete_study(study_name=self.options_config.optimization.study_name, storage=self.options_config.optimization.storage)
 
         study = optuna.create_study(
             storage=self.options_config.optimization.storage,
@@ -75,7 +108,7 @@ class Optimizer:
             n_trials=self.options_config.optimization.n_trials,
             n_jobs=self.options_config.optimization.n_jobs,
             timeout=self.options_config.optimization.timeout,
-            show_progress_bar=True
+            show_progress_bar=self.options_config.log_config.show_progress_bar
         )
 
         self.logger.info(f"Optimization completed. Best score: {study.best_value:.4f}")
