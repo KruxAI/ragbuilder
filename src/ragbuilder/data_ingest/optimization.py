@@ -132,7 +132,6 @@ class Optimizer:
         if len(self.options_config.chunking_strategies) == 1:
             chunking_strategy = self.options_config.chunking_strategies[0]
         else:
-            # chunking_strategy = trial.suggest_categorical("chunking_strategy", self.options_config.chunking_strategies)
             chunking_strategy = self.chunking_strategy_map[trial.suggest_categorical("chunking_strategy_index", list(self.chunking_strategy_map.keys()))]
         
         chunk_size = trial.suggest_int("chunk_size", self.options_config.chunk_size.min, self.options_config.chunk_size.max, step=self.options_config.chunk_size.stepsize)
@@ -141,7 +140,6 @@ class Optimizer:
             chunk_overlap = self.options_config.chunk_overlap[0]
         else:
             chunk_overlap = trial.suggest_categorical("chunk_overlap", self.options_config.chunk_overlap)
-
 
         if len(self.options_config.embedding_models) == 1:  
             embedding_model = self.options_config.embedding_models[0]
@@ -153,10 +151,10 @@ class Optimizer:
         else:
             vector_database = self.vector_db_map[trial.suggest_categorical("vector_database_index", list(self.vector_db_map.keys()))]
         
-        # Avoid the InvalidDimensionException by persisting to a unique directory for each trial
-        if vector_database.persist_directory:
-            self.original_persist_directory = vector_database.persist_directory if not hasattr(self, 'original_persist_directory') else self.original_persist_directory
-            vector_database.persist_directory = f"{self.original_persist_directory}/{trial.number}"
+        # Handle Chroma persistence directory for trials
+        if persist_directory := vector_database.vectordb_kwargs.get('persist_directory'):
+            self.original_persist_directory = persist_directory if not hasattr(self, 'original_persist_directory') else self.original_persist_directory
+            vector_database.vectordb_kwargs['persist_directory'] = f"{self.original_persist_directory}/{trial.number}"
         
         params = {
             "input_source": self.options_config.input_source,
@@ -168,7 +166,6 @@ class Optimizer:
             "vector_database": vector_database,
             "top_k": self.options_config.top_k,
             "sampling_rate": self.options_config.sampling_rate,
-            "custom_chunker": self.options_config.custom_chunker if hasattr(self.options_config, 'custom_chunker') else None
         }
         self.logger.info(f"Trial parameters: {params}")
         return DataIngestConfig(**params)

@@ -5,7 +5,7 @@ import time
 import random
 import logging
 from dataclasses import dataclass
-from enum import Enum
+from .components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase
 
 @dataclass
 class LogConfig:
@@ -14,28 +14,6 @@ class LogConfig:
     log_file: Optional[str] = None
     show_progress_bar: bool = True
     verbose: bool = False
-
-class ParserType(str, Enum):
-    UNSTRUCTURED = "unstructured"
-    PYMUPDF = "pymupdf"
-    CUSTOM = "custom"
-
-class ChunkingStrategy(str, Enum):
-    CHARACTER = "CharacterTextSplitter"
-    RECURSIVE = "RecursiveCharacterTextSplitter"
-    # SEMANTIC = "SemanticChunker"
-    CUSTOM = "custom"
-
-class EmbeddingModel(str, Enum):
-    OPENAI = "openai"
-    HUGGINGFACE = "huggingface"
-    OLLAMA = "ollama"
-    CUSTOM = "custom"
-
-class VectorDatabase(str, Enum):
-    FAISS = "faiss"
-    CHROMA = "chroma"
-    CUSTOM = "custom"
 
 class LoaderConfig(BaseModel):
     type: ParserType
@@ -54,16 +32,18 @@ class ChunkSizeConfig(BaseModel):
 
 class VectorDBConfig(BaseModel):
     type: VectorDatabase
-    collection_name: Optional[str] = "__DEFAULT_COLLECTION__"
-    persist_directory: Optional[str] = None
-    client_settings: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    vectordb_kwargs: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Vector database specific configuration parameters"
+    )
     custom_class: Optional[str] = None
 
 class EmbeddingConfig(BaseModel):
     type: EmbeddingModel
-    model: Optional[str] = None
-    model_kwargs: Optional[Dict[str, Any]] = None
+    model_kwargs: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Model specific parameters including model name/type"
+    )
     custom_class: Optional[str] = None
 
 class OptimizationConfig(BaseModel):
@@ -105,19 +85,14 @@ class DataIngestOptionsConfig(BaseConfig):
         default_factory=lambda: [ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE)],
         description="Chunking strategies to try"
     )
-    # chunking_strategies: Optional[List[str]] = Field(
-    #     default_factory=lambda: [strategy for strategy in ChunkingStrategy if strategy != ChunkingStrategy.CUSTOM], 
-    #     description="Chunking strategies to try"
-    # )
-    # custom_chunker: Optional[str] = Field(default=None, description="Custom chunker class. E.g., 'my_module.MyCustomChunker'")
     chunk_size: Optional[ChunkSizeConfig] = Field(default_factory=ChunkSizeConfig, description="Chunk size configuration")
     chunk_overlap: Optional[List[int]] = Field(default=[100], description="List of chunk overlap values to try")
     embedding_models: Optional[List[EmbeddingConfig]] = Field(
-        default_factory=lambda: [EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model="sentence-transformers/all-MiniLM-L6-v2")],
+        default_factory=lambda: [EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"})],
         description="List of embedding models"
     )
     vector_databases: Optional[List[VectorDBConfig]] = Field(
-        default_factory=lambda: [VectorDBConfig(type=VectorDatabase.FAISS, collection_name=None)], 
+        default_factory=lambda: [VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={})], 
         description="List of vector databases"
     )
     top_k: Optional[int] = Field(default=5, description="Number of top results to consider for similarity scoring")
@@ -132,17 +107,15 @@ class DataIngestConfig(BaseConfig):
         default_factory=lambda: LoaderConfig(type=ParserType.UNSTRUCTURED), 
         description="Document loader configuration"
     )
-    # chunking_strategy: str = Field(default=ChunkingStrategy.RECURSIVE, description="Chunking strategy")
     chunking_strategy: ChunkingStrategyConfig = Field(default_factory=lambda: ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE), description="Chunking strategy")
-    # custom_chunker: Optional[str] = Field(default=None, description="Custom chunker class. E.g., 'my_module.MyCustomChunker'")
     chunk_size: int = Field(default=1000, description="Chunk size")
     chunk_overlap: int = Field(default=100, description="Chunk overlap")
     embedding_model: EmbeddingConfig = Field(
-        default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE), 
+        default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
         description="Embedding model configuration"
     )
     vector_database: VectorDBConfig = Field(
-        default_factory=lambda: VectorDBConfig(type=VectorDatabase.FAISS), 
+        default_factory=lambda: VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={}), 
         description="Vector store configuration"
     )
     top_k: int = Field(default=5, description="Number of top results to consider for similarity scoring")
