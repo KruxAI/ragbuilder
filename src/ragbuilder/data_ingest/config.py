@@ -5,7 +5,7 @@ import time
 import random
 import logging
 from dataclasses import dataclass
-from .components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase
+from .components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType
 
 @dataclass
 class LogConfig:
@@ -32,19 +32,25 @@ class ChunkSizeConfig(BaseModel):
 
 class VectorDBConfig(BaseModel):
     type: VectorDatabase
-    vectordb_kwargs: Optional[Dict[str, Any]] = Field(
-        default_factory=dict,
-        description="Vector database specific configuration parameters"
-    )
+    vectordb_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Vector database specific configuration parameters")
     custom_class: Optional[str] = None
 
 class EmbeddingConfig(BaseModel):
     type: EmbeddingModel
-    model_kwargs: Optional[Dict[str, Any]] = Field(
-        default_factory=dict,
-        description="Model specific parameters including model name/type"
-    )
+    model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
     custom_class: Optional[str] = None
+
+class EvaluationConfig(BaseModel):
+    type: EvaluatorType = Field(default=EvaluatorType.SIMILARITY, description="Type of evaluator to use")
+    custom_class: Optional[str] = Field(default=None, description="Path to custom evaluator class")
+    evaluator_kwargs: Optional[Dict[str, Any]] = Field(
+        default = {
+            "top_k": 5,
+            "position_weights": None,
+            "relevance_threshold": 0.75
+        },
+        description="Additional parameters for evaluator initialization"
+    )
 
 class OptimizationConfig(BaseModel):
     type: Optional[str] = "Optuna"
@@ -55,6 +61,7 @@ class OptimizationConfig(BaseModel):
     study_name: Optional[str] = Field(default=f"data_ingest_{int(time.time()*1000+random.randint(1, 1000))}", description="Name of the Optuna study")
     load_if_exists: Optional[bool] = Field(default=False, description="Load existing study if it exists")
     overwrite_study: Optional[bool] = Field(default=False, description="Overwrite existing study if it exists")
+    optimization_direction: Optional[str] = Field(default="maximize", description="Whether to maximize or minimize the optimization metric")
 
 class BaseConfig(BaseModel):
     input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
@@ -95,12 +102,22 @@ class DataIngestOptionsConfig(BaseConfig):
         default_factory=lambda: [VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={})], 
         description="List of vector databases"
     )
-    top_k: Optional[int] = Field(default=5, description="Number of top results to consider for similarity scoring")
     sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
     optimization: Optional[OptimizationConfig] = Field(default_factory=OptimizationConfig, description="Optimization configuration")
     log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
     database_logging: Optional[bool] = Field(default=True, description="Whether to log results to the DB")
     database_path: Optional[str] = Field(default="eval.db", description="Path to the SQLite database file")
+    evaluation_config: EvaluationConfig = Field(
+        default_factory=lambda: EvaluationConfig(
+            type=EvaluatorType.SIMILARITY,
+            evaluator_kwargs={
+                "top_k": 5,
+                "position_weights": None,
+                "relevance_threshold": 0.75
+            }
+        ),
+        description="Evaluation configuration"
+    )
 
 class DataIngestConfig(BaseConfig):
     document_loader: LoaderConfig = Field(
@@ -118,7 +135,6 @@ class DataIngestConfig(BaseConfig):
         default_factory=lambda: VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={}), 
         description="Vector store configuration"
     )
-    top_k: int = Field(default=5, description="Number of top results to consider for similarity scoring")
     sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
 
 def load_config(file_path: str) -> Union[DataIngestOptionsConfig, DataIngestConfig]:

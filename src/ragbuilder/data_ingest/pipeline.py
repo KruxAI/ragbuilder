@@ -1,12 +1,14 @@
 from urllib.parse import urlparse
 import os
 import logging
+import time
+import random
 from importlib import import_module
 from typing import Any, List
+from copy import deepcopy
 
 from .components import (
-    LOADER_MAP, CHUNKER_MAP, EMBEDDING_MAP, VECTORDB_MAP,
-    DIRECTORY_LOADER, WEB_LOADER,
+    LOADER_MAP, CHUNKER_MAP, EMBEDDING_MAP, VECTORDB_MAP, DIRECTORY_LOADER, WEB_LOADER,
     ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase
 )
 from .config import DataIngestConfig
@@ -14,11 +16,13 @@ from .config import DataIngestConfig
 class DataIngestPipeline:
     def __init__(self, config: DataIngestConfig):
         self.config = config
+        self.logger = logging.getLogger(__name__)
+        
+        # Environment validation is now handled at optimization level
         self.parser = self._create_parser()
         self.chunker = self._create_chunker()
         self.embedder = self._create_embedder()
         self.indexer = None
-        self.logger = logging.getLogger(__name__)
 
     def _create_parser(self):
         if not self.config.input_source:
@@ -92,6 +96,8 @@ class DataIngestPipeline:
         if not embedder_class:
             raise ValueError(f"Unsupported embedding model: {self.config.embedding_model.type}")
         
+        # print("Embedding Model: ", embedder_class)
+        # print("Embedding Model Kwargs: ", self.config.embedding_model.model_kwargs)
         return embedder_class(**(self.config.embedding_model.model_kwargs or {}))
 
     def _create_indexer(self, chunks):
@@ -108,8 +114,24 @@ class DataIngestPipeline:
         if not vectordb_class:
             raise ValueError(f"Unsupported vector database: {self.config.vector_database.type}")
         
-        print (f'Vector DB {vectordb_class}; kwargs: : {self.config.vector_database.vectordb_kwargs}\n Object: {(self.config.vector_database.vectordb_kwargs or {})}')
-        
+        if self.config.vector_database.type == VectorDatabase.CHROMA:
+            vectordb_kwargs = deepcopy(self.config.vector_database.vectordb_kwargs or {})
+            if 'collection_name' not in vectordb_kwargs:
+                print(f"Setting collection name to: ragbuilder-{int(time.time())}-{random.randint(1, 1000)}")
+                vectordb_kwargs['collection_name'] = f"ragbuilder-{int(time.time())}-{random.randint(1, 1000)}" 
+            # TODO: Handle the scenario where user has specified a collection name, and we want to avoid upserts/ dups in the collection
+            # elif 'client_settings' not in vectordb_kwargs:
+            #     import chromadb
+            #     vectordb_kwargs['client_settings'] = chromadb.config.Settings(allow_reset=True, persist_directory=vectordb_kwargs.get('persist_directory', './chroma'))
+
+            return vectordb_class.from_documents(
+                chunks,
+                self.embedder,
+                **vectordb_kwargs
+            )    
+                
+        print("Vector Database: ", vectordb_class)
+        print("Vector Database Kwargs: ", self.config.vector_database.vectordb_kwargs)
         return vectordb_class.from_documents(
             chunks,
             self.embedder,

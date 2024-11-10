@@ -2,12 +2,15 @@ import optuna
 import logging
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
-from .config import DataIngestOptionsConfig, DataIngestConfig, LogConfig
+from .config import DataIngestOptionsConfig, DataIngestConfig, LogConfig, EvaluatorType
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
 from .callbacks import DBLoggerCallback
 from tqdm.notebook import tqdm    
 import numpy as np
+from importlib import import_module
+from .utils import load_environment
+from .components import validate_environment
 
 class Optimizer:
     def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, callback=None):
@@ -32,6 +35,7 @@ class Optimizer:
         if callback:
             self.callbacks.append(callback)
 
+        self.document_loader_map = {i: loader for i, loader in enumerate(self.options_config.document_loaders)}
         self.chunking_strategy_map = {i: chunking_strategy for i, chunking_strategy in enumerate(self.options_config.chunking_strategies)}
         self.embedding_model_map = {i: model for i, model in enumerate(self.options_config.embedding_models)}
         self.vector_db_map = {i: db for i, db in enumerate(self.options_config.vector_databases)}
@@ -59,10 +63,17 @@ class Optimizer:
     def optimize(self):
         self.logger.info("Starting optimization process")
         def objective(trial):
+            # TODO: Handle duplicate trials
             self.logger.info(f"Starting trial {trial.number + 1}/{self.options_config.optimization.n_trials}")
             config = self._build_trial_config(trial)
+            trials_to_consider = trial.study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,))
+            for t in reversed(trials_to_consider):
+                if trial.params == t.params:
+                    # Use the existing value as trial duplicated the parameters.
+                    self.logger.info(f"Config already evaluated with score: {t.value}: {config}")
+                    return t.value
+            
             self.logger.debug(f"Running pipeline with config: {config}")
-
             pipeline = DataIngestPipeline(config)
             pipeline.run()
             
@@ -98,7 +109,7 @@ class Optimizer:
             storage=self.options_config.optimization.storage,
             study_name=self.options_config.optimization.study_name,
             load_if_exists=self.options_config.optimization.load_if_exists,
-            direction="minimize",
+            direction=self.options_config.optimization.optimization_direction,
             sampler=optuna.samplers.TPESampler(),
             pruner=optuna.pruners.MedianPruner()
         )
@@ -122,13 +133,17 @@ class Optimizer:
             chunk_overlap=study.best_params["chunk_overlap"] if "chunk_overlap" in study.best_params else self.options_config.chunk_overlap[0],
             embedding_model=self.embedding_model_map[study.best_params["embedding_model_id"]] if "embedding_model_id" in study.best_params else self.options_config.embedding_models[0],
             vector_database=self.vector_db_map[study.best_params["vector_database_id"]] if "vector_database_id" in study.best_params else self.options_config.vector_databases[0],
-            top_k=self.options_config.top_k,
             sampling_rate=self.options_config.sampling_rate
         )
         return best_config, study.best_value
 
     def _build_trial_config(self, trial) -> DataIngestConfig:
         """Build config from trial parameters"""
+        if len(self.options_config.document_loaders) == 1:
+            document_loader = self.options_config.document_loaders[0]
+        else:
+            document_loader = self.document_loader_map[trial.suggest_categorical("document_loader_index", list(self.document_loader_map.keys()))]
+        
         if len(self.options_config.chunking_strategies) == 1:
             chunking_strategy = self.options_config.chunking_strategies[0]
         else:
@@ -159,12 +174,12 @@ class Optimizer:
         params = {
             "input_source": self.options_config.input_source,
             "test_dataset": self.options_config.test_dataset,
+            "document_loader": document_loader,
             "chunking_strategy": chunking_strategy,
             "chunk_overlap": chunk_overlap,
             "chunk_size": chunk_size,
             "embedding_model": embedding_model,
             "vector_database": vector_database,
-            "top_k": self.options_config.top_k,
             "sampling_rate": self.options_config.sampling_rate,
         }
         self.logger.info(f"Trial parameters: {params}")
@@ -190,10 +205,50 @@ class Optimizer:
         }
 
 def _run_optimization_core(options_config: DataIngestOptionsConfig):
-    evaluator = SimilarityEvaluator(options_config.test_dataset, options_config.top_k)
+    # Load environment variables first
+    load_environment()
+    
+    # Validate environment variables for selected components
+    missing_vars = []
+    
+    # Check document loaders
+    for loader in options_config.document_loaders:
+        if missing := validate_environment('loader', loader.type):
+            missing_vars.extend(missing)
+    
+    # Check embedding models
+    for model in options_config.embedding_models:
+        if missing := validate_environment('embedding', model.type):
+            missing_vars.extend(missing)
+    
+    # Check vector databases
+    for db in options_config.vector_databases:
+        if missing := validate_environment('vectordb', db.type):
+            missing_vars.extend(missing)
+    
+    if missing_vars:
+        missing_vars = sorted(set(missing_vars))  # Remove duplicates
+        raise ValueError(
+            "Missing required environment variables for selected components:\n" + 
+            "\n".join(f"- {var}" for var in missing_vars)
+        )
+    
+    # Create evaluator based on config
+    if options_config.evaluation_config.type == EvaluatorType.CUSTOM:
+        module_path, class_name = options_config.evaluation_config.custom_class.rsplit('.', 1)
+        module = import_module(module_path)
+        evaluator_class = getattr(module, class_name)
+        evaluator = evaluator_class(
+            options_config.test_dataset,
+            options_config.evaluation_config
+        )
+    else:
+        evaluator = SimilarityEvaluator(options_config.test_dataset, options_config.evaluation_config)
+    
     optimizer = Optimizer(options_config, evaluator)
     best_config, best_score = optimizer.optimize()
     
+    # TODO: Revisit this to use cache to avoid running the pipeline twice
     best_pipeline = DataIngestPipeline(best_config)
     best_index = best_pipeline.run()
     

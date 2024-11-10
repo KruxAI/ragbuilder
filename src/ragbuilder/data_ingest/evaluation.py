@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from .pipeline import DataIngestPipeline
+from .config import EvaluationConfig
 from typing import List, Optional, Dict, Any, Tuple
 import numpy as np
 from datetime import datetime
@@ -14,31 +15,29 @@ class Evaluator(ABC):
         
         Returns:
             Tuple containing:
-                - float: Average evaluation score
-                - List[Dict]: Detailed results for each test question
+                - float: Primary evaluation score (used for optimization)
+                - List[Dict]: Detailed results including additional metrics
         """
         pass
 
 
 class SimilarityEvaluator(Evaluator):
     def __init__(self, 
-                 test_dataset: str, 
-                 top_k: int = 5,
-                 position_weights: Optional[List[float]] = None,
-                 relevance_threshold: float = 0.75):
+                 test_dataset: str,
+                 evaluation_config: EvaluationConfig):
         """
         Args:
             test_dataset: Path to file containing test questions
-            top_k: Number of top results to consider
-            position_weights: List of weights for each position. If None, uses default declining weights
-            relevance_threshold: Minimum relevance score threshold for a result to be considered useful
+            evaluation_config: Configuration for evaluation
         """
-        self.top_k = top_k
-        self.relevance_threshold = relevance_threshold
+        kwargs = evaluation_config.evaluator_kwargs or {}
+        self.top_k = kwargs.get("top_k", 5)
+        self.position_weights = kwargs.get("position_weights")
+        self.relevance_threshold = kwargs.get("relevance_threshold", 0.25)
         
         # Default position weights if none provided
-        self.position_weights = position_weights if position_weights is not None else \
-            [1.0 - (i / (2 * self.top_k)) for i in range(self.top_k)]
+        if self.position_weights is None:
+            self.position_weights = [1.0 - (i / (2 * self.top_k)) for i in range(self.top_k)]
         
         # Normalize weights to sum to 1
         weight_sum = sum(self.position_weights)
@@ -54,7 +53,7 @@ class SimilarityEvaluator(Evaluator):
         padded_scores = relevance_scores + [0.0] * (self.top_k - len(relevance_scores))
         
         # If no score meets threshold, return 0
-        if min(padded_scores) > self.relevance_threshold:
+        if max(padded_scores) < self.relevance_threshold:
             return 0.0
         
         # Calculate weighted score
@@ -64,11 +63,7 @@ class SimilarityEvaluator(Evaluator):
     def evaluate(self, pipeline: DataIngestPipeline) -> Tuple[float, List[Dict[str, Any]]]:
         """
         Evaluate the pipeline using position-weighted relevance scores.
-        
-        Returns:
-            Tuple containing:
-                - float: Average weighted relevance score across all test questions
-                - List[Dict]: Detailed results for each question
+        Additional metrics like latency are included in the detailed results.
         """
         if not self.test_questions:
             raise ValueError("No test questions found in the test dataset")
@@ -84,8 +79,7 @@ class SimilarityEvaluator(Evaluator):
                 
                 # Get results from pipeline
                 results = pipeline.indexer.similarity_search_with_relevance_scores(
-                    question, 
-                    k=self.top_k
+                    question, k=self.top_k
                 )
                 
                 # Calculate latency
@@ -118,7 +112,6 @@ class SimilarityEvaluator(Evaluator):
                 
             except Exception as e:
                 print(f"Error evaluating question '{question[:50]}...': {str(e)}")
-                # Add failed evaluation to details
                 question_details.append({
                     "question": question,
                     "error": str(e),
