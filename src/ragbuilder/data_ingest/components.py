@@ -40,6 +40,9 @@ from langchain_community.document_loaders import (
 )
 
 # Component type definitions
+class GraphType(str, Enum):
+    NEO4J = "neo4j"
+
 class ParserType(str, Enum):
     UNSTRUCTURED = "unstructured"
     PYMUPDF = "pymupdf"

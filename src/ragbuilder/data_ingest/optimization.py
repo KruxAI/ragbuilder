@@ -210,6 +210,11 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
     
     # Validate environment variables for selected components
     missing_vars = []
+
+    # Check graph
+    if options_config.graph:
+        # TODO: Check graph config and create graph
+        pass
     
     # Check document loaders
     for loader in options_config.document_loaders:
