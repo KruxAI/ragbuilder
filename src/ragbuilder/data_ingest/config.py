@@ -5,7 +5,7 @@ import time
 import random
 import logging
 from dataclasses import dataclass
-from .components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType
+from .components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType
 
 @dataclass
 class LogConfig:
@@ -51,6 +51,12 @@ class EvaluationConfig(BaseModel):
         },
         description="Additional parameters for evaluator initialization"
     )
+
+# TODO: Define graph config
+class GraphConfig(BaseModel):
+    type: GraphType #neo4j
+    graph_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Graph specific configuration parameters")
+    custom_class: Optional[str] = None
 
 class OptimizationConfig(BaseModel):
     type: Optional[str] = "Optuna"
@@ -118,6 +124,7 @@ class DataIngestOptionsConfig(BaseConfig):
         ),
         description="Evaluation configuration"
     )
+    graph: Optional[GraphConfig] = Field(default=None, description="Graph configuration")
 
 class DataIngestConfig(BaseConfig):
     document_loader: LoaderConfig = Field(
