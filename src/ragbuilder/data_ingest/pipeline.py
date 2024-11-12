@@ -12,11 +12,12 @@ from .components import (
     ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase
 )
 from .config import DataIngestConfig
+from .logging_utils import setup_rich_logging, console, get_progress_bar
 
 class DataIngestPipeline:
     def __init__(self, config: DataIngestConfig):
         self.config = config
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("ragbuilder")
         
         # Environment validation is now handled at optimization level
         self.parser = self._create_parser()
@@ -117,7 +118,7 @@ class DataIngestPipeline:
         if self.config.vector_database.type == VectorDatabase.CHROMA:
             vectordb_kwargs = deepcopy(self.config.vector_database.vectordb_kwargs or {})
             if 'collection_name' not in vectordb_kwargs:
-                print(f"Setting collection name to: ragbuilder-{int(time.time())}-{random.randint(1, 1000)}")
+                # print(f"Setting collection name to: ragbuilder-{int(time.time())}-{random.randint(1, 1000)}")
                 vectordb_kwargs['collection_name'] = f"ragbuilder-{int(time.time())}-{random.randint(1, 1000)}" 
             # TODO: Handle the scenario where user has specified a collection name, and we want to avoid upserts/ dups in the collection
             # elif 'client_settings' not in vectordb_kwargs:
@@ -130,8 +131,8 @@ class DataIngestPipeline:
                 **vectordb_kwargs
             )    
                 
-        print("Vector Database: ", vectordb_class)
-        print("Vector Database Kwargs: ", self.config.vector_database.vectordb_kwargs)
+        # print("Vector Database: ", vectordb_class)
+        # print("Vector Database Kwargs: ", self.config.vector_database.vectordb_kwargs)
         return vectordb_class.from_documents(
             chunks,
             self.embedder,
@@ -153,21 +154,23 @@ class DataIngestPipeline:
 
     def run(self):
         try:
-            documents = self.parser.load()
-            if not documents:
-                raise ValueError("No documents were loaded from the input source")
+            with console.status("[status]Loading documents...[/status]") as status:
+                documents = self.parser.load()
+                if not documents:
+                    raise ValueError("No documents were loaded from the input source")
                 
-            chunks = self.chunker.split_documents(documents)
-            if not chunks:
-                raise ValueError("No chunks were generated from the documents")
+                status.update("[status]Chunking documents...[/status]")
+                chunks = self.chunker.split_documents(documents)
+                if not chunks:
+                    raise ValueError("No chunks were generated from the documents")
                 
-            self.indexer = self._create_indexer(chunks)
-            return self.indexer
+                status.update("[status]Creating vector index...[/status]")
+                self.indexer = self._create_indexer(chunks)
+                
+                console.print("[success]✓ Pipeline execution complete![/success]")
+                return self.indexer
             
         except Exception as e:
-            # Log the error and cleanup any temporary resources
-            self.logger.error(f"Pipeline execution failed: {str(e)}")
-            if hasattr(self, 'indexer') and self.indexer:
-                # Cleanup indexer if needed
-                pass
+            console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
+            console.print_exception()
             raise
