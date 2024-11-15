@@ -26,9 +26,9 @@ class ChunkingStrategyConfig(BaseModel):
     custom_class: Optional[str] = None
 
 class ChunkSizeConfig(BaseModel):
-    min: int = Field(default=100, description="Minimum chunk size")
-    max: int = Field(default=500, description="Maximum chunk size")
-    stepsize: int = Field(default=100, description="Step size for chunk size")
+    min: int = Field(default=500, description="Minimum chunk size")
+    max: int = Field(default=3000, description="Maximum chunk size")
+    stepsize: int = Field(default=500, description="Step size for chunk size")
 
 class VectorDBConfig(BaseModel):
     type: VectorDatabase
@@ -36,6 +36,8 @@ class VectorDBConfig(BaseModel):
     custom_class: Optional[str] = None
 
 class EmbeddingConfig(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    
     type: EmbeddingModel
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
     custom_class: Optional[str] = None
@@ -101,11 +103,13 @@ class DataIngestOptionsConfig(BaseConfig):
     chunk_size: Optional[ChunkSizeConfig] = Field(default_factory=ChunkSizeConfig, description="Chunk size configuration")
     chunk_overlap: Optional[List[int]] = Field(default=[100], description="List of chunk overlap values to try")
     embedding_models: Optional[List[EmbeddingConfig]] = Field(
-        default_factory=lambda: [EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"})],
+        default_factory=lambda: [EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"})], #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"})],
+        # default_factory=lambda: [EmbeddingConfig(type=EmbeddingModel.AZURE_OPENAI, model_kwargs={"model": "text-embedding-3-large"})], #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"})], 
         description="List of embedding models"
     )
     vector_databases: Optional[List[VectorDBConfig]] = Field(
-        default_factory=lambda: [VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={})], 
+        # default_factory=lambda: [VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={})], 
+        default_factory=lambda: [VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}})],
         description="List of vector databases"
     )
     sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
@@ -119,7 +123,7 @@ class DataIngestOptionsConfig(BaseConfig):
             evaluator_kwargs={
                 "top_k": 5,
                 "position_weights": None,
-                "relevance_threshold": 0.75
+                "relevance_threshold": 0.2
             }
         ),
         description="Evaluation configuration"
@@ -135,7 +139,8 @@ class DataIngestConfig(BaseConfig):
     chunk_size: int = Field(default=1000, description="Chunk size")
     chunk_overlap: int = Field(default=100, description="Chunk overlap")
     embedding_model: EmbeddingConfig = Field(
-        default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
+        # default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
+        default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.AZURE_OPENAI, model_kwargs={"model_name": "text-embedding-3-large"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
         description="Embedding model configuration"
     )
     vector_database: VectorDBConfig = Field(

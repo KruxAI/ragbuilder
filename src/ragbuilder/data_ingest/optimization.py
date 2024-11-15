@@ -11,6 +11,12 @@ import numpy as np
 from importlib import import_module
 from .utils import load_environment
 from .components import validate_environment
+from .logging_utils import setup_rich_logging, console, get_progress_bar
+import os
+
+# Add this near the top of the file, after imports
+if not os.getenv("USER_AGENT"):
+    os.environ["USER_AGENT"] = "RAGBuilder_1.0"
 
 class Optimizer:
     def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, callback=None):
@@ -42,35 +48,19 @@ class Optimizer:
         self._setup_logging(options_config.log_config)
 
     def _setup_logging(self, log_config: LogConfig):
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(log_config.log_level)
-
-        # Clear existing handlers
-        self.logger.handlers = []
-
-        # Console handler with formatter
-        console_handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        console_handler.setFormatter(formatter)
-        self.logger.addHandler(console_handler)
-
-        # File handler if specified
-        if log_config.log_file:
-            file_handler = logging.FileHandler(log_config.log_file)
-            file_handler.setFormatter(formatter)
-            self.logger.addHandler(file_handler)
+        self.logger = setup_rich_logging(log_config.log_level, log_config.log_file)
 
     def optimize(self):
-        self.logger.info("Starting optimization process")
+        console.rule("[heading]Starting Optimization Process[/heading]")
+        
         def objective(trial):
-            # TODO: Handle duplicate trials
-            self.logger.info(f"Starting trial {trial.number + 1}/{self.options_config.optimization.n_trials}")
+            console.print(f"[heading]Trial {trial.number}/{self.options_config.optimization.n_trials - 1}[/heading]")
             config = self._build_trial_config(trial)
             trials_to_consider = trial.study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,))
             for t in reversed(trials_to_consider):
                 if trial.params == t.params:
                     # Use the existing value as trial duplicated the parameters.
-                    self.logger.info(f"Config already evaluated with score: {t.value}: {config}")
+                    self.logger.info(f"Config already evaluated with score: {t.value}")
                     return t.value
             
             self.logger.debug(f"Running pipeline with config: {config}")
@@ -98,6 +88,7 @@ class Optimizer:
                 except Exception as e:
                     self.logger.warning(f"Callback error: {e}")
             
+            console.print(f"[success]Trial Score:[/success] [value]{avg_score:.4f}[/value]")
             return avg_score
 
         if self.options_config.optimization.overwrite_study and \
@@ -122,8 +113,24 @@ class Optimizer:
             show_progress_bar=self.options_config.log_config.show_progress_bar
         )
 
-        self.logger.info(f"Optimization completed. Best score: {study.best_value:.4f}")
-        self.logger.info(f"Best parameters: {study.best_params}")
+        console.print(f"[heading]Optimization Complete![/heading]")
+        console.print(f"[success]Best Score:[/success] [value]{study.best_value:.4f}[/value]")
+        console.print("[success]Best Parameters:[/success]")
+        # Translate indices to actual component names
+        readable_params = {}
+        for param, value in study.best_params.items():
+            if param == "chunking_strategy_index":
+                readable_params["chunking_strategy"] = self.chunking_strategy_map[value].type
+            elif param == "document_loader_index":
+                readable_params["document_loader"] = self.document_loader_map[value].type
+            elif param == "embedding_model_index":
+                readable_params["embedding_model"] = self.embedding_model_map[value].type
+            elif param == "vector_database_index":
+                readable_params["vector_database"] = self.vector_db_map[value].type
+            else:
+                readable_params[param] = value
+        
+        console.print(readable_params, style="value")
         
         best_config = DataIngestConfig(
             input_source=self.options_config.input_source,
