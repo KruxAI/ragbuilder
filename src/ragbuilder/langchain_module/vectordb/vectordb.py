@@ -44,6 +44,7 @@ import chromadb"""
         code_string= f"""c=FAISS.from_documents(documents=splits, embedding=embedding)"""
         import_string = f"""from langchain_community.vectorstores import FAISS"""
     elif db_type == "milvusDB":
+        index_name = "testindex_ragbuilder_" + timestamp
         logger.info("Milvus DB Loaded")
         code_string= f"""c = Milvus.from_documents(splits,embedding,collection_name='{index_name}',connection_args={{"uri": MILVUS_CONNECTION_STRING}},)"""
         print(code_string)
