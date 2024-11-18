@@ -44,6 +44,7 @@ class SimilarityEvaluator(Evaluator):
         self.position_weights = [w / weight_sum for w in self.position_weights]
         
         # Load test questions
+        # TODO: Integrate synthetic test data generation
         # TODO: Make this more robust to skip 1st line ONLY if it's a header
         with open(test_dataset, 'r') as f:
             self.test_questions = [q.strip() for q in f.readlines()[1:] if q.strip()]
