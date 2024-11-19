@@ -1,92 +1,168 @@
-from langchain_community.document_loaders import UnstructuredFileLoader, PyMuPDFLoader, DirectoryLoader, WebBaseLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter, TokenTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_openai import OpenAIEmbeddings
-from langchain.vectorstores import FAISS, Chroma
-from .config import DataIngestConfig, ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase
-from typing import Any, List
+import logging
+from typing import List, Optional, Any, Dict, Union
 from importlib import import_module
+from langchain.schema import BaseRetriever, Document
+from langchain.retrievers import ContextualCompressionRetriever
 
-class DataIngestPipeline:
-    def __init__(self, config: DataIngestConfig):
+from ragbuilder.config.components import (
+    RETRIEVER_MAP, RERANKER_MAP,
+    RetrieverType, RerankerType
+)
+from ragbuilder.config.retriever import RetrievalConfig
+from ragbuilder.core.logging_utils import console
+from ragbuilder.core.exceptions import (
+    RAGBuilderError,
+    ConfigurationError,
+    ComponentError,
+    PipelineError
+)
+
+class RetrieverPipeline:
+    def __init__(self, 
+                 config: RetrievalConfig,
+                 vectorstore: Any,  # The vectorstore from data_ingest
+                 final_k: int):
+        """Initialize retriever pipeline with specific configuration.
+        
+        Args:
+            config: Single instance configuration for the pipeline
+            vectorstore: Initialized vector store from data ingest
+            final_k: Final number of documents to return
+            
+        Raises:
+            ConfigurationError: If required config fields are missing or invalid
+        """
+        self._validate_config(config)
         self.config = config
-        self.parser = self._create_parser()
-        self.chunker = self._create_chunker()
-        self.embedder = self._create_embedder()
-        self.indexer = None
-
-    def _create_parser(self):
-        if self.config.document_loader.type == ParserType.CUSTOM:
-            return self._instantiate_custom_class(self.config.document_loader.custom_class, self.config.input_source, **(self.config.document_loader.loader_kwargs or {}))
+        self.vectorstore = vectorstore
+        self.final_k = final_k
+        self.logger = logging.getLogger("ragbuilder")
         
-        loader_kwargs = self.config.document_loader.loader_kwargs or {}
-        if self.config.document_loader.type == ParserType.UNSTRUCTURED:
-            return UnstructuredFileLoader(self.config.input_source, **loader_kwargs)
-        elif self.config.document_loader.type == ParserType.PYMUPDF:
-            return PyMuPDFLoader(self.config.input_source, **loader_kwargs)
-        else:
-            raise ValueError(f"Unsupported parser type: {self.config.document_loader.type}")
+        # Initialize components
+        self.base_retriever = self._create_base_retriever()
+        self.retriever_chain = self._create_retriever_chain()
 
-    def _create_chunker(self):
-        if self.config.chunking_strategy == ChunkingStrategy.CUSTOM:
-            return self._instantiate_custom_class(self.config.custom_chunker, chunk_size=self.config.chunk_size, chunk_overlap=self.config.chunk_overlap)
-        
-        if self.config.chunking_strategy == ChunkingStrategy.CHARACTER:
-            return CharacterTextSplitter(chunk_size=self.config.chunk_size, chunk_overlap=self.config.chunk_overlap)
-        elif self.config.chunking_strategy == ChunkingStrategy.RECURSIVE:
-            return RecursiveCharacterTextSplitter(chunk_size=self.config.chunk_size, chunk_overlap=self.config.chunk_overlap)
-        else:
-            raise ValueError(f"Unsupported chunking strategy: {self.config.chunking_strategy}")
+    def _validate_config(self, config: RetrievalConfig) -> None:
+        """Validate pipeline configuration."""
+        if not config.retriever.type:
+            raise ConfigurationError("Retriever type must be specified")
+        if config.retriever.type == RetrieverType.CUSTOM and not config.retriever.custom_class:
+            raise ConfigurationError("Custom retriever class must be specified")
 
-    def _create_embedder(self):
-        if self.config.embedding_model.type == EmbeddingModel.CUSTOM:
-            return self._instantiate_custom_class(self.config.embedding_model.custom_class, **(self.config.embedding_model.model_kwargs or {}))
-        
-        model_kwargs = self.config.embedding_model.model_kwargs or {}
-        if self.config.embedding_model.type == EmbeddingModel.OPENAI:
-            return OpenAIEmbeddings(model=self.config.embedding_model.model, **model_kwargs)
-        elif self.config.embedding_model.type == EmbeddingModel.HUGGINGFACE:
-            return HuggingFaceEmbeddings(model_name=self.config.embedding_model.model, **model_kwargs)
-        else:
-            raise ValueError(f"Unsupported embedding model: {self.config.embedding_model.type}")
+    def _create_base_retriever(self) -> BaseRetriever:
+        """Create the base retriever from configuration."""
+        try:
+            if self.config.type == RetrieverType.CUSTOM:
+                return self._instantiate_custom_class(
+                    self.config.custom_class,
+                    vectorstore=self.vectorstore,
+                    **self.config.retriever_kwargs
+                )
+            
+            retriever_class = RETRIEVER_MAP.get(self.config.type)
+            if not retriever_class:
+                raise ConfigurationError(f"Unsupported retriever type: {self.config.type}")
 
-    def _create_indexer(self, chunks):
-        if self.config.vector_database.type == VectorDatabase.CUSTOM:
-            custom_class = self._instantiate_custom_class(
-                self.config.vector_database.custom_class,
-                embedding_function=self.embedder,
-                **(self.config.vector_database.client_settings or {})
+            # Special handling for different retriever types
+            if self.config.type == RetrieverType.SIMILARITY:
+                return self.vectorstore.as_retriever(
+                    search_kwargs={"k": self.config.retriever_k[0]},
+                    **self.config.retriever_kwargs
+                )
+            elif self.config.type == RetrieverType.MMR:
+                return self.vectorstore.as_retriever(
+                    search_type="mmr",
+                    search_kwargs={
+                        "k": self.config.retriever_k[0],
+                        "fetch_k": self.config.retriever_k[0] * 2  # Fetch more for MMR
+                    },
+                    **self.config.retriever_kwargs
+                )
+            elif self.config.type == RetrieverType.HYBRID:
+                # Implement hybrid retriever logic
+                pass
+            
+            return retriever_class(
+                vectorstore=self.vectorstore,
+                **self.config.retriever_kwargs
             )
-            # Assume the custom class has an add_documents method
-            custom_class.add_documents(chunks)
-            return custom_class
-        elif self.config.vector_database.type == VectorDatabase.FAISS:
-            return FAISS.from_documents(chunks, self.embedder)
-        elif self.config.vector_database.type == VectorDatabase.CHROMA:
-            return Chroma.from_documents(
-                chunks,
-                self.embedder,
-                collection_name=self.config.vector_database.collection_name,
-                persist_directory=self.config.vector_database.persist_directory,
-                client_settings=self.config.vector_database.client_settings
+            
+        except Exception as e:
+            raise ComponentError(f"Failed to create base retriever: {str(e)}") from e
+
+    def _create_reranker(self):
+        """Create a reranker from configuration."""
+        try:
+            if self.config.reranker.type == RerankerType.CUSTOM:
+                return self._instantiate_custom_class(
+                    self.config.reranker.custom_class,
+                    **self.config.reranker.reranker_kwargs
+                )
+            
+            reranker_class = RERANKER_MAP.get(self.config.reranker.type)
+            if not reranker_class:
+                raise ConfigurationError(f"Unsupported reranker type: {self.config.reranker.type}")
+            
+            return reranker_class(**self.config.reranker.reranker_kwargs)
+            
+        except Exception as e:
+            raise ComponentError(f"Failed to create reranker: {str(e)}") from e
+
+    def _create_retriever_chain(self) -> BaseRetriever:
+        """Create the full retrieval chain including rerankers if specified."""
+        retriever = self.base_retriever
+        
+        # Add rerankers if specified
+        if hasattr(self.config, 'reranker') and self.config.reranker:
+            reranker = self._create_reranker()
+            retriever = ContextualCompressionRetriever(
+                base_compressor=reranker,
+                base_retriever=retriever
             )
-        else:
-            raise ValueError(f"Unsupported vector database: {self.config.vector_database.type}")
+        
+        return retriever
 
-    def _instantiate_custom_class(self, class_path: str, *args, **kwargs):
-        if class_path.startswith('.'):
-            # Relative import
-            module_name, class_name = class_path.rsplit('.', 1)
-            module = import_module(module_name, package=__package__)
-        else:
-            # Absolute import
-            module_name, class_name = class_path.rsplit('.', 1)
-            module = import_module(module_name)
-        custom_class = getattr(module, class_name)
-        return custom_class(*args, **kwargs)
+    def _instantiate_custom_class(self, class_path: str, *args: Any, **kwargs: Any) -> Any:
+        """Instantiate a custom class from its path."""
+        try:
+            if class_path.startswith('.'):
+                module_name, class_name = class_path.rsplit('.', 1)
+                module = import_module(module_name, package=__package__)
+            else:
+                module_name, class_name = class_path.rsplit('.', 1)
+                module = import_module(module_name)
+            custom_class = getattr(module, class_name)
+            return custom_class(*args, **kwargs)
+        except Exception as e:
+            raise ComponentError(f"Failed to instantiate custom class {class_path}: {str(e)}") from e
 
-    def run(self):
-        documents = self.parser.load()
-        chunks = self.chunker.split_documents(documents)
-        self.indexer = self._create_indexer(chunks)
-        return self.indexer
+    async def retrieve(self, query: str) -> List[Document]:
+        """
+        Retrieve documents for a given query.
+        
+        Args:
+            query: The query string
+            
+        Returns:
+            List of retrieved documents
+            
+        Raises:
+            PipelineError: If retrieval fails
+        """
+        try:
+            # Get more documents initially if using rerankers
+            documents = await self.retriever_chain.ainvoke(query)
+            
+            # Trim to final_k
+            return documents[:self.final_k]
+            
+        except Exception as e:
+            raise PipelineError(f"Retrieval failed: {str(e)}") from e
+
+    def retrieve_sync(self, query: str) -> List[Document]:
+        """Synchronous version of retrieve."""
+        try:
+            documents = self.retriever_chain.invoke(query)
+            return documents[:self.final_k]
+        except Exception as e:
+            raise PipelineError(f"Retrieval failed: {str(e)}") from e

@@ -2,7 +2,7 @@ import optuna
 import logging
 from dataclasses import dataclass
 from typing import Optional
-from .config import DataIngestOptionsConfig, DataIngestConfig
+from ragbuilder.config.retriever import RetrievalOptionsConfig
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
 from tqdm.notebook import tqdm

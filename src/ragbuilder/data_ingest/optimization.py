@@ -1,18 +1,16 @@
 import optuna
-import logging
+import os
+import numpy as np
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any
-from .config import DataIngestOptionsConfig, DataIngestConfig, LogConfig, EvaluatorType
+from typing import List, Dict, Any 
+from importlib import import_module
+from ragbuilder.config.data_ingest import DataIngestOptionsConfig, DataIngestConfig, LogConfig, EvaluatorType
+from ragbuilder.core.callbacks import DBLoggerCallback
+from ragbuilder.core.utils import load_environment, validate_environment
+from ragbuilder.core.logging_utils import setup_rich_logging, console
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
-from .callbacks import DBLoggerCallback
-from tqdm.notebook import tqdm    
-import numpy as np
-from importlib import import_module
-from .utils import load_environment
-from .components import validate_environment
-from .logging_utils import setup_rich_logging, console, get_progress_bar
-import os
+
 
 # Add this near the top of the file, after imports
 if not os.getenv("USER_AGENT"):
@@ -214,37 +212,19 @@ class Optimizer:
 def _run_optimization_core(options_config: DataIngestOptionsConfig):
     # Load environment variables first
     load_environment()
+    missing_vars = validate_environment(options_config)
     
-    # Validate environment variables for selected components
-    missing_vars = []
+    if missing_vars:
+        raise ValueError(
+            "Missing required environment variables for selected components:\n" + 
+            "\n".join(f"- {var}" for var in missing_vars)
+        )
 
     # Check graph
     if options_config.graph:
         # TODO: Check graph config and create graph
         pass
-    
-    # Check document loaders
-    for loader in options_config.document_loaders:
-        if missing := validate_environment('loader', loader.type):
-            missing_vars.extend(missing)
-    
-    # Check embedding models
-    for model in options_config.embedding_models:
-        if missing := validate_environment('embedding', model.type):
-            missing_vars.extend(missing)
-    
-    # Check vector databases
-    for db in options_config.vector_databases:
-        if missing := validate_environment('vectordb', db.type):
-            missing_vars.extend(missing)
-    
-    if missing_vars:
-        missing_vars = sorted(set(missing_vars))  # Remove duplicates
-        raise ValueError(
-            "Missing required environment variables for selected components:\n" + 
-            "\n".join(f"- {var}" for var in missing_vars)
-        )
-    
+
     # Create evaluator based on config
     if options_config.evaluation_config.type == EvaluatorType.CUSTOM:
         module_path, class_name = options_config.evaluation_config.custom_class.rsplit('.', 1)

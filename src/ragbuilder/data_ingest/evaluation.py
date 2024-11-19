@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from .pipeline import DataIngestPipeline
-from .config import EvaluationConfig
+from ragbuilder.config.data_ingest import EvaluationConfig
 from typing import List, Optional, Dict, Any, Tuple
 import numpy as np
 from datetime import datetime

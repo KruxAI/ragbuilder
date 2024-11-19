@@ -3,17 +3,17 @@ import json
 import time
 import logging
 import random
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Protocol
 from datetime import datetime
 from contextlib import contextmanager
 from optuna.study import Study
 from optuna.trial import Trial
-from .config import DataIngestOptionsConfig
+from ragbuilder.config.data_ingest import DataIngestOptionsConfig
 
 logger = logging.getLogger(__name__)
 
 
-class DBLoggerCallback:
+class DBLoggerCallback(Protocol):
     """Callback to log optimization results to the DB for optional UI visualization."""
     
     def __init__(self, 

@@ -38,6 +38,8 @@ from langchain_community.document_loaders import (
     AzureBlobStorageContainerLoader,
     S3DirectoryLoader
 )
+from langchain.retrievers import BM25Retriever
+from rerankers import Reranker
 
 # Component type definitions
 class GraphType(str, Enum):
@@ -81,6 +83,19 @@ class VectorDatabase(str, Enum):
     MILVUS = "milvus"
     PGVECTOR = "pgvector"
     ELASTICSEARCH = "elasticsearch"
+    CUSTOM = "custom"
+
+class RetrieverType(str, Enum):
+    VECTOR_SEARCH = "vector"
+    BM25_RETRIEVER = "bm25"
+    # PARENT_DOC_RETRIEVER_FULL = "parent_doc_full"
+    # PARENT_DOC_RETRIEVER_LARGE = "parent_doc_large"
+    # COLBERT_RETRIEVER = "colbert"
+    CUSTOM = "custom"
+
+class RerankerType(str, Enum):
+    flashrank = "FlaskRank"
+    rankGPT = "rankGPT"
     CUSTOM = "custom"
 
 class EvaluatorType(str, Enum):
@@ -129,6 +144,15 @@ VECTORDB_MAP = {
     VectorDatabase.MILVUS: Milvus,
     VectorDatabase.PGVECTOR: PGVector,
     VectorDatabase.ELASTICSEARCH: ElasticsearchStore,
+}
+
+RETRIEVER_MAP = {
+    RetrieverType.BM25_RETRIEVER: BM25Retriever,
+}
+
+RERANKER_MAP = {
+    RerankerType.flashrank: Reranker,
+    RerankerType.rankGPT: Reranker,
 }
 
 # Environment variable requirements for components
@@ -181,17 +205,3 @@ COMPONENT_ENV_REQUIREMENTS = {
         "required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"]
     }
 }
-
-def validate_environment(component_type: str, component_value: str) -> List[str]:
-    """Validate required environment variables for a component.
-    
-    Args:
-        component_type: The component type (e.g., EmbeddingModel, VectorDatabase)
-        component_value: The specific component value
-        
-    Returns:
-        List of missing required environment variables
-    """
-    requirements = COMPONENT_ENV_REQUIREMENTS.get(component_value, {"required": [], "optional": []})
-    missing = [var for var in requirements["required"] if not os.getenv(var)]
-    return missing

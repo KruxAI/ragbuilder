@@ -1,11 +1,10 @@
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Union, Dict, Any
 import yaml
-import time
-import random
 import logging
 from dataclasses import dataclass
-from .components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType
+from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType
+from .base import BaseConfig, OptimizationConfig, EvaluationConfig
 
 @dataclass
 class LogConfig:
@@ -23,7 +22,7 @@ class LoaderConfig(BaseModel):
 class ChunkingStrategyConfig(BaseModel):
     type: ChunkingStrategy
     chunker_kwargs: Optional[Dict[str, Any]] = None
-    custom_class: Optional[str] = None
+    custom_class: Union[str, Any] = None
 
 class ChunkSizeConfig(BaseModel):
     min: int = Field(default=500, description="Minimum chunk size")
@@ -42,56 +41,21 @@ class EmbeddingConfig(BaseModel):
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
     custom_class: Optional[str] = None
 
-class EvaluationConfig(BaseModel):
-    type: EvaluatorType = Field(default=EvaluatorType.SIMILARITY, description="Type of evaluator to use")
-    custom_class: Optional[str] = Field(default=None, description="Path to custom evaluator class")
-    evaluator_kwargs: Optional[Dict[str, Any]] = Field(
-        default = {
-            "top_k": 5,
-            "position_weights": None,
-            "relevance_threshold": 0.75
-        },
-        description="Additional parameters for evaluator initialization"
-    )
-
 # TODO: Define graph config
 class GraphConfig(BaseModel):
     type: GraphType #neo4j
     graph_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Graph specific configuration parameters")
     custom_class: Optional[str] = None
 
-class OptimizationConfig(BaseModel):
-    type: Optional[str] = "Optuna"
-    n_trials: Optional[int] = Field(default=10, description="Number of trials for optimization")
-    n_jobs: Optional[int] = Field(default=1, description="Number of jobs for optimization")
-    timeout: Optional[int] = Field(default=None, description="Timeout for optimization")
-    storage: Optional[str] = Field(default=None, description="Storage URL for Optuna (e.g., 'sqlite:///optuna.db')")
-    study_name: Optional[str] = Field(default=f"data_ingest_{int(time.time()*1000+random.randint(1, 1000))}", description="Name of the Optuna study")
-    load_if_exists: Optional[bool] = Field(default=False, description="Load existing study if it exists")
-    overwrite_study: Optional[bool] = Field(default=False, description="Overwrite existing study if it exists")
-    optimization_direction: Optional[str] = Field(default="maximize", description="Whether to maximize or minimize the optimization metric")
-
-class BaseConfig(BaseModel):
-    input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
-    test_dataset: str = Field(..., description="Path to CSV file containing test questions")
-
-    @classmethod
-    def from_yaml(cls, file_path: str) -> 'DataIngestConfig':
-        """
-        Load configuration from a YAML file.
-        """
-        with open(file_path, 'r') as file:
-            config_dict = yaml.safe_load(file)
-        return cls(**config_dict)
-
-    def to_yaml(self, file_path: str) -> None:
-        """
-        Save configuration to a YAML file.
-        """
-        with open(file_path, 'w') as file:
-            yaml.dump(self.model_dump(), file)
-
 class DataIngestOptionsConfig(BaseConfig):
+    """Configuration for data ingestion optimization options.
+    
+    This config specifies the search space for optimization:
+    - What document loaders to try
+    - What chunking strategies to evaluate
+    - Range of chunk sizes to test
+    - etc.
+    """
     document_loaders: Optional[List[LoaderConfig]] = Field(
         default_factory=lambda: [LoaderConfig(type=ParserType.UNSTRUCTURED)], 
         description="Document loader configurations"
@@ -130,7 +94,42 @@ class DataIngestOptionsConfig(BaseConfig):
     )
     graph: Optional[GraphConfig] = Field(default=None, description="Graph configuration")
 
+    @classmethod
+    def with_defaults(cls, base_config: BaseConfig) -> 'DataIngestOptionsConfig':
+        """Create a DataIngestOptionsConfig with default values"""
+        return cls(
+            input_source=base_config.input_source,
+            test_dataset=base_config.test_dataset,
+            document_loaders=[LoaderConfig(type=ParserType.UNSTRUCTURED)],
+            chunking_strategies=[ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE)],
+            chunk_size=ChunkSizeConfig(
+                min=500,
+                max=3000,
+                stepsize=500
+            ),
+            chunk_overlap=[100],
+            embedding_models=[
+                EmbeddingConfig(
+                    type=EmbeddingModel.HUGGINGFACE,
+                    model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"}
+                )
+            ],
+            vector_databases=[VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}})],
+            optimization=OptimizationConfig(
+                n_trials=10,
+                n_jobs=1
+            )
+        )
+
 class DataIngestConfig(BaseConfig):
+    """Single instance configuration for data ingestion pipeline.
+    
+    This config represents a specific combination of parameters:
+    - One document loader
+    - One chunking strategy
+    - One specific chunk size
+    - etc.
+    """
     document_loader: LoaderConfig = Field(
         default_factory=lambda: LoaderConfig(type=ParserType.UNSTRUCTURED), 
         description="Document loader configuration"
@@ -147,7 +146,6 @@ class DataIngestConfig(BaseConfig):
         default_factory=lambda: VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={}), 
         description="Vector store configuration"
     )
-    sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
 
 def load_config(file_path: str) -> Union[DataIngestOptionsConfig, DataIngestConfig]:
     with open(file_path, 'r') as file:
