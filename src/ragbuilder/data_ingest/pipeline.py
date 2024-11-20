@@ -24,7 +24,7 @@ from ragbuilder.core.exceptions import (
 )
 
 class DataIngestPipeline:
-    def __init__(self, config: DataIngestConfig):
+    def __init__(self, config: DataIngestConfig, documents: List[Document] = None):
         """Initialize pipeline with specific configuration.
         
         Args:
@@ -37,10 +37,14 @@ class DataIngestPipeline:
         self.config = config
         self.logger = logging.getLogger("ragbuilder")
         
-        self.parser = self._create_parser()
         self.chunker = self._create_chunker()
         self.embedder = self._create_embedder()
         self.indexer = None
+        
+        # Store pre-loaded documents if provided
+        self._documents = documents
+        # Only create parser if we don't have pre-loaded documents
+        self.parser = None if documents else self._create_parser()
 
     def _validate_config(self, config: DataIngestConfig) -> None:
         """Validate pipeline configuration."""
@@ -191,16 +195,15 @@ class DataIngestPipeline:
 
     def run(self):
         try:
-            with console.status("[status]Loading documents...[/status]") as status:
-                try:
-                    documents = self.parser.load()
-                    if not documents:
+            with console.status("[status]Processing documents...[/status]") as status:
+                if self._documents is None:
+                    self.logger.info("Loading documents using parser...")
+                    self._documents = self.parser.load()
+                    if not self._documents:
                         raise PipelineError("No documents were loaded from the input source")
-                except Exception as e:
-                    raise PipelineError(f"Document loading failed: {str(e)}") from e
                 
                 status.update("[status]Chunking documents...[/status]")
-                chunks = self.chunker.split_documents(documents)
+                chunks = self.chunker.split_documents(self._documents)
                 if not chunks:
                     raise ValueError("No chunks were generated from the documents")
                 

@@ -11,7 +11,8 @@ class RetrieverConfig(BaseModel):
     custom_class: Optional[str] = None
     retriever_k: List[int] = Field(default=[100], description="Number of documents to retrieve")
 
-class ReRankerConfig(BaseModel):
+class RerankerConfig(BaseModel):
+    """Configuration for a specific reranker instance"""
     type: RerankerType
     reranker_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Re-ranker-specific parameters")
     custom_class: Optional[str] = None
@@ -22,7 +23,7 @@ class RetrievalOptionsConfig(BaseConfig):
         default_factory=lambda: [RetrieverConfig(type=RetrieverType.SIMILARITY)],
         description="List of retrievers to try"
     )
-    rerankers: Optional[List[ReRankerConfig]] = Field(
+    rerankers: Optional[List[RerankerConfig]] = Field(
         default_factory=list,
         description="List of rerankers to try"
     )
@@ -42,13 +43,13 @@ class RetrievalOptionsConfig(BaseConfig):
     )
 
 class RetrievalConfig(BaseConfig):
-    retriever: RetrieverConfig = Field(
-        default_factory=lambda: RetrieverConfig(type=RetrieverType.VECTOR_SEARCH), 
-        description="Retriever configuration"
+    retrievers: List[RetrieverConfig] = Field(
+        default_factory=lambda: [RetrieverConfig(type=RetrieverType.SIMILARITY)],
+        description="List of retrievers to try"
     )
-    reranker: ReRankerConfig = Field(
-        default_factory=lambda: ReRankerConfig(type=ReRankerType.FLASH_RANK), 
-        description="Re-ranker configuration"
+    rerankers: Optional[List[RerankerConfig]] = Field(
+        default_factory=list,
+        description="List of rerankers to try"
     )
     top_k: int = Field(default=5, description="Number of top results to consider for similarity scoring")
 

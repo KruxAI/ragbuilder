@@ -2,13 +2,16 @@ import logging
 from typing import List, Optional, Any, Dict, Union
 from importlib import import_module
 from langchain.schema import BaseRetriever, Document
-from langchain.retrievers import ContextualCompressionRetriever
+from langchain.storage import InMemoryStore
+from langchain.retrievers import ContextualCompressionRetriever, BM25Retriever, MultiQueryRetriever, ParentDocumentRetriever
+from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+from rerankers import Reranker
 
 from ragbuilder.config.components import (
     RETRIEVER_MAP, RERANKER_MAP,
     RetrieverType, RerankerType
 )
-from ragbuilder.config.retriever import RetrievalConfig
+from ragbuilder.config.retriever import RetrievalConfig, RerankerConfig
 from ragbuilder.core.logging_utils import console
 from ragbuilder.core.exceptions import (
     RAGBuilderError,
@@ -59,64 +62,133 @@ class RetrieverPipeline:
                     **self.config.retriever_kwargs
                 )
             
-            retriever_class = RETRIEVER_MAP.get(self.config.type)
-            if not retriever_class:
-                raise ConfigurationError(f"Unsupported retriever type: {self.config.type}")
-
-            # Special handling for different retriever types
+            # Handle different retriever types
             if self.config.type == RetrieverType.SIMILARITY:
                 return self.vectorstore.as_retriever(
+                    search_type="similarity",
                     search_kwargs={"k": self.config.retriever_k[0]},
                     **self.config.retriever_kwargs
                 )
+            
             elif self.config.type == RetrieverType.MMR:
                 return self.vectorstore.as_retriever(
                     search_type="mmr",
                     search_kwargs={
                         "k": self.config.retriever_k[0],
-                        "fetch_k": self.config.retriever_k[0] * 2  # Fetch more for MMR
+                        "fetch_k": self.config.retriever_k[0] * 2
                     },
                     **self.config.retriever_kwargs
                 )
-            elif self.config.type == RetrieverType.HYBRID:
-                # Implement hybrid retriever logic
-                pass
             
-            return retriever_class(
-                vectorstore=self.vectorstore,
-                **self.config.retriever_kwargs
-            )
+            elif self.config.type == RetrieverType.MULTI_QUERY:
+                return MultiQueryRetriever.from_llm(
+                    retriever=self.vectorstore.as_retriever(
+                        search_kwargs={"k": self.config.retriever_k[0]}
+                    ),
+                    llm=self.config.retriever_kwargs.get("llm"),
+                )
+            
+            elif self.config.type == RetrieverType.PARENT_DOC_RETRIEVER_FULL:
+                store = InMemoryStore()
+                # parent_splitter = self.config.retriever_kwargs.get("parent_splitter")
+                child_splitter = self.config.retriever_kwargs.get("child_splitter")
+                
+                retriever = ParentDocumentRetriever(
+                    vectorstore=self.vectorstore,
+                    docstore=store,
+                    child_splitter=child_splitter
+                    # parent_splitter=parent_splitter if parent_splitter else child_splitter
+                )
+                
+                # TODO: Figure out a way to add documents from the data ingest pipeline
+                if docs := self.config.retriever_kwargs.get("documents"):
+                    retriever.add_documents(docs)
+                
+                return retriever
+            
+            # TODO: Figure out a way to add documents from the data ingest pipeline
+            # Also figure out how to handle the splitters
+            elif self.config.type == RetrieverType.PARENT_DOC_RETRIEVER_LARGE:
+                store = InMemoryStore()
+                parent_splitter = self.config.retriever_kwargs.get("parent_splitter")
+                child_splitter = self.config.retriever_kwargs.get("child_splitter")
+                retriever = ParentDocumentRetriever(
+                    vectorstore=self.vectorstore,
+                    docstore=store,
+                    child_splitter=child_splitter,
+                    parent_splitter=parent_splitter
+                )
+            
+            # TODO: Figure out how to get documents from the data ingest pipeline
+            elif self.config.type == RetrieverType.BM25:
+                return BM25Retriever.from_documents(
+                    self.config.retriever_kwargs.get("documents", []),
+                    **{k:v for k,v in self.config.retriever_kwargs.items() if k != "documents"}
+                )
+            
+            raise ConfigurationError(f"Unsupported retriever type: {self.config.type}")
             
         except Exception as e:
             raise ComponentError(f"Failed to create base retriever: {str(e)}") from e
 
-    def _create_reranker(self):
+    def _create_reranker(self, config: RerankerConfig):
         """Create a reranker from configuration."""
         try:
-            if self.config.reranker.type == RerankerType.CUSTOM:
+            # Handle different reranker types
+            if config.type == RerankerType.COHERE:
+                ranker = Reranker(
+                    "cohere",
+                    model_type='APIRanker',
+                    lang='en',
+                    api_key=os.getenv('COHERE_API_KEY')
+                )
+                return ranker.as_langchain_compressor(k=self.final_k)
+            
+            elif config.type == RerankerType.BCE:
+                ranker = Reranker(
+                    "BAAI/bge-reranker-base",
+                    model_type='TransformerRanker'
+                )
+                return ranker.as_langchain_compressor(k=self.final_k)
+            
+            elif config.type == RerankerType.CUSTOM:
+                if "model_name" in config.reranker_kwargs:
+                    # Handle custom HuggingFace models
+                    ranker = Reranker(
+                        config.reranker_kwargs["model_name"],
+                        model_type=config.reranker_kwargs.get("model_type", "cross-encoder"),
+                        **{k:v for k,v in config.reranker_kwargs.items() 
+                           if k not in ["model_name", "model_type"]}
+                    )
+                    return ranker.as_langchain_compressor(k=self.final_k)
                 return self._instantiate_custom_class(
-                    self.config.reranker.custom_class,
-                    **self.config.reranker.reranker_kwargs
+                    config.custom_class,
+                    **config.reranker_kwargs
                 )
             
-            reranker_class = RERANKER_MAP.get(self.config.reranker.type)
-            if not reranker_class:
-                raise ConfigurationError(f"Unsupported reranker type: {self.config.reranker.type}")
-            
-            return reranker_class(**self.config.reranker.reranker_kwargs)
+            raise ConfigurationError(f"Unsupported reranker type: {config.type}")
             
         except Exception as e:
             raise ComponentError(f"Failed to create reranker: {str(e)}") from e
+
+    def _create_document_compressor(self, reranker_configs: List[RerankerConfig]) -> DocumentCompressorPipeline:
+        """Create a document compressor pipeline from multiple rerankers."""
+        compressors = []
+        
+        for config in reranker_configs:
+            compressor = self._create_reranker(config)
+            compressors.append(compressor)
+            
+        return DocumentCompressorPipeline(transformers=compressors)
 
     def _create_retriever_chain(self) -> BaseRetriever:
         """Create the full retrieval chain including rerankers if specified."""
         retriever = self.base_retriever
         
-        # Add rerankers if specified
-        if hasattr(self.config, 'reranker') and self.config.reranker:
-            reranker = self._create_reranker()
+        if hasattr(self.config, 'rerankers') and self.config.rerankers:
+            compressor = self._create_document_compressor(self.config.rerankers)
             retriever = ContextualCompressionRetriever(
-                base_compressor=reranker,
+                base_compressor=compressor,
                 base_retriever=retriever
             )
         
