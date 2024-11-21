@@ -1,0 +1,5 @@
+# sample_data.txt
+This is a sample document for testing the RAGBuilder data ingestion pipeline.
+It contains multiple sentences to demonstrate chunking.
+We'll use this to test our parser, chunker, embedder, and indexer components.
+The goal is to ensure that our pipeline works end-to-end with a simple configuration.

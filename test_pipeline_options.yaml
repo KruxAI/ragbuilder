@@ -1,0 +1,47 @@
+input_source: "sample_data.txt"
+test_dataset: "sample_questions.txt"
+# input_source: "/Users/aravind/KruxAI/ragbuilder/InputFiles/pdf/uber_10k.pdf"
+# test_dataset: "/Users/aravind/KruxAI/ragbuilder/rag_test_data_1726600284.375674 uber10k_shortlist.csv"
+
+document_loaders:
+  - type: "unstructured"
+    loader_kwargs: {}
+
+chunking_strategies: 
+  - "RecursiveCharacterTextSplitter"
+  - "CharacterTextSplitter"
+  - "custom"
+chunk_size: 
+  min: 100
+  max: 500
+  stepsize: 100
+chunk_overlap: [50, 100]
+
+embedding_models:
+  - type: "openai"
+    model: "text-embedding-3-small"
+#    model_kwargs: 
+#      show_progress_bar: true
+  - type: "huggingface"
+    model: "sentence-transformers/all-MiniLM-L6-v2"
+#    model_kwargs: 
+#      show_progress: true
+
+vector_databases:
+  - type: "chroma"
+    collection_name: "test_collection"
+    persist_directory: "chroma_sample2"
+    collection_metadata: 
+      "hnsw:space": "cosine"
+#   client_settings: null
+#   metadata: null
+  - type: "faiss"
+    normalize_L2: true
+
+top_k: 3
+sampling_rate: null
+
+optimization:
+  n_trials: 10
+  timeout: 600
+  storage: "sqlite:///test_optuna_data_ingestion.db"
