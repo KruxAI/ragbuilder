@@ -14,6 +14,7 @@ from ragbuilder.core.document_store import DocumentStore
 from ragbuilder.core.config_store import ConfigStore
 import time
 from langchain.docstore.document import Document
+from ragbuilder.graph_utils.graph_loader import load_graph 
 
 # Add this near the top of the file, after imports
 if not os.getenv("USER_AGENT"):
@@ -289,7 +290,7 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
 
     # Check graph
     if options_config.graph:
-        # TODO: Check graph config and create graph
+        load_graph(documents,llm)
         pass
 
     # Create evaluator based on config
