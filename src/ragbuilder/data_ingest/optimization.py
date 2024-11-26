@@ -19,21 +19,22 @@ from langchain.docstore.document import Document
 if not os.getenv("USER_AGENT"):
     os.environ["USER_AGENT"] = "RAGBuilder_1.0"
 
-class Optimizer:
+class DataIngestOptimizer:
     def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, callback=None):
         self.options_config = options_config
         self.evaluator = evaluator
         self.callbacks = []
         self.doc_store = DocumentStore()
         self.config_store = ConfigStore()
-        self._setup_logging(options_config.log_config)
+        self.logger = setup_rich_logging(options_config.log_config.log_level, options_config.log_config.log_file)
 
         # Setup DB logging callback if enabled
         if options_config.database_logging:
             try:
                 db_callback = DBLoggerCallback(
                     study_name=options_config.optimization.study_name,
-                    config=options_config
+                    config=options_config,
+                    module_type='data_ingest'
                 )
                 self.callbacks.append(db_callback)
                 self.logger.info("Database logging enabled")
@@ -48,55 +49,9 @@ class Optimizer:
         self.chunking_strategy_map = {i: chunking_strategy for i, chunking_strategy in enumerate(self.options_config.chunking_strategies)}
         self.embedding_model_map = {i: model for i, model in enumerate(self.options_config.embedding_models)}
         self.vector_db_map = {i: db for i, db in enumerate(self.options_config.vector_databases)}
-        self._setup_logging(options_config.log_config)
-
-    def _setup_logging(self, log_config: LogConfig):
-        self.logger = setup_rich_logging(log_config.log_level, log_config.log_file)
-
-    def _get_loader_key(self, loader_config) -> str:
-        """Generate a unique key for a loader configuration"""
-        loader_kwargs = loader_config.loader_kwargs or {}
-        return f"{loader_config.type}_{hash(frozenset(loader_kwargs.items()))}"
-
-    def _get_or_load_documents(self, loader_config) -> List[Document]:
-        """Get documents from cache or load them using the specified loader"""
-        key = self._get_loader_key(loader_config)
-        
-        if self.doc_store.has_documents(key):
-            self.logger.info(f"Using cached documents for loader: {loader_config.type}")
-            return self.doc_store.get_documents(key)
-
-        self.logger.info(f"Loading documents with loader: {loader_config.type}")
-        config = DataIngestConfig(
-            input_source=self.options_config.input_source,
-            test_dataset=self.options_config.test_dataset,
-            document_loader=loader_config,
-            chunking_strategy=self.options_config.chunking_strategies[0],  # Use any valid config
-            embedding_model=self.options_config.embedding_models[0],
-            vector_database=self.options_config.vector_databases[0],
-            chunk_size=self.options_config.chunk_size.min,
-            chunk_overlap=self.options_config.chunk_overlap[0]
-        )
-        
-        pipeline = DataIngestPipeline(config)
-        documents = pipeline.parser.load()
-        
-        # Store documents with metadata
-        self.doc_store.store_documents(
-            key, 
-            documents,
-            metadata={
-                "loader_type": loader_config.type,
-                "loader_kwargs": loader_config.loader_kwargs,
-                "input_source": self.options_config.input_source,
-                "timestamp": time.time()
-            }
-        )
-        
-        return documents
 
     def _build_trial_config(self, trial) -> Tuple[DataIngestConfig, List[Document]]:
-        """Build config from trial parameters and return with corresponding documents"""
+        """Build config from trial parameters"""
         # Get loader configuration
         if len(self.options_config.document_loaders) == 1:
             document_loader = self.options_config.document_loaders[0]
@@ -106,30 +61,19 @@ class Optimizer:
                 list(self.document_loader_map.keys())
             )]
         
-        # Get or load documents for this loader
-        documents = self._get_or_load_documents(document_loader)
-
-        if len(self.options_config.chunking_strategies) == 1:
-            chunking_strategy = self.options_config.chunking_strategies[0]
-        else:
-            chunking_strategy = self.chunking_strategy_map[trial.suggest_categorical("chunking_strategy_index", list(self.chunking_strategy_map.keys()))]
+        chunking_strategy = (self.options_config.chunking_strategies[0] if len(self.options_config.chunking_strategies) == 1
+                             else self.chunking_strategy_map[trial.suggest_categorical("chunking_strategy_index", list(self.chunking_strategy_map.keys()))])
         
         chunk_size = trial.suggest_int("chunk_size", self.options_config.chunk_size.min, self.options_config.chunk_size.max, step=self.options_config.chunk_size.stepsize)
 
-        if len(self.options_config.chunk_overlap) == 1:
-            chunk_overlap = self.options_config.chunk_overlap[0]
-        else:
-            chunk_overlap = trial.suggest_categorical("chunk_overlap", self.options_config.chunk_overlap)
+        chunk_overlap = (self.options_config.chunk_overlap[0] if len(self.options_config.chunk_overlap) == 1
+                         else trial.suggest_categorical("chunk_overlap", self.options_config.chunk_overlap))
 
-        if len(self.options_config.embedding_models) == 1:  
-            embedding_model = self.options_config.embedding_models[0]
-        else:
-            embedding_model = self.embedding_model_map[trial.suggest_categorical("embedding_model_index", list(self.embedding_model_map.keys()))]
+        embedding_model = (self.options_config.embedding_models[0] if len(self.options_config.embedding_models) == 1
+                           else self.embedding_model_map[trial.suggest_categorical("embedding_model_index", list(self.embedding_model_map.keys()))])
 
-        if len(self.options_config.vector_databases) == 1:
-            vector_database = self.options_config.vector_databases[0]
-        else:
-            vector_database = self.vector_db_map[trial.suggest_categorical("vector_database_index", list(self.vector_db_map.keys()))]
+        vector_database = (self.options_config.vector_databases[0] if len(self.options_config.vector_databases) == 1
+                           else self.vector_db_map[trial.suggest_categorical("vector_database_index", list(self.vector_db_map.keys()))])
         
         # Handle Chroma persistence directory for trials
         if persist_directory := vector_database.vectordb_kwargs.get('persist_directory'):
@@ -147,14 +91,14 @@ class Optimizer:
             "vector_database": vector_database
         }
         self.logger.info(f"Trial parameters: {params}")
-        return DataIngestConfig(**params), documents    
+        return DataIngestConfig(**params)
 
     def optimize(self):
         console.rule("[heading]Starting Optimization Process[/heading]")
         
         def objective(trial):
             console.print(f"[heading]Trial {trial.number}/{self.options_config.optimization.n_trials - 1}[/heading]")
-            config, documents = self._build_trial_config(trial)
+            config = self._build_trial_config(trial)
             trials_to_consider = trial.study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,))
             for t in reversed(trials_to_consider):
                 if trial.params == t.params:
@@ -163,7 +107,7 @@ class Optimizer:
                     return t.value
             
             self.logger.debug(f"Running pipeline with config: {config}")
-            pipeline = DataIngestPipeline(config, documents=documents)
+            pipeline = DataIngestPipeline(config)
             pipeline.run()
             
             avg_score, question_details = self.evaluator.evaluate(pipeline)
@@ -234,6 +178,7 @@ class Optimizer:
         best_config = DataIngestConfig(
             input_source=self.options_config.input_source,
             test_dataset=self.options_config.test_dataset,
+            document_loader=self.document_loader_map[study.best_params["document_loader_id"]] if "document_loader_id" in study.best_params else self.options_config.document_loaders[0],
             chunking_strategy=self.chunking_strategy_map[study.best_params["chunking_strategy_id"]] if "chunking_strategy_id" in study.best_params else self.options_config.chunking_strategies[0],
             chunk_size=study.best_params["chunk_size"],
             chunk_overlap=study.best_params["chunk_overlap"] if "chunk_overlap" in study.best_params else self.options_config.chunk_overlap[0],
@@ -304,23 +249,17 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
     else:
         evaluator = SimilarityEvaluator(options_config.test_dataset, options_config.evaluation_config)
     
-    optimizer = Optimizer(options_config, evaluator)
+    optimizer = DataIngestOptimizer(options_config, evaluator)
     best_config, best_score = optimizer.optimize()
     
-    # Get the documents for the best configuration's loader
-    loader_key = optimizer._get_loader_key(best_config.document_loader)
-    cached_documents = optimizer.doc_store.get_documents(loader_key)
+    # Create pipeline with best config to ensure vectorstore is cached
+    pipeline = DataIngestPipeline(best_config)
+    best_index = pipeline.run()
     
-    if cached_documents is None:
-        console.print("[warning]Warning: Could not find cached documents for best configuration. Reloading...[/warning]")
-        best_pipeline = DataIngestPipeline(best_config)
-    else:
-        console.print("[info]Using cached documents for best configuration[/info]")
-        best_pipeline = DataIngestPipeline(best_config, documents=cached_documents)
+    # Set the best config key in DocumentStore
+    optimizer.doc_store.set_best_config_key(pipeline.loader_key, pipeline.config_key)
     
-    # TODO: Revisit this to use cache to avoid running the pipeline twice
-    best_index = best_pipeline.run()
-    
+    console.print("[success]✓ Successfully optimized and cached best configuration[/success]")
     return best_config, best_score, best_index
 
 def run_optimization(options_config_path: str):

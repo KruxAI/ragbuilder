@@ -1,15 +1,19 @@
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Dict, Any, Union
 import yaml
-from .base import BaseConfig, OptimizationConfig, EvaluationConfig
-from .components import RetrieverType, RerankerType
+from .base import BaseConfig, OptimizationConfig, EvaluationConfig, LogConfig
+from .components import RetrieverType, RerankerType, EvaluatorType
 
-class RetrieverConfig(BaseModel):
+class BaseRetrieverConfig(BaseModel):
     """Configuration for a specific retriever instance"""
     type: RetrieverType
     retriever_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Retriever-specific parameters")
     custom_class: Optional[str] = None
     retriever_k: List[int] = Field(default=[100], description="Number of documents to retrieve")
+    weight: float = Field(
+        default=1.0,
+        description="Weight for this retriever in ensemble combinations"
+    )
 
 class RerankerConfig(BaseModel):
     """Configuration for a specific reranker instance"""
@@ -17,10 +21,10 @@ class RerankerConfig(BaseModel):
     reranker_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Re-ranker-specific parameters")
     custom_class: Optional[str] = None
 
-class RetrievalOptionsConfig(BaseConfig):
+class RetrievalOptionsConfig(BaseModel):
     """Configuration for retriever optimization options"""
-    retrievers: List[RetrieverConfig] = Field(
-        default_factory=lambda: [RetrieverConfig(type=RetrieverType.SIMILARITY)],
+    retrievers: List[BaseRetrieverConfig] = Field(
+        default_factory=lambda: [BaseRetrieverConfig(type=RetrieverType.SIMILARITY)],
         description="List of retrievers to try"
     )
     rerankers: Optional[List[RerankerConfig]] = Field(
@@ -31,20 +35,24 @@ class RetrievalOptionsConfig(BaseConfig):
         default=[3, 5, 10],
         description="Final number of documents to return after all processing"
     )
+    log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
+    database_logging: Optional[bool] = Field(default=True, description="Whether to log results to the DB")
+    database_path: Optional[str] = Field(default="eval.db", description="Path to the SQLite database file")
     optimization: Optional[OptimizationConfig] = Field(
         default_factory=OptimizationConfig,
         description="Optimization configuration"
     )
     evaluation_config: Optional[EvaluationConfig] = Field(
         default_factory=lambda: EvaluationConfig(
+            type=EvaluatorType.RAGAS,
             evaluator_kwargs={"metrics": ["precision", "recall", "f1_score"]}
         ),
         description="Evaluation configuration"
     )
 
-class RetrievalConfig(BaseConfig):
-    retrievers: List[RetrieverConfig] = Field(
-        default_factory=lambda: [RetrieverConfig(type=RetrieverType.SIMILARITY)],
+class RetrievalConfig(BaseModel):
+    retrievers: List[BaseRetrieverConfig] = Field(
+        default_factory=lambda: [BaseRetrieverConfig(type=RetrieverType.SIMILARITY)],
         description="List of retrievers to try"
     )
     rerankers: Optional[List[RerankerConfig]] = Field(
@@ -53,7 +61,7 @@ class RetrievalConfig(BaseConfig):
     )
     top_k: int = Field(default=5, description="Number of top results to consider for similarity scoring")
 
-def load_config(file_path: str) -> Union[RetrievalOptionsConfig, RetrieverConfig]:
+def load_config(file_path: str) -> Union[RetrievalOptionsConfig, BaseRetrieverConfig]:
     with open(file_path, 'r') as file:
         config_dict = yaml.safe_load(file)
     
@@ -67,11 +75,11 @@ def load_config(file_path: str) -> Union[RetrievalOptionsConfig, RetrieverConfig
     except ValidationError:
         # If it fails, try RetrieverConfig
         try:
-            return RetrieverConfig(**config_dict)
+            return BaseRetrieverConfig(**config_dict)
         except ValidationError as e:
             raise ValueError(f"Invalid configuration: {str(e)}")
 
-def save_config(config: Union[RetrievalOptionsConfig, RetrieverConfig], file_path: str) -> None:
+def save_config(config: Union[RetrievalOptionsConfig, BaseRetrieverConfig], file_path: str) -> None:
     """
     Save configuration to a YAML file.
     """

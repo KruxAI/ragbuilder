@@ -1,12 +1,16 @@
 import yaml
 import time
 import random
+import logging
 from pydantic import BaseModel, Field
 from typing import Optional, Union, List, Dict, Any, ForwardRef
+from dataclasses import dataclass
 from pathlib import Path
 # from .data_ingest import DataIngestOptionsConfig
 # from .retriever import RetrievalOptionsConfig
 from .components import EvaluatorType
+from langchain.llms.base import BaseLLM
+from langchain.embeddings.base import Embeddings
 
 DataIngestOptionsConfig = ForwardRef('DataIngestOptionsConfig')
 RetrievalOptionsConfig = ForwardRef('RetrievalOptionsConfig')
@@ -43,14 +47,22 @@ class OptimizationConfig(BaseModel):
 class EvaluationConfig(BaseModel):
     type: EvaluatorType = Field(default=EvaluatorType.SIMILARITY, description="Type of evaluator to use")
     custom_class: Optional[str] = Field(default=None, description="Path to custom evaluator class")
+    test_dataset: Optional[str] = Field(default=None, description="Path to test dataset")
+    # llm: Optional[BaseLLM] = Field(default=None, description="LLM configuration")
+    # embeddings: Optional[Embeddings] = Field(default=None, description="Embedding configuration")
     evaluator_kwargs: Optional[Dict[str, Any]] = Field(
-        default = {
-            "top_k": 5,
-            "position_weights": None,
-            "relevance_threshold": 0.75
-        },
+        default = {},
         description="Additional parameters for evaluator initialization"
     )
+
+@dataclass
+class LogConfig:
+    """Configuration for logging"""
+    log_level: int = logging.INFO
+    log_file: Optional[str] = None
+    show_progress_bar: bool = True
+    verbose: bool = False
+
 class RAGConfig(BaseModel):
     """Complete RAG configuration"""
     base: BaseConfig

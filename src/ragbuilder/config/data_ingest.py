@@ -1,18 +1,8 @@
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Union, Dict, Any
 import yaml
-import logging
-from dataclasses import dataclass
 from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType
-from .base import BaseConfig, OptimizationConfig, EvaluationConfig
-
-@dataclass
-class LogConfig:
-    """Configuration for logging"""
-    log_level: int = logging.INFO
-    log_file: Optional[str] = None
-    show_progress_bar: bool = True
-    verbose: bool = False
+from .base import BaseConfig, OptimizationConfig, EvaluationConfig, LogConfig
 
 class LoaderConfig(BaseModel):
     type: ParserType
@@ -87,7 +77,7 @@ class DataIngestOptionsConfig(BaseConfig):
             evaluator_kwargs={
                 "top_k": 5,
                 "position_weights": None,
-                "relevance_threshold": 0.2
+                "relevance_threshold": 0.75
             }
         ),
         description="Evaluation configuration"
