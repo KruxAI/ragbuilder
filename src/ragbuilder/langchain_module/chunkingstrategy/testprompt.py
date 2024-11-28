@@ -250,6 +250,26 @@ Additional Context Needed: [If any]
 # """
     
     }
+prompts ={
+"test_prompt":
+"""Based on the ground truth answer provided, the following attributes can be identified:
+
+- **Tone**: Informative and technical
+- **Personality**: Professional and analytical
+- **Factualness**: Highly factual, relying solely on the provided information
+- **Conciseness**: Reasonably concise, presenting the information clearly without unnecessary elaboration
+- **Style**: Explanatory and descriptive, focusing on the process and benefits of Retrieval-Augmented Generation
+
+Given these attributes, the most suitable prompt format for the provided question and answer would be **Factual**. Here’s the crafted prompt:
+
+---
+
+**Prompt**: You are a highly accurate assistant. Respond only with the facts found in the provided context. If there is insufficient information in the context, say "I don't know."
+
+---
+
+This format ensures that the answer is focused on delivering factual information in a clear and precise manner, aligning with the tone and style of the ground truth answer.
+"""}
  
 # print(get_eval_dataset())
 from ragas.metrics import (
@@ -363,9 +383,8 @@ def agg_eval_prompts(prompt_test_dataset,iterno):
     print("eval_prompts completed")
 
 # Load the evaluation dataset
-# eval_dataset, df = get_eval_dataset("/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/rag_test_data_lilianweng_gpt-4o_1721032414.736622_SEMI.csv")
 # Initialize results dictionary
-# retriever=rag_get_retriever()
+retriever=rag_get_retriever()
 def read_csv(csv_file_path,i):
     print("reading csv")
     csv_file_path = csv_file_path+str(i)+".csv"
@@ -378,10 +397,11 @@ def read_csv(csv_file_path,i):
     return eval_dataset
 def run_test(iteration_no):
     print("Iteration initiated",iteration_no)
-    # prompt_test_dataset=test_prompt(eval_dataset,iteration_no)
+    eval_dataset, df = get_eval_dataset("/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/rag_test_data_lilianweng_gpt-4o_1721032414.736622_SEMI.csv")
+    prompt_test_dataset=test_prompt(eval_dataset,iteration_no)
     prompt_test_dataset=read_csv('/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/rag_results',iteration_no)
     prompt_eval_results=evaluate_prompts(prompt_test_dataset,iteration_no)
-    # agg_eval_prompts(prompt_eval_results,iteration_no)
+    agg_eval_prompts(prompt_eval_results,iteration_no)
     print("Iteration completed",iteration_no)
 print("all functions completed")
 # from ragbuilder.langchain_module.chunkingstrategy.testprompt import run_test
