@@ -1,8 +1,12 @@
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Union, Dict, Any
 import yaml
-from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType
+from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType, LLMType
 from .base import BaseConfig, OptimizationConfig, EvaluationConfig, LogConfig
+
+class LLMConfig(BaseModel):
+    type: LLMType
+    llm: Optional[Dict[str, Any]] = None
 
 class LoaderConfig(BaseModel):
     type: ParserType
@@ -19,6 +23,10 @@ class ChunkSizeConfig(BaseModel):
     max: int = Field(default=3000, description="Maximum chunk size")
     stepsize: int = Field(default=500, description="Step size for chunk size")
 
+class ChunkSizeStatic(BaseModel):
+    val: int = Field(default=500, description="chunk size")
+    
+
 class VectorDBConfig(BaseModel):
     type: VectorDatabase
     vectordb_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Vector database specific configuration parameters")
@@ -34,6 +42,11 @@ class EmbeddingConfig(BaseModel):
 # TODO: Define graph config
 class GraphConfig(BaseModel):
     type: GraphType #neo4j
+    chunking_strategy: ChunkingStrategyConfig = Field(default_factory=lambda: ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE), description="Chunking strategy")
+    chunk_overlap: Optional[List[int]] = Field(default=[100], description="List of chunk overlap values to try")
+    chunk_size: Optional[ChunkSizeStatic] = Field(default_factory=ChunkSizeStatic, description="Chunk size configuration")
+    document_loaders: LoaderConfig = Field(default_factory=lambda: LoaderConfig(type=ParserType.UNSTRUCTURED), description="Loader strategy")
+    llm: LLMConfig = Field(default_factory=lambda: LLMConfig(type=LLMType.AZURE_OPENAI), description="LLM strategy")
     graph_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Graph specific configuration parameters")
     custom_class: Optional[str] = None
 

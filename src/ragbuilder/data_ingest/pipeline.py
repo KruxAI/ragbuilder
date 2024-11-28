@@ -271,3 +271,29 @@ class DataIngestPipeline:
             module = import_module(module_name)
         custom_class = getattr(module, class_name)
         return custom_class(*args, **kwargs)
+
+
+    def ingest(self):
+            try:
+                with console.status("[status]Processing documents...[/status]") as status:
+                    if self._documents is None:
+                        self.logger.info("Loading documents using parser...")
+                        self._documents = self.parser.load()
+                        if not self._documents:
+                            raise PipelineError("No documents were loaded from the input source")
+                    
+                    status.update("[status]Chunking documents...[/status]")
+                    chunks = self.chunker.split_documents(self._documents)
+                    if not chunks:
+                        raise ValueError("No chunks were generated from the documents")
+                    
+                    status.update("[status]Creating vector index...[/status]")
+                    # self.indexer = self._create_indexer(chunks)
+                    print("Ingesting data... done",len(chunks))
+                    # console.print("[success]✓ Pipeline execution complete![/success]")
+                    return chunks
+                
+            except RAGBuilderError as e:
+                console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
+                console.print_exception()
+                raise

@@ -5,6 +5,10 @@ from importlib import import_module
 # Component type definitions
 class GraphType(str, Enum):
     NEO4J = "neo4j"
+    
+class LLMType(str, Enum):
+    OPENAI = "openai"
+    AZURE_OPENAI = "azure_openai"
 
 class ParserType(str, Enum):
     UNSTRUCTURED = "unstructured"
@@ -78,6 +82,10 @@ def lazy_load(module_path: str, class_name: str) -> Callable:
     return get_class
 
 # Component mappings with lazy loading
+LLM_MAP = {
+    LLMType.AZURE_OPENAI: lazy_load("langchain_openai", "AzureChatOpenAI"),
+}
+
 LOADER_MAP = {
     ParserType.UNSTRUCTURED: lazy_load("langchain_community.document_loaders", "UnstructuredFileLoader"),
     ParserType.PYMUPDF: lazy_load("langchain_community.document_loaders", "PyMuPDFLoader"),

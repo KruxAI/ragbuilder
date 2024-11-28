@@ -235,8 +235,21 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
 
     # Check graph
     if options_config.graph:
-        load_graph(documents,llm)
-        pass
+        print("Loading graph")
+        config = DataIngestConfig(
+            input_source=options_config.input_source,
+            test_dataset=options_config.test_dataset,
+            chunking_strategy=options_config.graph.chunking_strategy,  # Use any valid config
+            chunk_overlap=100,
+            chunk_size=1000)
+        pipeline = DataIngestPipeline(config)
+        chunks = pipeline.ingest()
+        llm=options_config.graph.llm
+        print(llm)
+        # TODO: will fail without the below two lines
+        from langchain_openai import AzureChatOpenAI
+        llm= AzureChatOpenAI(model='gpt-4o-mini')
+        load_graph(chunks,llm)
 
     # Create evaluator based on config
     if options_config.evaluation_config.type == EvaluatorType.CUSTOM:
