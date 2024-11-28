@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple, Any
 from langchain.docstore.document import Document
 import logging
 
@@ -9,6 +9,8 @@ class DocumentStore:
     _instance = None
     _documents: Dict[str, List[Document]] = {}
     _metadata: Dict[str, Dict] = {}  # Store metadata about each document set
+    _vectorstores: Dict[str, Any] = {}  # Store vectorstores
+    _best_config_key: Optional[str] = None  # New property to store best config key
 
     def __new__(cls):
         if cls._instance is None:
@@ -28,7 +30,7 @@ class DocumentStore:
         """Retrieve documents by key"""
         documents = cls._documents.get(key)
         if documents is None:
-            logger.info(f"No documents found for key: {key}")
+            logger.debug(f"No documents found for key: {key}")
         return documents
 
     @classmethod
@@ -43,9 +45,12 @@ class DocumentStore:
 
     @classmethod
     def clear(cls):
-        """Clear all stored documents and metadata"""
+        """Clear all stored documents, metadata, and vectorstores"""
         cls._documents.clear()
         cls._metadata.clear()
+        cls._vectorstores.clear()
+        cls._best_config_key = None
+        cls._best_loader_key = None
         logger.info("Document store cleared")
 
     @classmethod
@@ -58,3 +63,55 @@ class DocumentStore:
             }
             for key, docs in cls._documents.items()
         } 
+
+    @classmethod
+    def set_best_config_key(cls, loader_key: str, config_key: str):
+        """Set the key for the best configuration's documents"""
+        if loader_key not in cls._documents:
+            logger.warning(f"Setting best config key to {loader_key} but no documents exist for this key")
+        cls._best_loader_key = loader_key
+        logger.debug(f"Set best loader key to: {loader_key}")
+
+        if config_key not in cls._vectorstores:
+            logger.warning(f"Setting best config key to {config_key} but no vectorstore exists for this key")
+        cls._best_config_key = config_key
+        logger.debug(f"Set best config key to: {config_key}")
+
+    @classmethod
+    def get_best_config_docs(cls) -> Optional[Tuple[List[Document], Dict]]:
+        """Get documents and metadata for the best configuration."""
+        if not cls._best_loader_key:
+            logger.warning("No best configuration key set")
+            return None
+            
+        documents = cls.get_documents(cls._best_loader_key)
+        metadata = cls.get_metadata(cls._best_loader_key)
+        
+        if documents is None:
+            logger.warning(f"No documents found for best config (key: {cls._best_loader_key})")
+            return None
+            
+        return documents, metadata 
+
+    @classmethod
+    def store_vectorstore(cls, key: str, vectorstore: Any):
+        """Store vectorstore for a given configuration"""
+        cls._vectorstores[key] = vectorstore
+        logger.info(f"Stored vectorstore with key: {key}")
+
+    @classmethod
+    def get_vectorstore(cls, key: str) -> Optional[Any]:
+        """Retrieve vectorstore by key"""
+        vectorstore = cls._vectorstores.get(key)
+        if vectorstore is None:
+            logger.debug(f"No vectorstore found for key: {key}")
+        return vectorstore
+
+    @classmethod
+    def get_best_config_vectorstore(cls) -> Optional[Any]:
+        """Get vectorstore for the best configuration."""
+        if not cls._best_config_key:
+            logger.warning("No best configuration key set")
+            return None
+            
+        return cls.get_vectorstore(cls._best_config_key)

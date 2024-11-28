@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional, List, Union
 from ragbuilder.config.components import COMPONENT_ENV_REQUIREMENTS
 from ragbuilder.config.data_ingest import DataIngestConfig
-from ragbuilder.config.retriever import RetrieverConfig
+from ragbuilder.config.retriever import BaseRetrieverConfig
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def load_environment(env_path: Optional[str] = None) -> None:
     except Exception as e:
         logger.warning(f"Error loading environment variables: {str(e)}") 
 
-def validate_environment(config: Union[DataIngestConfig, RetrieverConfig]) -> List[str]:
+def validate_environment(config: Union[DataIngestConfig, BaseRetrieverConfig]) -> List[str]:
     """Validate environment variables for all components in a config"""
     missing_vars = []
     

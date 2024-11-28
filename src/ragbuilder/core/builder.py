@@ -3,6 +3,7 @@ from ragbuilder.config.base import RAGConfig, BaseConfig
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig 
 from ragbuilder.config.retriever import RetrievalOptionsConfig
 from ragbuilder.data_ingest.optimization import run_optimization_from_dict
+from ragbuilder.retriever.optimization import run_optimization
 from .exceptions import DependencyError
 import logging
 
@@ -38,8 +39,9 @@ class RAGBuilder:
         if self._optimized_store is None:
             raise DependencyError("Data ingestion must be optimized first")
         
+        result = run_optimization(config)
         # TODO: Implement retriever optimization
-        pass
+        return result
 
     def get_config(self) -> RAGConfig:
         """Get current configuration"""

@@ -22,3 +22,11 @@ class PipelineError(RAGBuilderError):
 class ComponentError(RAGBuilderError):
     """Component initialization or execution error."""
     pass
+
+class OptimizationError(RAGBuilderError):
+    """Optimization error."""
+    pass
+
+class EvaluationError(RAGBuilderError):
+    """Evaluation error."""
+    pass

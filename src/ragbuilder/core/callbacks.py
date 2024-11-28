@@ -3,12 +3,13 @@ import json
 import time
 import logging
 import random
-from typing import Dict, Any, Optional, Protocol
+from typing import Dict, Any, Optional, Protocol, Union
 from datetime import datetime
 from contextlib import contextmanager
 from optuna.study import Study
 from optuna.trial import Trial
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig
+from ragbuilder.config.retriever import RetrievalOptionsConfig
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +19,17 @@ class DBLoggerCallback(Protocol):
     
     def __init__(self, 
                  study_name: str,
-                 config: DataIngestOptionsConfig):
+                 config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig],
+                 module_type: str):
         """
         Args:
             study_name: Name of the optimization study
-            config: Configuration for data ingestion optimization
+            config: Configuration for optimization
+            module_type: Type of module ('data_ingest' or 'retriever')
         """
         self.study_name = study_name
         self.config = config
+        self.module_type = module_type
         self.db_path = config.database_path
         self.log_path = logger.handlers[0].baseFilename if logger.handlers else None
         self.run_id = None
@@ -90,6 +94,38 @@ class DBLoggerCallback(Protocol):
                 error               TEXT,
                 eval_ts             BIGINT
             )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS retriever_eval_summary (
+                eval_id                 BIGINT PRIMARY KEY,
+                run_id                  BIGINT,
+                trial_number            INTEGER,
+                config                  JSON,
+                avg_score               FLOAT,
+                avg_context_precision   FLOAT,
+                avg_context_recall      FLOAT,
+                avg_latency             FLOAT,
+                total_questions         INTEGER,
+                successful_questions    INTEGER,
+                error_rate              FLOAT,
+                eval_start_ts           BIGINT,
+                eval_end_ts             BIGINT
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS retriever_eval_details (
+                eval_id             BIGINT,
+                question_id         BIGINT,
+                question            TEXT,
+                contexts           JSON,
+                ground_truth       TEXT,
+                context_precision  FLOAT,
+                context_recall     FLOAT,
+                f1_score           FLOAT,
+                latency           FLOAT,
+                error             TEXT,
+                eval_ts           BIGINT
+            )
             """
         ]
         
@@ -108,23 +144,16 @@ class DBLoggerCallback(Protocol):
                 cursor.execute(
                     """
                     INSERT INTO run_details (
-                        run_id,
-                        module_type,
-                        status,
-                        description,
-                        src_data,
-                        log_path,
-                        run_config,
-                        disabled_opts,
-                        run_ts
+                        run_id, module_type, status, description,
+                        src_data, log_path, run_config, disabled_opts, run_ts
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         run_id,
-                        "data_ingest",
+                        self.module_type,
                         "Running",
                         self.study_name,
-                        self.config.input_source,
+                        getattr(self.config, 'input_source', None),
                         self.log_path,
                         json.dumps(self.config.model_dump()),
                         None,
@@ -156,73 +185,15 @@ class DBLoggerCallback(Protocol):
     def _log_trial(self, trial: Trial, results: Dict[str, Any]) -> Optional[int]:
         """Log trial results to database."""
         try:
-            eval_id = int(time.time()*1000+random.randint(1, 1000))
+            eval_id = int(time.time()*1000 + random.randint(1, 1000))
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("BEGIN")
                 try:
-                    # Log Summary
-                    cursor.execute(
-                        """
-                        INSERT INTO data_ingest_eval_summary (
-                            eval_id,
-                            run_id,
-                            trial_number,
-                            config,
-                            avg_score,
-                            avg_latency,
-                            total_questions,
-                            successful_questions,
-                            error_rate,
-                            eval_start_ts,
-                            eval_end_ts
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            eval_id,
-                            self.run_id,
-                            trial.number,
-                            json.dumps(results['config']),
-                            results['avg_score'],
-                            results['metrics']['avg_latency'],
-                            results['metrics']['total_questions'],
-                            results['metrics']['successful_questions'],
-                            results['metrics']['error_rate'],
-                            int(trial.datetime_start.timestamp() * 1000) if hasattr(trial, 'datetime_start') else None,
-                            int(time.time()*1000)
-                        )
-                    )
-                    
-                    # Log details 
-                    cursor.executemany(
-                        """
-                        INSERT INTO data_ingest_eval_details (
-                            eval_id,
-                            question_id,
-                            question,
-                            retrieved_chunks,
-                            relevance_scores,
-                            weighted_score,
-                            latency,
-                            error,
-                            eval_ts
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        [
-                            (
-                                eval_id,
-                                idx,
-                                detail['question'],
-                                json.dumps(detail.get('retrieved_chunks', [])),
-                                json.dumps(detail.get('relevance_scores', [])),
-                                detail.get('weighted_score'),
-                                detail.get('latency'),
-                                detail.get('error'),
-                                detail['eval_timestamp']
-                            )
-                            for idx, detail in enumerate(results['question_details'])
-                        ]
-                    )
+                    if self.module_type == "retriever":
+                        self._log_retriever_trial(cursor, eval_id, trial, results)
+                    else:
+                        self._log_data_ingest_trial(cursor, eval_id, trial, results)
                     
                     conn.commit()
                     return eval_id
@@ -234,6 +205,107 @@ class DBLoggerCallback(Protocol):
         except Exception as e:
             logger.error(f"Failed to log trial results: {e}")
             return None
+
+    def _log_retriever_trial(self, cursor, eval_id: int, trial: Trial, results: Dict[str, Any]):
+        """Log retriever trial results."""
+        # Log Summary
+        cursor.execute(
+            """
+            INSERT INTO retriever_eval_summary (
+                eval_id, run_id, trial_number, config,
+                avg_score, avg_context_precision, avg_context_recall,
+                avg_latency, total_questions, successful_questions,
+                error_rate, eval_start_ts, eval_end_ts
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                eval_id, self.run_id, trial.number,
+                json.dumps(results['config']),
+                results['avg_score'],
+                results['metrics']['avg_context_precision'],
+                results['metrics']['avg_context_recall'],
+                results['metrics']['avg_latency'],
+                results['metrics']['total_questions'],
+                results['metrics']['successful_questions'],
+                results['metrics']['error_rate'],
+                int(trial.datetime_start.timestamp() * 1000) if hasattr(trial, 'datetime_start') else None,
+                int(time.time()*1000)
+            )
+        )
+
+        # Log details
+        cursor.executemany(
+            """
+            INSERT INTO retriever_eval_details (
+                eval_id, question_id, question, contexts,
+                ground_truth, context_precision, context_recall,
+                f1_score, latency, error, eval_ts
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    eval_id, idx,
+                    detail['question'],
+                    json.dumps(detail.get('contexts', [])),
+                    detail.get('ground_truth', ''),
+                    detail['metrics'].get('context_precision'),
+                    detail['metrics'].get('context_recall'),
+                    detail['metrics'].get('f1_score'),
+                    detail.get('latency'),
+                    detail.get('error'),
+                    detail['eval_timestamp']
+                )
+                for idx, detail in enumerate(results['question_details'])
+            ]
+        )
+
+    def _log_data_ingest_trial(self, cursor, eval_id: int, trial: Trial, results: Dict[str, Any]):
+        """Log data ingest trial results."""
+        # Existing data ingest logging implementation
+        cursor.execute(
+            """
+            INSERT INTO data_ingest_eval_summary (
+                eval_id, run_id, trial_number, config,
+                avg_score, avg_latency, total_questions,
+                successful_questions, error_rate,
+                eval_start_ts, eval_end_ts
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                eval_id, self.run_id, trial.number,
+                json.dumps(results['config']),
+                results['avg_score'],
+                results['metrics']['avg_latency'],
+                results['metrics']['total_questions'],
+                results['metrics']['successful_questions'],
+                results['metrics']['error_rate'],
+                int(trial.datetime_start.timestamp() * 1000) if hasattr(trial, 'datetime_start') else None,
+                int(time.time()*1000)
+            )
+        )
+        
+        cursor.executemany(
+            """
+            INSERT INTO data_ingest_eval_details (
+                eval_id, question_id, question, retrieved_chunks,
+                relevance_scores, weighted_score, latency,
+                error, eval_ts
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    eval_id, idx,
+                    detail['question'],
+                    json.dumps(detail.get('retrieved_chunks', [])),
+                    json.dumps(detail.get('relevance_scores', [])),
+                    detail.get('weighted_score'),
+                    detail.get('latency'),
+                    detail.get('error'),
+                    detail['eval_timestamp']
+                )
+                for idx, detail in enumerate(results['question_details'])
+            ]
+        )
 
     def __call__(self, study: Study, trial: Trial):
         """Called after each trial completion."""
