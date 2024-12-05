@@ -59,7 +59,7 @@ class RetrieverType(str, Enum):
     BM25_RETRIEVER = "bm25"
     PARENT_DOC_RETRIEVER_FULL = "parent_doc_full"
     PARENT_DOC_RETRIEVER_LARGE = "parent_doc_large"
-    # COLBERT_RETRIEVER = "colbert"
+    GRAPH_RETRIEVER = "graph"
     CUSTOM = "custom"
 
 class RerankerType(str, Enum):

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Any, Tuple
 from importlib import import_module
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig, DataIngestConfig, LogConfig, EvaluatorType
+from ragbuilder.config.components import LLM_MAP
 from ragbuilder.core.callbacks import DBLoggerCallback
 from ragbuilder.core.utils import load_environment, validate_environment
 from ragbuilder.core.logging_utils import setup_rich_logging, console
@@ -233,24 +234,6 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
             "\n".join(f"- {var}" for var in missing_vars)
         )
 
-    # Check graph
-    if options_config.graph:
-        print("Loading graph")
-        config = DataIngestConfig(
-            input_source=options_config.input_source,
-            test_dataset=options_config.test_dataset,
-            chunking_strategy=options_config.graph.chunking_strategy,  # Use any valid config
-            chunk_overlap=100,
-            chunk_size=1000)
-        pipeline = DataIngestPipeline(config)
-        chunks = pipeline.ingest()
-        llm=options_config.graph.llm
-        print(llm)
-        # TODO: will fail without the below two lines
-        from langchain_openai import AzureChatOpenAI
-        llm= AzureChatOpenAI(model='gpt-4o-mini')
-        load_graph(chunks,llm)
-
     # Create evaluator based on config
     if options_config.evaluation_config.type == EvaluatorType.CUSTOM:
         module_path, class_name = options_config.evaluation_config.custom_class.rsplit('.', 1)
@@ -272,6 +255,36 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
     
     # Set the best config key in DocumentStore
     optimizer.doc_store.set_best_config_key(pipeline.loader_key, pipeline.config_key)
+
+    # Load graph, if enabled
+    if options_config.graph:
+        # TODO: Check & validate graph config 
+        console.print("[status]Loading graph...[/status]")
+        doc_loader = options_config.graph.document_loaders if options_config.graph.document_loaders else best_config.document_loader
+        chunking_strategy = options_config.graph.chunking_strategy if options_config.graph.chunking_strategy else best_config.chunking_strategy
+        chunk_size = options_config.graph.chunk_size if options_config.graph.chunk_size else (best_config.chunk_size or 3000)
+        chunk_overlap = options_config.graph.chunk_overlap if options_config.graph.chunk_overlap else (best_config.chunk_overlap or 100)
+        
+        config = DataIngestConfig(
+            input_source=options_config.input_source,
+            test_dataset=options_config.test_dataset,
+            document_loader=doc_loader,
+            chunking_strategy=chunking_strategy,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap
+        )
+        pipeline = DataIngestPipeline(config)
+        chunks = pipeline.ingest()
+        
+        llm_config = options_config.graph.llm
+        llm_class = LLM_MAP.get(llm_config.type)()
+        if not llm_class:
+            raise ValueError(f"Unsupported LLM type: {llm_config.type}")
+        
+        llm = llm_class(**(llm_config.model_kwargs or {}))
+        graph = load_graph(chunks, llm)
+        optimizer.doc_store.store_graph(pipeline.loader_key, graph)
+
     
     console.print("[success]✓ Successfully optimized and cached best configuration[/success]")
     return best_config, best_score, best_index

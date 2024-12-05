@@ -6,7 +6,7 @@ from .base import BaseConfig, OptimizationConfig, EvaluationConfig, LogConfig
 
 class LLMConfig(BaseModel):
     type: LLMType
-    llm: Optional[Dict[str, Any]] = None
+    model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
 
 class LoaderConfig(BaseModel):
     type: ParserType
@@ -42,11 +42,11 @@ class EmbeddingConfig(BaseModel):
 # TODO: Define graph config
 class GraphConfig(BaseModel):
     type: GraphType #neo4j
-    chunking_strategy: ChunkingStrategyConfig = Field(default_factory=lambda: ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE), description="Chunking strategy")
-    chunk_overlap: Optional[List[int]] = Field(default=[100], description="List of chunk overlap values to try")
-    chunk_size: Optional[ChunkSizeStatic] = Field(default_factory=ChunkSizeStatic, description="Chunk size configuration")
     document_loaders: LoaderConfig = Field(default_factory=lambda: LoaderConfig(type=ParserType.UNSTRUCTURED), description="Loader strategy")
-    llm: LLMConfig = Field(default_factory=lambda: LLMConfig(type=LLMType.AZURE_OPENAI), description="LLM strategy")
+    chunking_strategy: ChunkingStrategyConfig = Field(default_factory=lambda: ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE), description="Chunking strategy")
+    chunk_size: Optional[int] = Field(default=3000, description="Chunk size")
+    chunk_overlap: Optional[int] = Field(default=100, description="Chunk overlap")
+    llm: Optional[LLMConfig] = Field(default_factory=lambda: LLMConfig(type=LLMType.AZURE_OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}), description="LLM to use for graph construction")
     graph_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Graph specific configuration parameters")
     custom_class: Optional[str] = None
 

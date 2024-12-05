@@ -144,5 +144,7 @@ def load_graph(documents,llm):
     from tqdm import tqdm
     for i, d in tqdm(enumerate(documents), total=len(documents)):
         extract_and_store_graph(llm,graph,d)
+    print(graph.query("MATCH (n) RETURN n"))
+    return graph
 
  

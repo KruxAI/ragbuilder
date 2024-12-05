@@ -51,7 +51,7 @@ class DataIngestPipeline:
     def _get_loader_key(self) -> str:
         """Generate a unique key for document loader configuration"""
         loader_kwargs = self.config.document_loader.loader_kwargs or {}
-        return f"loader_{self.config.document_loader.type}_{hash(self._make_hashable(loader_kwargs))}"
+        return f"loader_{self.config.document_loader.type}_{self.config.input_source}_{hash(self._make_hashable(loader_kwargs))}"
 
     def _get_config_key(self) -> str:
         """Generate a unique key for the complete configuration"""
@@ -96,34 +96,6 @@ class DataIngestPipeline:
         )
         
         return documents
-
-    def run(self):
-        try:
-            with console.status("[status]Processing documents...[/status]") as status:
-                # Check vectorstore cache first
-                if vectorstore := self.doc_store.get_vectorstore(self.config_key):
-                    self.logger.info(f"Using cached vectorstore for config: {self.config_key}")
-                    self.indexer = vectorstore
-                    return vectorstore
-                
-                status.update("[status]Chunking documents...[/status]")
-                chunks = self.chunker.split_documents(self._documents)
-                if not chunks:
-                    raise ValueError("No chunks were generated from the documents")
-                
-                status.update("[status]Creating vector index...[/status]")
-                self.indexer = self._create_indexer(chunks)
-                
-                # Store vectorstore in cache
-                self.doc_store.store_vectorstore(self.config_key, self.indexer)
-                
-                console.print("[success]✓ Pipeline execution complete![/success]")
-                return self.indexer
-            
-        except RAGBuilderError as e:
-            console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
-            console.print_exception()
-            raise
 
     def _validate_config(self, config: DataIngestConfig) -> None:
         """Validate pipeline configuration."""
@@ -275,21 +247,16 @@ class DataIngestPipeline:
 
     def ingest(self):
             try:
-                with console.status("[status]Processing documents...[/status]") as status:
+                with console.status("[status]Running pipeline...[/status]") as status:
                     if self._documents is None:
-                        self.logger.info("Loading documents using parser...")
-                        self._documents = self.parser.load()
-                        if not self._documents:
-                            raise PipelineError("No documents were loaded from the input source")
+                        raise PipelineError("No documents were loaded from the input source")
                     
                     status.update("[status]Chunking documents...[/status]")
                     chunks = self.chunker.split_documents(self._documents)
                     if not chunks:
                         raise ValueError("No chunks were generated from the documents")
                     
-                    status.update("[status]Creating vector index...[/status]")
-                    # self.indexer = self._create_indexer(chunks)
-                    print("Ingesting data... done",len(chunks))
+                    print("Chunking done", len(chunks))
                     # console.print("[success]✓ Pipeline execution complete![/success]")
                     return chunks
                 
@@ -297,3 +264,31 @@ class DataIngestPipeline:
                 console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
                 console.print_exception()
                 raise
+    
+    def run(self):
+        try:
+            with console.status("[status]Running pipeline...[/status]") as status:
+                # Check vectorstore cache first
+                if vectorstore := self.doc_store.get_vectorstore(self.config_key):
+                    self.logger.info(f"Using cached vectorstore for config: {self.config_key}")
+                    self.indexer = vectorstore
+                    return vectorstore
+                
+                status.update("[status]Chunking documents...[/status]")
+                chunks = self.chunker.split_documents(self._documents)
+                if not chunks:
+                    raise ValueError("No chunks were generated from the documents")
+                
+                status.update("[status]Creating vector index...[/status]")
+                self.indexer = self._create_indexer(chunks)
+                
+                # Store vectorstore in cache
+                self.doc_store.store_vectorstore(self.config_key, self.indexer)
+                
+                console.print("[success]✓ Pipeline execution complete![/success]")
+                return self.indexer
+            
+        except RAGBuilderError as e:
+            console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
+            console.print_exception()
+            raise

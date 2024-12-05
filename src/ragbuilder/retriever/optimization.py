@@ -236,17 +236,25 @@ class RetrieverOptimization:
             show_progress_bar=self.options_config.log_config.show_progress_bar
         )
         
-        # Get best configuration
-        best_config = study.best_trial.user_attrs["config"]
-        best_metrics = study.best_trial.user_attrs["metrics"]
+        # Translate indices to actual component names
+        readable_params = {}
+        for param, value in study.best_params.items():
+            if param.startswith("retriever_") and param.endswith("_index"):
+                retriever_index = int(param.split("_")[1])
+                readable_params[f"retriever_{retriever_index}"] = self.retriever_map[value].type
+            elif param == "reranker_index":
+                readable_params["reranker"] = self.reranker_map[value].type
+            else:
+                readable_params[param] = value
         
-        console.print(f"[success]✓ Optimization complete![/success]")
-        console.print(f"Best configuration: {best_config}")
-        console.print(f"Best metrics: {best_metrics}")
+        console.print(f"[heading]✓ Optimization complete![/heading]")
+        console.print(f"[success]Best Score:[/success] [value]{study.best_value:.4f}[/value]")
+        console.print("[success]Best Parameters:[/success]")
+        console.print(readable_params, style="value")
         
         return {
-            "config": best_config,
-            "metrics": best_metrics,
+            "best_params": readable_params,
+            "best_score": study.best_value,
             "study": study
         }
 

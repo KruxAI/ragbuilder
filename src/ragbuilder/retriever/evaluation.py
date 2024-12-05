@@ -59,7 +59,7 @@ class RetrieverF1ScoreEvaluator(Evaluator):
         # Default RAGAS run configuration values
         default_config = {
             "timeout": 240,
-            "max_workers": 1,
+            "max_workers": 16,
             "max_wait": 180,
             "max_retries": 10
         }
@@ -150,12 +150,17 @@ class RetrieverF1ScoreEvaluator(Evaluator):
             # Prepare detailed results
             question_details = []
             for idx, row in result_df.iterrows():
+                # Calculate F1 score, handling case where precision + recall = 0
+                precision = row['context_precision']
+                recall = row['context_recall']
+                f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+                
                 detail = {
                     "question": eval_data[idx]["question"],
                     "metrics": {
-                        "context_precision": row['context_precision'],
-                        "context_recall": row['context_recall'],
-                        "f1_score": 2 * (row['context_precision'] * row['context_recall']) / (row['context_precision'] + row['context_recall'])
+                        "context_precision": precision,
+                        "context_recall": recall,
+                        "f1_score": f1_score
                     },
                     "contexts": eval_data[idx]["contexts"],
                     "ground_truth": eval_data[idx]["ground_truth"],

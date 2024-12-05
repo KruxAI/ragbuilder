@@ -11,6 +11,7 @@ class DocumentStore:
     _metadata: Dict[str, Dict] = {}  # Store metadata about each document set
     _vectorstores: Dict[str, Any] = {}  # Store vectorstores
     _best_config_key: Optional[str] = None  # New property to store best config key
+    _graph: Optional[Any] = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -49,17 +50,19 @@ class DocumentStore:
         cls._documents.clear()
         cls._metadata.clear()
         cls._vectorstores.clear()
+        cls._graph = None
         cls._best_config_key = None
         cls._best_loader_key = None
         logger.info("Document store cleared")
 
     @classmethod
     def get_storage_info(cls) -> Dict:
-        """Get information about stored documents"""
+        """Get information about stored documents and graphs"""
         return {
             key: {
                 "num_documents": len(docs),
-                "metadata": cls._metadata.get(key, {})
+                "metadata": cls._metadata.get(key, {}),
+                "has_graph": cls._graph is not None
             }
             for key, docs in cls._documents.items()
         } 
@@ -115,3 +118,16 @@ class DocumentStore:
             return None
             
         return cls.get_vectorstore(cls._best_config_key)
+
+    @classmethod
+    def store_graph(cls, graph: Any):
+        """Store a knowledge graph"""
+        cls._graph = graph
+        logger.info(f"Stored knowledge graph")
+
+    @classmethod
+    def get_graph(cls) -> Optional[Any]:
+        """Retrieve the stored knowledge graph"""
+        if cls._graph is None:
+            logger.debug("No graph found")
+        return cls._graph

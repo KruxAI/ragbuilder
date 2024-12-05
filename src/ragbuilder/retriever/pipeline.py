@@ -136,14 +136,29 @@ class RetrieverPipeline:
                     console.print(f"[green]✓[/green] Created parent document retriever")
                 
                 # TODO: Utilize the vector DB's BM25 capability rather than creating in-memory BM25Retriever
-                # TODO: Debug why BM25 retriever is ending up with the whole document.
                 elif retriever_config.type == RetrieverType.BM25_RETRIEVER:
+                    if not self.best_data_ingest_config:
+                        raise PipelineError("No optimized data ingestion configuration found")
+                    
+                    console.print("[status]Setting up splitter for BM25 retriever...[/status]")
+                    splitter_class = CHUNKER_MAP[self.best_data_ingest_config["chunking_strategy"]["type"]]()
+                    splitter = splitter_class(
+                        chunk_size=self.best_data_ingest_config["chunk_size"],
+                        chunk_overlap=self.best_data_ingest_config["chunk_overlap"],
+                        **self.best_data_ingest_config["chunking_strategy"]["chunker_kwargs"] or {}
+                    )
                     docs, _ = self.store.get_best_config_docs()
                     if not docs:
                         raise PipelineError("No documents found in DocumentStore")
                     
+                    console.print("[status]Chunking documents...[/status]")
+                    chunks = splitter.split_documents(docs)
+                    if not chunks:
+                        raise PipelineError("No chunks were generated from the documents")
+                    
+                    console.print("[status]Creating BM25 retriever...[/status]")
                     retriever = BM25Retriever.from_documents(
-                        docs,
+                        chunks,
                         **retriever_config.retriever_kwargs
                     )
                     console.print("[green]✓[/green] Created BM25 retriever")
@@ -202,7 +217,8 @@ class RetrieverPipeline:
                     # Handle custom HuggingFace models
                     ranker = Reranker(
                         config.reranker_kwargs["model_name"],
-                        model_type=config.reranker_kwargs.get("model_type", "cross-encoder"),
+                        # model_type=config.reranker_kwargs.get("model_type", "cross-encoder"),
+                        model_type=config.reranker_kwargs.get("model_type"),
                         **{k:v for k,v in config.reranker_kwargs.items() 
                            if k not in ["model_name", "model_type"]}
                     )
