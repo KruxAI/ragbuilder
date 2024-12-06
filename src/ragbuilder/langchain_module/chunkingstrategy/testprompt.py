@@ -348,7 +348,11 @@ def test_prompt(eval_dataset,iterno):
                     "context": result.get("context", "Error"),
                     "ground_truth": ground_truth,
                 })
-        # break
+                print(f"Question: {question}")
+                print(f"Ground_truth: {ground_truth}")
+                print(f"Context: {result.get("context", "Error")}")
+                break
+        break
     import pandas as pd
     output_data = []
     for prompt_key, prompt_results in results.items():
