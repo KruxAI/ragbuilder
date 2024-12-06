@@ -1,4 +1,7 @@
-llm:
-  type: azure_openai
-  model_kwargs:
-    model: gpt-4o-mini
+llms:
+  - type: openai
+    model_kwargs:
+      model: gpt-4o
+  - type: azure_openai
+    model_kwargs:
+      model: gpt-4o-mini
