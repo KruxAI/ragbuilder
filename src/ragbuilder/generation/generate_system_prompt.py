@@ -63,37 +63,88 @@ import pandas as pd
 from datasets import Dataset
 from ragbuilder.generation.prompt_templates import load_prompts
 from ragbuilder.generation.utils import get_eval_dataset
+import yaml
+
 class Generator:
-    def __init__(self,eval_dataset_path=None,retriever=None, evaluator=None, prompt_template_path=None,read_local=False,llm=None):
+    def __init__(self,config_path=None, eval_dataset_path=None,retriever=None, evaluator=None, prompt_template_path=None,read_local=False,llm=None):
         """
-        Initialize the SystemPromptGenerator instance.
+        Initialize the SystemPromptGenerator instance. Optionally load configuration from a YAML file.
 
         Args:
+        - config_path (str): Path to a YAML configuration file.
         - eval_dataset_path (str): Path to the evaluation dataset CSV file.
         - retriever: The retriever object.
         - evaluator: The evaluator object.
-        - prompt_template_path (str): Optional file name. If provided, the prompt templates will be read from this file also in addition to the default prompt templates from github.
+        - prompt_template_path (str): Optional file name. If provided, the prompt templates will be read from this file also in addition to the default prompt templates from GitHub.
         - read_local (bool): Flag to determine whether to read locally. Default is False. If True, the prompt templates will be read from the local file.
+        - llm: The language model object.
         """
+        if config_path:
+            # Load configuration from YAML file
+            config = self.load_config_from_yaml(config_path)
+            eval_dataset_path = config.get("eval_dataset_path", eval_dataset_path)
+            retriever = config.get("retriever", retriever)
+            evaluator = config.get("evaluator", evaluator)
+            prompt_template_path = config.get("prompt_template_path", prompt_template_path)
+            read_local = config.get("read_local", read_local)
+            llm = config.get("llm", llm)
+        
+        # Assign loaded or provided values to class attributes
         self.prompt_templates = load_prompts(prompt_template_path)
         self.eval_dataset = get_eval_dataset(eval_dataset_path)
         self.retriever = retriever
-        self.evaluator=evaluator
-        self.llm=llm
-    def setup_retrieval_qa(self,prompt_template,retriever,llm):
+        self.evaluator = evaluator
+        self.llm = llm
+
+    @staticmethod
+    def load_config_from_yaml(file_path):
         """
-        Initializes a Retrieval-Augmented Generation pipeline using LangChain with a customizable prompt template.
+        Load configuration values from a YAML file.
 
         Args:
-            prompt_template (str): The system prompt template to test.
+        - file_path (str): Path to the YAML configuration file.
+
+        Returns:
+        - dict: Configuration values.
+        """
+        try:
+            with open(file_path, "r") as yaml_file:
+                config = yaml.safe_load(yaml_file)
+            return config
+        except Exception as e:
+            print(f"Error loading YAML configuration file: {e}")
+            raise
+    def setup_retrieval_qa(self, prompt_template=None, retriever=None, llm=None, config_path=None):
+        """
+        Initializes a Retrieval-Augmented Generation pipeline using LangChain with a customizable prompt template.
+        Can optionally load parameters from a YAML configuration file.
+
+        Args:
+            prompt_template (str): The system prompt template to test. Ignored if `config_path` is provided.
+            retriever: The retriever object. Ignored if `config_path` is provided.
+            llm: The language model object. Ignored if `config_path` is provided.
+            config_path (str): Path to a YAML configuration file containing setup parameters.
 
         Returns:
             RunnableParallel: The RAG pipeline ready to process queries.
         """
         try:
             print("rag_pipeline initiated")
+
+            # Load parameters from YAML if config_path is provided
+            if config_path:
+                config = self.load_config_from_yaml(config_path)
+                prompt_template = config.get("prompt_template", prompt_template)
+                retriever = config.get("retriever", retriever)
+                llm = config.get("llm", llm)
+
+            # Validate required parameters
+            if not (prompt_template and retriever and llm):
+                raise ValueError("Missing required parameters: 'prompt_template', 'retriever', or 'llm'.")
+
             def format_docs(docs):
                 return "\n".join(doc.page_content for doc in docs)
+
             # Prompt setup
             prompt = ChatPromptTemplate.from_messages(
                 [

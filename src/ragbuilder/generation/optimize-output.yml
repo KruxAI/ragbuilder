@@ -1,0 +1,4 @@
+prompt_template: |
+  You are an expert assistant. Answer the question using the context provided.
+# retriever: !!python/name:sample_retriever
+# llm: !!python/name:AzureChatOpenAI
