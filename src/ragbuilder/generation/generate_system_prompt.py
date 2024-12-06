@@ -66,35 +66,35 @@ from ragbuilder.generation.utils import get_eval_dataset
 import yaml
 
 class Generator:
-    def __init__(self,config_path=None, eval_dataset_path=None,retriever=None, evaluator=None, prompt_template_path=None,read_local=False,llm=None):
-        """
-        Initialize the SystemPromptGenerator instance. Optionally load configuration from a YAML file.
+    # def __init__(self,config_path=None, eval_dataset_path=None,retriever=None, evaluator=None, prompt_template_path=None,read_local=False,llm=None):
+    #     """
+    #     Initialize the SystemPromptGenerator instance. Optionally load configuration from a YAML file.
 
-        Args:
-        - config_path (str): Path to a YAML configuration file.
-        - eval_dataset_path (str): Path to the evaluation dataset CSV file.
-        - retriever: The retriever object.
-        - evaluator: The evaluator object.
-        - prompt_template_path (str): Optional file name. If provided, the prompt templates will be read from this file also in addition to the default prompt templates from GitHub.
-        - read_local (bool): Flag to determine whether to read locally. Default is False. If True, the prompt templates will be read from the local file.
-        - llm: The language model object.
-        """
-        if config_path:
-            # Load configuration from YAML file
-            config = self.load_config_from_yaml(config_path)
-            eval_dataset_path = config.get("eval_dataset_path", eval_dataset_path)
-            retriever = config.get("retriever", retriever)
-            evaluator = config.get("evaluator", evaluator)
-            prompt_template_path = config.get("prompt_template_path", prompt_template_path)
-            read_local = config.get("read_local", read_local)
-            llm = config.get("llm", llm)
+    #     Args:
+    #     - config_path (str): Path to a YAML configuration file.
+    #     - eval_dataset_path (str): Path to the evaluation dataset CSV file.
+    #     - retriever: The retriever object.
+    #     - evaluator: The evaluator object.
+    #     - prompt_template_path (str): Optional file name. If provided, the prompt templates will be read from this file also in addition to the default prompt templates from GitHub.
+    #     - read_local (bool): Flag to determine whether to read locally. Default is False. If True, the prompt templates will be read from the local file.
+    #     - llm: The language model object.
+    #     """
+    #     if config_path:
+    #         # Load configuration from YAML file
+    #         config = self.load_config_from_yaml(config_path)
+    #         eval_dataset_path = config.get("eval_dataset_path", eval_dataset_path)
+    #         retriever = config.get("retriever", retriever)
+    #         evaluator = config.get("evaluator", evaluator)
+    #         prompt_template_path = config.get("prompt_template_path", prompt_template_path)
+    #         read_local = config.get("read_local", read_local)
+    #         llm = config.get("llm", llm)
         
-        # Assign loaded or provided values to class attributes
-        self.prompt_templates = load_prompts(prompt_template_path)
-        self.eval_dataset = get_eval_dataset(eval_dataset_path)
-        self.retriever = retriever
-        self.evaluator = evaluator
-        self.llm = llm
+    #     # Assign loaded or provided values to class attributes
+    #     self.prompt_templates = load_prompts(prompt_template_path)
+    #     self.eval_dataset = get_eval_dataset(eval_dataset_path)
+    #     self.retriever = retriever
+    #     self.evaluator = evaluator
+    #     self.llm = llm
 
     @staticmethod
     def load_config_from_yaml(file_path):

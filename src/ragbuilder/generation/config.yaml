@@ -5,3 +5,8 @@ llms:
   - type: azure_openai
     model_kwargs:
       model: gpt-4o-mini
+eval_data_set_path: /Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/src/ragbuilder/generation/rag_eval_results_20241204_204427.csv
+prompt_template_path: /Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/src/ragbuilder/generation/prompts.yaml
+read_local_only: False
+evaluator: RAGASEvaluator
+retriever: MyRetreiver
