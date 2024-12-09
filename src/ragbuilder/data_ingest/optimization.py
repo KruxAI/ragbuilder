@@ -180,12 +180,12 @@ class DataIngestOptimizer:
         best_config = DataIngestConfig(
             input_source=self.options_config.input_source,
             test_dataset=self.options_config.test_dataset,
-            document_loader=self.document_loader_map[study.best_params["document_loader_id"]] if "document_loader_id" in study.best_params else self.options_config.document_loaders[0],
-            chunking_strategy=self.chunking_strategy_map[study.best_params["chunking_strategy_id"]] if "chunking_strategy_id" in study.best_params else self.options_config.chunking_strategies[0],
+            document_loader=self.document_loader_map[study.best_params["document_loader_index"]] if "document_loader_index" in study.best_params else self.options_config.document_loaders[0],
+            chunking_strategy=self.chunking_strategy_map[study.best_params["chunking_strategy_index"]] if "chunking_strategy_index" in study.best_params else self.options_config.chunking_strategies[0],
             chunk_size=study.best_params["chunk_size"],
             chunk_overlap=study.best_params["chunk_overlap"] if "chunk_overlap" in study.best_params else self.options_config.chunk_overlap[0],
-            embedding_model=self.embedding_model_map[study.best_params["embedding_model_id"]] if "embedding_model_id" in study.best_params else self.options_config.embedding_models[0],
-            vector_database=self.vector_db_map[study.best_params["vector_database_id"]] if "vector_database_id" in study.best_params else self.options_config.vector_databases[0],
+            embedding_model=self.embedding_model_map[study.best_params["embedding_model_index"]] if "embedding_model_index" in study.best_params else self.options_config.embedding_models[0],
+            vector_database=self.vector_db_map[study.best_params["vector_database_index"]] if "vector_database_index" in study.best_params else self.options_config.vector_databases[0],
             sampling_rate=self.options_config.sampling_rate
         )
         
@@ -253,6 +253,9 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
     pipeline = DataIngestPipeline(best_config)
     best_index = pipeline.run()
     
+    # Store the best pipeline in ConfigStore
+    optimizer.config_store.store_best_data_ingest_pipeline(pipeline)
+    
     # Set the best config key in DocumentStore
     optimizer.doc_store.set_best_config_key(pipeline.loader_key, pipeline.config_key)
 
@@ -264,6 +267,7 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
         chunking_strategy = options_config.graph.chunking_strategy if options_config.graph.chunking_strategy else best_config.chunking_strategy
         chunk_size = options_config.graph.chunk_size if options_config.graph.chunk_size else (best_config.chunk_size or 3000)
         chunk_overlap = options_config.graph.chunk_overlap if options_config.graph.chunk_overlap else (best_config.chunk_overlap or 100)
+        embedding_model = options_config.graph.embedding_model if options_config.graph.embedding_model else best_config.embedding_model
         
         config = DataIngestConfig(
             input_source=options_config.input_source,
@@ -271,7 +275,8 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
             document_loader=doc_loader,
             chunking_strategy=chunking_strategy,
             chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap
+            chunk_overlap=chunk_overlap,
+            embedding_model=embedding_model
         )
         pipeline = DataIngestPipeline(config)
         chunks = pipeline.ingest()
@@ -282,8 +287,8 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
             raise ValueError(f"Unsupported LLM type: {llm_config.type}")
         
         llm = llm_class(**(llm_config.model_kwargs or {}))
-        graph = load_graph(chunks, llm)
-        optimizer.doc_store.store_graph(pipeline.loader_key, graph)
+        graph = load_graph(chunks, pipeline.embedder, llm)
+        optimizer.doc_store.store_graph(graph)
 
     
     console.print("[success]✓ Successfully optimized and cached best configuration[/success]")

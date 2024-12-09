@@ -1,16 +1,36 @@
-from typing import List
+from typing import List, Any
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from langchain.schema.output_parser import StrOutputParser
+from langchain_text_splitters import TextSplitter
 
-class ContextualChunker:
-    def __init__(self, chunk_size: int, chunk_overlap: int, llm=None):
-        self.chunk_size = chunk_size or None
-        self.chunk_overlap = chunk_overlap or None
-        self.llm = llm or ChatOpenAI(model='gpt-4o-mini', temperature=0.2) # ChatOllama(model='llama3.1:latest', temperature=0.2, base_url='http://localhost:11434')
+class ContextualChunker(TextSplitter):
+    def __init__(
+        self, 
+        chunk_size: int, 
+        chunk_overlap: int, 
+        llm=None,
+        **kwargs: Any
+    ):
+        super().__init__(**kwargs)
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.llm = llm or ChatOpenAI(model='gpt-4o-mini', temperature=0.2)
+        self._base_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self.chunk_size, 
+            chunk_overlap=self.chunk_overlap
+        )
+
+    def split_text(self, text: str) -> List[str]:
+        """Split incoming text and return chunks."""
+        # Create a temporary document to use existing logic
+        temp_doc = Document(page_content=text)
+        processed_docs = self.split_documents([temp_doc])
+        # Return just the text content
+        return [doc.page_content for doc in processed_docs]
 
     def split_documents(self, documents: List[Document]) -> List[Document]:
         splitter = RecursiveCharacterTextSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)

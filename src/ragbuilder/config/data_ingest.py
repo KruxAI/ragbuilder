@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Union, Dict, Any
 import yaml
 from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType, LLMType
-from .base import BaseConfig, OptimizationConfig, EvaluationConfig, LogConfig
+from .base import OptimizationConfig, EvaluationConfig, LogConfig
 
 class LLMConfig(BaseModel):
     type: LLMType
@@ -39,18 +39,18 @@ class EmbeddingConfig(BaseModel):
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
     custom_class: Optional[str] = None
 
-# TODO: Define graph config
 class GraphConfig(BaseModel):
     type: GraphType #neo4j
-    document_loaders: LoaderConfig = Field(default_factory=lambda: LoaderConfig(type=ParserType.UNSTRUCTURED), description="Loader strategy")
-    chunking_strategy: ChunkingStrategyConfig = Field(default_factory=lambda: ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE), description="Chunking strategy")
+    document_loaders: Optional[LoaderConfig] = Field(default=None, description="Loader strategy")
+    chunking_strategy: Optional[ChunkingStrategyConfig] = Field(default=None, description="Chunking strategy")
     chunk_size: Optional[int] = Field(default=3000, description="Chunk size")
     chunk_overlap: Optional[int] = Field(default=100, description="Chunk overlap")
+    embedding_model: Optional[EmbeddingConfig] = Field(default=None, description="Embedding model")
     llm: Optional[LLMConfig] = Field(default_factory=lambda: LLMConfig(type=LLMType.AZURE_OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}), description="LLM to use for graph construction")
     graph_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Graph specific configuration parameters")
     custom_class: Optional[str] = None
 
-class DataIngestOptionsConfig(BaseConfig):
+class DataIngestOptionsConfig(BaseModel):
     """Configuration for data ingestion optimization options.
     
     This config specifies the search space for optimization:

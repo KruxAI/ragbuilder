@@ -246,24 +246,24 @@ class DataIngestPipeline:
 
 
     def ingest(self):
-            try:
-                with console.status("[status]Running pipeline...[/status]") as status:
-                    if self._documents is None:
-                        raise PipelineError("No documents were loaded from the input source")
-                    
-                    status.update("[status]Chunking documents...[/status]")
-                    chunks = self.chunker.split_documents(self._documents)
-                    if not chunks:
-                        raise ValueError("No chunks were generated from the documents")
-                    
-                    print("Chunking done", len(chunks))
-                    # console.print("[success]✓ Pipeline execution complete![/success]")
-                    return chunks
+        try:
+            with console.status("[status]Running pipeline...[/status]") as status:
+                if self._documents is None:
+                    raise PipelineError("No documents were loaded from the input source")
                 
-            except RAGBuilderError as e:
-                console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
-                console.print_exception()
-                raise
+                status.update("[status]Chunking documents...[/status]")
+                chunks = self.chunker.split_documents(self._documents)
+                if not chunks:
+                    raise ValueError("No chunks were generated from the documents")
+                
+                print("Chunking done", len(chunks))
+                # console.print("[success]✓ Pipeline execution complete![/success]")
+                return chunks
+            
+        except RAGBuilderError as e:
+            console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
+            console.print_exception()
+            raise
     
     def run(self):
         try:

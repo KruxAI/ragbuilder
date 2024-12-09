@@ -14,6 +14,8 @@ class ConfigStore:
     _instance = None
     _configs: Dict[str, Dict[str, Any]] = {}
     _metadata: Dict[str, ConfigMetadata] = {}
+    _best_data_ingest_pipeline = None
+    _best_retriever_pipeline = None
     
     def __new__(cls):
         if cls._instance is None:
@@ -59,3 +61,30 @@ class ConfigStore:
         data = json.loads(Path(filepath).read_text())
         cls._configs = data["configs"]
         cls._metadata = {k: ConfigMetadata(**v) for k, v in data["metadata"].items()} 
+
+    @classmethod
+    def store_best_data_ingest_pipeline(cls, pipeline):
+        """Store the best performing pipeline"""
+        cls._best_data_ingest_pipeline = pipeline
+
+    @classmethod
+    def get_best_data_ingest_pipeline(cls):
+        """Get the stored best pipeline"""
+        return cls._best_data_ingest_pipeline
+
+    @classmethod
+    def store_best_retriever_pipeline(cls, pipeline):
+        """Store the best performing retriever pipeline"""
+        cls._best_retriever_pipeline = pipeline
+    
+    @classmethod
+    def get_best_retriever_pipeline(cls):
+        """Get the stored best retriever pipeline"""
+        return cls._best_retriever_pipeline
+    
+    @classmethod
+    def get_best_retriever_config(cls) -> Optional[Dict[str, Any]]:
+        """Get the best retriever configuration"""
+        if cls._best_retriever_pipeline:
+            return cls._best_retriever_pipeline.retriever_chain
+        return None

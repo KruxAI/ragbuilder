@@ -9,11 +9,12 @@ from langchain.retrievers import ContextualCompressionRetriever, MultiQueryRetri
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from rerankers import Reranker
 
-from ragbuilder.config.components import RetrieverType, RerankerType, CHUNKER_MAP
+from ragbuilder.config.components import RetrieverType, RerankerType, RERANKER_MAP, CHUNKER_MAP
 from ragbuilder.config.retriever import RetrievalConfig, RerankerConfig
 from ragbuilder.core.logging_utils import console, setup_rich_logging
 from ragbuilder.core.document_store import DocumentStore
 from ragbuilder.core.config_store import ConfigStore
+from ragbuilder.graph_utils.graph_retriever import Neo4jGraphRetriever
 from ragbuilder.core.exceptions import (
     RAGBuilderError,
     ConfigurationError,
@@ -42,11 +43,13 @@ class RetrieverPipeline:
         self.logger = logging.getLogger("ragbuilder")
         self.store = DocumentStore()
         self.best_data_ingest_config = ConfigStore().get_best_config()
+        self.best_data_ingest_pipeline = ConfigStore().get_best_data_ingest_pipeline()
         
         # Initialize components
-        with console.status("[status]Creating retrieval components...[/status]"):
-            self.base_retrievers = self._create_base_retrievers()
-            self.retriever_chain = self._create_retriever_chain()
+        # with console.status("[status]Creating retrieval components...[/status]"):
+        console.print("[status]Creating retrieval components...[/status]")
+        self.base_retrievers = self._create_base_retrievers()
+        self.retriever_chain = self._create_retriever_chain()
         console.print("[green]✓[/green] Pipeline initialized successfully")
 
     def _validate_config(self, config: RetrievalConfig) -> None:
@@ -102,16 +105,21 @@ class RetrieverPipeline:
                         raise PipelineError("No optimized data ingestion configuration found")
                     
                     console.print("[status]Setting up document splitters for parent document retriever...[/status]")
-                    splitter_class = CHUNKER_MAP[self.best_data_ingest_config["chunking_strategy"]["type"]]()
-                    child_splitter = splitter_class(
-                        chunk_size=self.best_data_ingest_config["chunk_size"],
-                        chunk_overlap=self.best_data_ingest_config["chunk_overlap"],
-                        **self.best_data_ingest_config["chunking_strategy"]["chunker_kwargs"] or {}
-                    )
+                    child_splitter = self.best_data_ingest_pipeline.chunker
+                    # child_splitter = splitter(
+                    #     chunk_size=self.best_data_ingest_config["chunk_size"],
+                    #     chunk_overlap=self.best_data_ingest_config["chunk_overlap"],
+                    #     **self.best_data_ingest_config["chunking_strategy"]["chunker_kwargs"] or {}
+                    # )
 
                     parent_splitter = None
                     if retriever_config.type == RetrieverType.PARENT_DOC_RETRIEVER_LARGE:
-                        parent_splitter = splitter_class(
+                        if self.best_data_ingest_config["chunking_strategy"]["type"] == "custom":
+                            from langchain_text_splitters import RecursiveCharacterTextSplitter
+                            splitter = RecursiveCharacterTextSplitter
+                        else:
+                            splitter = CHUNKER_MAP[self.best_data_ingest_config["chunking_strategy"]["type"]]()
+                        parent_splitter = splitter(
                             chunk_size=self.best_data_ingest_config["chunk_size"] * 3,
                             chunk_overlap=self.best_data_ingest_config["chunk_overlap"] * 3,
                             **self.best_data_ingest_config["chunking_strategy"]["chunker_kwargs"] or {}
@@ -125,6 +133,7 @@ class RetrieverPipeline:
                         child_splitter=child_splitter,
                         parent_splitter=parent_splitter
                     )
+                    retriever.search_kwargs={"k": retriever_config.retriever_k[0]}
                     
                     # Fetch documents from the DocumentStore based on the best config
                     docs, _ = self.store.get_best_config_docs()
@@ -140,19 +149,21 @@ class RetrieverPipeline:
                     if not self.best_data_ingest_config:
                         raise PipelineError("No optimized data ingestion configuration found")
                     
-                    console.print("[status]Setting up splitter for BM25 retriever...[/status]")
-                    splitter_class = CHUNKER_MAP[self.best_data_ingest_config["chunking_strategy"]["type"]]()
-                    splitter = splitter_class(
-                        chunk_size=self.best_data_ingest_config["chunk_size"],
-                        chunk_overlap=self.best_data_ingest_config["chunk_overlap"],
-                        **self.best_data_ingest_config["chunking_strategy"]["chunker_kwargs"] or {}
-                    )
-                    docs, _ = self.store.get_best_config_docs()
-                    if not docs:
-                        raise PipelineError("No documents found in DocumentStore")
+                    # console.print("[status]Setting up splitter for BM25 retriever...[/status]")
+                    # splitter = self.best_data_ingest_pipeline.chunker
+                    # splitter_class = CHUNKER_MAP[self.best_data_ingest_config["chunking_strategy"]["type"]]()
+                    # splitter = splitter_class(
+                    #     chunk_size=self.best_data_ingest_config["chunk_size"],
+                    #     chunk_overlap=self.best_data_ingest_config["chunk_overlap"],
+                    #     **self.best_data_ingest_config["chunking_strategy"]["chunker_kwargs"] or {}
+                    # )
+                    # docs, _ = self.store.get_best_config_docs()
+                    # if not docs:
+                    #     raise PipelineError("No documents found in DocumentStore")
                     
-                    console.print("[status]Chunking documents...[/status]")
-                    chunks = splitter.split_documents(docs)
+                    # console.print("[status]Chunking documents...[/status]")
+                    # chunks = splitter.split_documents(docs)
+                    chunks = self.best_data_ingest_pipeline.ingest()
                     if not chunks:
                         raise PipelineError("No chunks were generated from the documents")
                     
@@ -163,6 +174,22 @@ class RetrieverPipeline:
                     )
                     console.print("[green]✓[/green] Created BM25 retriever")
                 
+                elif retriever_config.type == RetrieverType.GRAPH_RETRIEVER:
+                    # Get graph from DocumentStore
+                    # embeddings = AzureOpenAIEmbeddings(model="text-embedding-3-large")
+                    embeddings = self.best_data_ingest_pipeline.embedder
+                    graph = self.store.get_graph()
+                    if not graph:
+                        raise PipelineError("No graph found in DocumentStore")
+                    
+                    retriever = Neo4jGraphRetriever(
+                        graph=graph,
+                        top_k=retriever_config.retriever_k[0],
+                        embeddings=embeddings,
+                        **retriever_config.retriever_kwargs
+                    )
+                    console.print("[green]✓[/green] Created Neo4j graph retriever")
+
                 elif retriever_config.type == RetrieverType.CUSTOM:
                     retriever = self._instantiate_custom_class(
                         retriever_config.custom_class,
@@ -195,29 +222,11 @@ class RetrieverPipeline:
     def _create_reranker(self, config: RerankerConfig):
         """Create a reranker from configuration."""
         try:
-            # Handle different reranker types
-            if config.type == RerankerType.COHERE:
-                ranker = Reranker(
-                    "cohere",
-                    model_type='APIRanker',
-                    lang='en',
-                    api_key=os.getenv('COHERE_API_KEY')
-                )
-                return ranker.as_langchain_compressor(k=self.final_k)
-            
-            elif config.type == RerankerType.BAAI_BGE_RERANKER_BASE:
-                ranker = Reranker(
-                    "BAAI/bge-reranker-base",
-                    model_type='TransformerRanker'
-                )
-                return ranker.as_langchain_compressor(k=self.final_k)
-            
-            elif config.type == RerankerType.CUSTOM:
+            if config.type == RerankerType.CUSTOM:
                 if "model_name" in config.reranker_kwargs:
                     # Handle custom HuggingFace models
                     ranker = Reranker(
                         config.reranker_kwargs["model_name"],
-                        # model_type=config.reranker_kwargs.get("model_type", "cross-encoder"),
                         model_type=config.reranker_kwargs.get("model_type"),
                         **{k:v for k,v in config.reranker_kwargs.items() 
                            if k not in ["model_name", "model_type"]}
@@ -228,7 +237,21 @@ class RetrieverPipeline:
                     **config.reranker_kwargs
                 )
             
-            raise ConfigurationError(f"Unsupported reranker type: {config.type}")
+            if config.type not in RERANKER_MAP:
+                raise ConfigurationError(f"Unsupported reranker type: {config.type}")
+            
+            reranker_config = RERANKER_MAP[config.type]
+            # Get the Reranker class using lazy loading
+            Reranker = reranker_config['lazy_load']()
+            
+            # Create reranker with base config and any additional kwargs
+            ranker = Reranker(
+                config.type,  # model name/path
+                **{**reranker_config, 'lazy_load': None},  # Remove lazy_load from kwargs
+                **config.reranker_kwargs
+            )
+            
+            return ranker.as_langchain_compressor(k=self.final_k)
             
         except Exception as e:
             raise ComponentError(f"Failed to create reranker: {str(e)}") from e

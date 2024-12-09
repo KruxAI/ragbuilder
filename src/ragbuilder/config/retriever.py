@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Dict, Any, Union
 import yaml
-from .base import BaseConfig, OptimizationConfig, EvaluationConfig, LogConfig
+from .base import OptimizationConfig, EvaluationConfig, LogConfig
 from .components import RetrieverType, RerankerType, EvaluatorType
 
 class BaseRetrieverConfig(BaseModel):

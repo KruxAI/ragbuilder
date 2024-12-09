@@ -63,10 +63,14 @@ class RetrieverType(str, Enum):
     CUSTOM = "custom"
 
 class RerankerType(str, Enum):
-    FLASH_RANK = "FlaskRank"
-    RANK_GPT = "rankGPT"
+    MXBAI_LARGE = "mixedbread-ai/mxbai-rerank-large-v1"
+    MXBAI_BASE = "mixedbread-ai/mxbai-rerank-base-v1"
+    BGE_BASE = "BAAI/bge-reranker-base"
+    FLASH_RANK = "flashrank"
     COHERE = "cohere"
-    BAAI_BGE_RERANKER_BASE = "BAAI/bge-reranker-base"
+    JINA = "jina"
+    COLBERT = "colbert"
+    RANKLLM = "rankllm"
     CUSTOM = "custom"
 
 class EvaluatorType(str, Enum):
@@ -132,10 +136,44 @@ RETRIEVER_MAP = {
     RetrieverType.BM25_RETRIEVER: lazy_load("langchain.retrievers", "BM25Retriever"),
 }
 
-# RERANKER_MAP = {
-#     RerankerType.flashrank: lazy_load("rerankers", "Reranker"),
-#     RerankerType.rankGPT: lazy_load("rerankers", "Reranker"),
-# }
+RERANKER_MAP = {
+    RerankerType.MXBAI_LARGE: {
+        'model_type': 'cross-encoder',
+        'verbose': 0,
+        'lazy_load': lazy_load("rerankers", "Reranker")
+    },
+    RerankerType.MXBAI_BASE: {
+        'model_type': 'cross-encoder',
+        'verbose': 0,
+        'lazy_load': lazy_load("rerankers", "Reranker")
+    },
+    RerankerType.BGE_BASE: {
+        'model_type': 'TransformerRanker',
+        'lazy_load': lazy_load("rerankers", "Reranker")
+    },
+    RerankerType.FLASH_RANK: {
+        'model_type': 'FlashRankRanker',
+        'verbose': 0,
+        'lazy_load': lazy_load("rerankers", "Reranker")
+    },
+    RerankerType.COHERE: {
+        'model_type': 'APIRanker',
+        'lang': 'en',
+        'lazy_load': lazy_load("rerankers", "Reranker")
+    },
+    RerankerType.JINA: {
+        'model_type': 'APIRanker',
+        'lazy_load': lazy_load("rerankers", "Reranker")
+    },
+    RerankerType.COLBERT: {
+        'model_type': 'ColBERTRanker',
+        'lazy_load': lazy_load("rerankers", "Reranker")
+    },
+    RerankerType.RANKLLM: {
+        'model_type': 'RankLLMRanker',
+        'lazy_load': lazy_load("rerankers", "Reranker")
+    }
+}
 
 # Environment variable requirements for components
 COMPONENT_ENV_REQUIREMENTS = {
@@ -185,5 +223,14 @@ COMPONENT_ENV_REQUIREMENTS = {
     },
     ParserType.S3: {
         "required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"]
+    },
+    RerankerType.COHERE: {
+        "required": ["COHERE_API_KEY"]
+    },
+    RerankerType.JINA: {
+        "required": ["JINA_API_KEY"]
+    },
+    RerankerType.RANKLLM: {
+        "required": ["OPENAI_API_KEY"]
     }
 }
