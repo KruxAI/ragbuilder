@@ -1,3 +1,3 @@
-from .core.builder import RAGBuilder
+from .core.builder import RAGBuilder, DataIngestOptionsConfig, RetrievalOptionsConfig
 
-__all__ = ['RAGBuilder']
+__all__ = ['RAGBuilder', 'DataIngestOptionsConfig', 'RetrievalOptionsConfig']

@@ -1,6 +1,7 @@
 import optuna
 import os
 import numpy as np
+import logging
 from dataclasses import dataclass
 from typing import List, Dict, Any, Tuple
 from importlib import import_module
@@ -22,13 +23,14 @@ if not os.getenv("USER_AGENT"):
     os.environ["USER_AGENT"] = "RAGBuilder_1.0"
 
 class DataIngestOptimizer:
-    def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, callback=None):
+    def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, show_progress_bar: bool, callback=None):
         self.options_config = options_config
         self.evaluator = evaluator
+        self.show_progress_bar = show_progress_bar
         self.callbacks = []
         self.doc_store = DocumentStore()
         self.config_store = ConfigStore()
-        self.logger = setup_rich_logging(options_config.log_config.log_level, options_config.log_config.log_file)
+        self.logger = logging.getLogger("ragbuilder.data_ingest.optimizer")
 
         # Setup DB logging callback if enabled
         if options_config.database_logging:
@@ -141,7 +143,7 @@ class DataIngestOptimizer:
             self.logger.info(f"Overwriting existing study: {self.options_config.optimization.study_name}")
             optuna.delete_study(study_name=self.options_config.optimization.study_name, storage=self.options_config.optimization.storage)
 
-        study = optuna.create_study(
+        self.study = optuna.create_study(
             storage=self.options_config.optimization.storage,
             study_name=self.options_config.optimization.study_name,
             load_if_exists=self.options_config.optimization.load_if_exists,
@@ -150,20 +152,20 @@ class DataIngestOptimizer:
             pruner=optuna.pruners.MedianPruner()
         )
 
-        study.optimize(
+        self.study.optimize(
             objective, 
             n_trials=self.options_config.optimization.n_trials,
             n_jobs=self.options_config.optimization.n_jobs,
             timeout=self.options_config.optimization.timeout,
-            show_progress_bar=self.options_config.log_config.show_progress_bar
+            show_progress_bar=self.show_progress_bar
         )
 
         console.print(f"[heading]Optimization Complete![/heading]")
-        console.print(f"[success]Best Score:[/success] [value]{study.best_value:.4f}[/value]")
+        console.print(f"[success]Best Score:[/success] [value]{self.study.best_value:.4f}[/value]")
         console.print("[success]Best Parameters:[/success]")
         # Translate indices to actual component names
         readable_params = {}
-        for param, value in study.best_params.items():
+        for param, value in self.study.best_params.items():
             if param == "chunking_strategy_index":
                 readable_params["chunking_strategy"] = self.chunking_strategy_map[value].type
             elif param == "document_loader_index":
@@ -180,12 +182,12 @@ class DataIngestOptimizer:
         best_config = DataIngestConfig(
             input_source=self.options_config.input_source,
             test_dataset=self.options_config.test_dataset,
-            document_loader=self.document_loader_map[study.best_params["document_loader_index"]] if "document_loader_index" in study.best_params else self.options_config.document_loaders[0],
-            chunking_strategy=self.chunking_strategy_map[study.best_params["chunking_strategy_index"]] if "chunking_strategy_index" in study.best_params else self.options_config.chunking_strategies[0],
-            chunk_size=study.best_params["chunk_size"],
-            chunk_overlap=study.best_params["chunk_overlap"] if "chunk_overlap" in study.best_params else self.options_config.chunk_overlap[0],
-            embedding_model=self.embedding_model_map[study.best_params["embedding_model_index"]] if "embedding_model_index" in study.best_params else self.options_config.embedding_models[0],
-            vector_database=self.vector_db_map[study.best_params["vector_database_index"]] if "vector_database_index" in study.best_params else self.options_config.vector_databases[0],
+            document_loader=self.document_loader_map[self.study.best_params["document_loader_index"]] if "document_loader_index" in self.study.best_params else self.options_config.document_loaders[0],
+            chunking_strategy=self.chunking_strategy_map[self.study.best_params["chunking_strategy_index"]] if "chunking_strategy_index" in self.study.best_params else self.options_config.chunking_strategies[0],
+            chunk_size=self.study.best_params["chunk_size"],
+            chunk_overlap=self.study.best_params["chunk_overlap"] if "chunk_overlap" in self.study.best_params else self.options_config.chunk_overlap[0],
+            embedding_model=self.embedding_model_map[self.study.best_params["embedding_model_index"]] if "embedding_model_index" in self.study.best_params else self.options_config.embedding_models[0],
+            vector_database=self.vector_db_map[self.study.best_params["vector_database_index"]] if "vector_database_index" in self.study.best_params else self.options_config.vector_databases[0],
             sampling_rate=self.options_config.sampling_rate
         )
         
@@ -193,7 +195,7 @@ class DataIngestOptimizer:
         self.config_store.store_config(
             key=f"data_ingest_best_{int(time.time())}",
             config=best_config.model_dump(),
-            score=study.best_value,
+            score=self.study.best_value,
             source_module="data_ingest",
             additional_info={
                 "n_trials": self.options_config.optimization.n_trials,
@@ -202,7 +204,7 @@ class DataIngestOptimizer:
             }
         )
         
-        return best_config, study.best_value
+        return best_config, self.study.best_value
 
     def _calculate_aggregate_metrics(self, question_details: List[Dict]) -> Dict[str, Any]:
         """Calculate aggregate metrics from detailed results"""
@@ -223,7 +225,8 @@ class DataIngestOptimizer:
             "error_rate": 1 - (len(successful_evals) / len(question_details))
         }
 
-def _run_optimization_core(options_config: DataIngestOptionsConfig):
+def run_data_ingest_optimization(options_config: DataIngestOptionsConfig, log_config: LogConfig):
+    setup_rich_logging(log_config.log_level, log_config.log_file)
     # Load environment variables first
     load_environment()
     missing_vars = validate_environment(options_config)
@@ -246,7 +249,7 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
     else:
         evaluator = SimilarityEvaluator(options_config.test_dataset, options_config.evaluation_config)
     
-    optimizer = DataIngestOptimizer(options_config, evaluator)
+    optimizer = DataIngestOptimizer(options_config, evaluator, show_progress_bar=log_config.show_progress_bar)
     best_config, best_score = optimizer.optimize()
     
     # Create pipeline with best config to ensure vectorstore is cached
@@ -292,12 +295,23 @@ def _run_optimization_core(options_config: DataIngestOptionsConfig):
 
     
     console.print("[success]✓ Successfully optimized and cached best configuration[/success]")
-    return best_config, best_score, best_index
+    
+    return {
+        "best_config": best_config,
+        "best_score": best_score,
+        "best_index": best_index,
+        "best_pipeline": pipeline,  # Optionally include the pipeline object
+        "study_statistics": {       # Optionally include additional useful information
+            "n_trials": options_config.optimization.n_trials,
+            "completed_trials": len(optimizer.study.trials),
+            "optimization_time": optimizer.study.trials[-1].datetime_complete - optimizer.study.trials[0].datetime_start
+        }
+    }
 
-def run_optimization(options_config_path: str):
+def optimize_data_ingest_from_yaml(options_config_path: str):
     options_config = DataIngestOptionsConfig.from_yaml(options_config_path)
-    return _run_optimization_core(options_config)
+    return run_data_ingest_optimization(options_config)
 
-def run_optimization_from_dict(options_config_dict: dict):
+def optimize_data_ingest_from_dict(options_config_dict: dict):
     options_config = DataIngestOptionsConfig(**options_config_dict)
-    return _run_optimization_core(options_config)
+    return run_data_ingest_optimization(options_config)

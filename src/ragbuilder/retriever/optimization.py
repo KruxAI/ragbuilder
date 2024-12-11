@@ -20,16 +20,24 @@ STORE = DocumentStore()
 CONFIG_STORE = ConfigStore()
 
 class RetrieverOptimization:
-    def __init__(self, options_config: RetrievalOptionsConfig, evaluator: Evaluator, callback=None):
+    def __init__(
+        self, 
+        options_config: RetrievalOptionsConfig, 
+        evaluator: Evaluator, 
+        show_progress_bar: bool = True,
+        callback=None, 
+        vectorstore: Optional[Any] = None
+    ):
         self.options_config = options_config
         self.evaluator = evaluator
-        self.logger = setup_rich_logging(options_config.log_config.log_level, options_config.log_config.log_file)
+        self.show_progress_bar = show_progress_bar
+        self.logger = logging.getLogger("ragbuilder.retriever.optimizer")
         self.best_config = CONFIG_STORE.get_best_config()
         if not self.best_config:
             raise OptimizationError("No optimized data ingestion configuration found")
         
-        # Get vectorstore from DocumentStore
-        self.vectorstore = STORE.get_best_config_vectorstore()
+        # Use provided vectorstore if available, otherwise get from DocumentStore
+        self.vectorstore = vectorstore if vectorstore is not None else STORE.get_best_config_vectorstore()
         if self.vectorstore is None:
             raise OptimizationError("No vectorstore found for best configuration")
         
@@ -219,7 +227,7 @@ class RetrieverOptimization:
             optuna.delete_study(study_name=self.options_config.optimization.study_name, storage=self.options_config.optimization.storage)
 
         # Create study with appropriate settings
-        study = create_study(
+        self.study = create_study(
             storage=self.options_config.optimization.storage,
             study_name=self.options_config.optimization.study_name,
             load_if_exists=self.options_config.optimization.load_if_exists,
@@ -228,17 +236,17 @@ class RetrieverOptimization:
             pruner=optuna.pruners.MedianPruner()
         )
         
-        study.optimize(
+        self.study.optimize(
             self._objective,
             n_trials=self.options_config.optimization.n_trials,
             n_jobs=self.options_config.optimization.n_jobs,
             timeout=self.options_config.optimization.timeout,
-            show_progress_bar=self.options_config.log_config.show_progress_bar
+            show_progress_bar=self.show_progress_bar
         )
         
         # Translate indices to actual component names
         readable_params = {}
-        for param, value in study.best_params.items():
+        for param, value in self.study.best_params.items():
             if param.startswith("retriever_") and param.endswith("_index"):
                 retriever_index = int(param.split("_")[1])
                 readable_params[f"retriever_{retriever_index}"] = self.retriever_map[value].type
@@ -248,14 +256,18 @@ class RetrieverOptimization:
                 readable_params[param] = value
         
         console.print(f"[heading]✓ Optimization complete![/heading]")
-        console.print(f"[success]Best Score:[/success] [value]{study.best_value:.4f}[/value]")
+        console.print(f"[success]Best Score:[/success] [value]{self.study.best_value:.4f}[/value]")
         console.print("[success]Best Parameters:[/success]")
         console.print(readable_params, style="value")
+
+        best_config = self._generate_retrieval_config(self.study.best_trial)
+        best_pipeline = RetrieverPipeline(config=best_config, vectorstore=self.vectorstore)
+        CONFIG_STORE.store_best_retriever_pipeline(best_pipeline)
         
         return {
-            "best_params": readable_params,
-            "best_score": study.best_value,
-            "study": study
+            "best_params": best_config,
+            "best_score": self.study.best_value,
+            "best_pipeline": best_pipeline
         }
 
     def _calculate_aggregate_metrics(self, question_details: List[Dict]) -> Dict[str, Any]:
@@ -281,7 +293,7 @@ class RetrieverOptimization:
             "avg_context_recall": np.nanmean([d["metrics"]["context_recall"] for d in successful_evals])
         }
 
-def run_optimization(options_config: RetrievalOptionsConfig) -> Dict[str, Any]:
+def run_retrieval_optimization(options_config: RetrievalOptionsConfig, vectorstore: Optional[Any] = None) -> Dict[str, Any]:
     """Run retriever optimization process."""
     # TODO: Add environment validation
     # TODO: Consider accepting the vectorstore as an input if someone wants to skip the data ingestion optimization
@@ -296,5 +308,5 @@ def run_optimization(options_config: RetrievalOptionsConfig) -> Dict[str, Any]:
     else:
         evaluator = RetrieverF1ScoreEvaluator(options_config.evaluation_config)
 
-    optimizer = RetrieverOptimization(options_config, evaluator)
+    optimizer = RetrieverOptimization(options_config, evaluator, vectorstore=vectorstore)
     return optimizer.optimize()

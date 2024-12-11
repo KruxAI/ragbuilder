@@ -3,34 +3,9 @@ import time
 import random
 import logging
 from pydantic import BaseModel, Field
-from typing import Optional, Union, List, Dict, Any, ForwardRef
+from typing import Optional, Dict, Any
 from dataclasses import dataclass
-from pathlib import Path
-# from .data_ingest import DataIngestOptionsConfig
-# from .retriever import RetrievalOptionsConfig
 from .components import EvaluatorType
-# from langchain.llms.base import BaseLLM
-# from langchain.embeddings.base import Embeddings
-
-DataIngestOptionsConfig = ForwardRef('DataIngestOptionsConfig')
-RetrievalOptionsConfig = ForwardRef('RetrievalOptionsConfig')
-
-# class BaseConfig(BaseModel):
-#     """Base configuration shared across all RAG modules"""
-#     input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
-#     test_dataset: str = Field(..., description="Path to CSV file containing test questions")
-    
-#     @classmethod
-#     def from_yaml(cls, file_path: str) -> 'BaseConfig':
-#         """Load configuration from a YAML file."""
-#         with open(file_path, 'r') as file:
-#             config_dict = yaml.safe_load(file)
-#         return cls(**config_dict)
-
-#     def to_yaml(self, file_path: str) -> None:
-#         """Save configuration to a YAML file."""
-#         with open(file_path, 'w') as file:
-#             yaml.dump(self.model_dump(), file)
 
 class OptimizationConfig(BaseModel):
     """Optimization settings"""
@@ -62,27 +37,3 @@ class LogConfig:
     log_file: Optional[str] = None
     show_progress_bar: bool = True
     verbose: bool = False
-
-class RAGConfig(BaseModel):
-    """Complete RAG configuration"""
-    input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
-    test_dataset: str = Field(..., description="Path to CSV file containing test questions")
-    data_ingest: DataIngestOptionsConfig = Field(
-        default_factory=DataIngestOptionsConfig,
-        description="Data ingestion configuration"
-    )
-    retrieval: RetrievalOptionsConfig = Field(
-        default_factory=RetrievalOptionsConfig,
-        description="Retrieval configuration"
-    )
-    # generator: Optional['GeneratorOptionsConfig'] = None
-    log_config: LogConfig = Field(
-        default_factory=LogConfig,
-        description="Logging settings"
-    )
-
-    @classmethod
-    def from_yaml(cls, file_path: str) -> 'RAGConfig':
-        with open(file_path, 'r') as file:
-            config_dict = yaml.safe_load(file)
-        return cls(**config_dict)

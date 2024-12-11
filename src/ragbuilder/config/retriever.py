@@ -35,7 +35,7 @@ class RetrievalOptionsConfig(BaseModel):
         default=[3, 5, 10],
         description="Final number of documents to return after all processing"
     )
-    log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
+    # log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
     database_logging: Optional[bool] = Field(default=True, description="Whether to log results to the DB")
     database_path: Optional[str] = Field(default="eval.db", description="Path to the SQLite database file")
     optimization: Optional[OptimizationConfig] = Field(

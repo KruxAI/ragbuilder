@@ -1,10 +1,11 @@
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from typing import List, Optional, Union, Dict, Any
 import yaml
 from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType, LLMType
 from .base import OptimizationConfig, EvaluationConfig, LogConfig
 
 class LLMConfig(BaseModel):
+    model_config  = ConfigDict(protected_namespaces=())
     type: LLMType
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
 
@@ -33,7 +34,7 @@ class VectorDBConfig(BaseModel):
     custom_class: Optional[str] = None
 
 class EmbeddingConfig(BaseModel):
-    model_config = {"protected_namespaces": ()}
+    model_config  = ConfigDict(protected_namespaces=())
     
     type: EmbeddingModel
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
@@ -59,6 +60,8 @@ class DataIngestOptionsConfig(BaseModel):
     - Range of chunk sizes to test
     - etc.
     """
+    input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
+    test_dataset: str = Field(..., description="Path to CSV file containing test questions")
     document_loaders: Optional[List[LoaderConfig]] = Field(
         default_factory=lambda: [LoaderConfig(type=ParserType.UNSTRUCTURED)], 
         description="Document loader configurations"
@@ -81,7 +84,7 @@ class DataIngestOptionsConfig(BaseModel):
     )
     sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
     optimization: Optional[OptimizationConfig] = Field(default_factory=OptimizationConfig, description="Optimization configuration")
-    log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
+    # log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
     database_logging: Optional[bool] = Field(default=True, description="Whether to log results to the DB")
     database_path: Optional[str] = Field(default="eval.db", description="Path to the SQLite database file")
     evaluation_config: EvaluationConfig = Field(
@@ -98,11 +101,19 @@ class DataIngestOptionsConfig(BaseModel):
     graph: Optional[GraphConfig] = Field(default=None, description="Graph configuration")
 
     @classmethod
-    def with_defaults(cls, base_config: BaseConfig) -> 'DataIngestOptionsConfig':
-        """Create a DataIngestOptionsConfig with default values"""
+    def with_defaults(cls, input_source: str, test_dataset: Optional[str] = None) -> 'DataIngestOptionsConfig':
+        """Create a DataIngestOptionsConfig with default values
+
+        Args:
+            input_source: File path, directory path, or URL for input data
+            test_dataset: Optional path to test dataset. If None, synthetic test data will be generated
+        
+        Returns:
+            DataIngestOptionsConfig with default values optimized for quick start
+        """
         return cls(
-            input_source=base_config.input_source,
-            test_dataset=base_config.test_dataset,
+            input_source=input_source,
+            test_dataset=test_dataset,
             document_loaders=[LoaderConfig(type=ParserType.UNSTRUCTURED)],
             chunking_strategies=[ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE)],
             chunk_size=ChunkSizeConfig(
@@ -120,11 +131,12 @@ class DataIngestOptionsConfig(BaseModel):
             vector_databases=[VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}})],
             optimization=OptimizationConfig(
                 n_trials=10,
-                n_jobs=1
+                n_jobs=1,
+                optimization_direction="maximize"
             )
         )
 
-class DataIngestConfig(BaseConfig):
+class DataIngestConfig(BaseModel):
     """Single instance configuration for data ingestion pipeline.
     
     This config represents a specific combination of parameters:
@@ -133,6 +145,8 @@ class DataIngestConfig(BaseConfig):
     - One specific chunk size
     - etc.
     """
+    input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
+    test_dataset: str = Field(..., description="Path to CSV file containing test questions")
     document_loader: LoaderConfig = Field(
         default_factory=lambda: LoaderConfig(type=ParserType.UNSTRUCTURED), 
         description="Document loader configuration"

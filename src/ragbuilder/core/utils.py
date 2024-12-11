@@ -4,10 +4,11 @@ from dotenv import load_dotenv
 from pathlib import Path
 from typing import Optional, List, Union
 from ragbuilder.config.components import COMPONENT_ENV_REQUIREMENTS
-from ragbuilder.config.data_ingest import DataIngestConfig
-from ragbuilder.config.retriever import BaseRetrieverConfig
+from ragbuilder.config.data_ingest import DataIngestOptionsConfig
+from ragbuilder.config.retriever import RetrievalOptionsConfig
 
 logger = logging.getLogger(__name__)
+os.environ['USER_AGENT']="ragbuilder"
 
 def load_environment(env_path: Optional[str] = None) -> None:
     """Load environment variables from .env file."""
@@ -20,7 +21,7 @@ def load_environment(env_path: Optional[str] = None) -> None:
     except Exception as e:
         logger.warning(f"Error loading environment variables: {str(e)}") 
 
-def validate_environment(config: Union[DataIngestConfig, BaseRetrieverConfig]) -> List[str]:
+def validate_environment(config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig]) -> List[str]:
     """Validate environment variables for all components in a config"""
     missing_vars = []
     
