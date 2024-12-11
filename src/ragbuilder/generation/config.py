@@ -106,17 +106,33 @@ class LLMConfig(BaseModel):
 
 
 
+from typing import List, Union
+from pydantic import Field, BaseModel
+
+
+class BaseConfig(BaseModel):
+    """Base configuration shared across all RAG modules"""
+    # input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
+    # test_dataset: str = Field(..., description="Path to CSV file containing test questions")
+    
+    @classmethod
+    def from_yaml(cls, file_path: str) -> "GenerationOptionsConfig":
+        with open(file_path, "r") as yaml_file:
+            config = yaml.safe_load(yaml_file)
+        return cls(**config["Generation"])
+
+    def to_yaml(self, file_path: str) -> None:
+        """Save configuration to a YAML file."""
+        with open(file_path, 'w') as file:
+            yaml.dump(self.model_dump(), file)
+
 # Step 2: Define Pydantic Model for Individual LLM Configuration
-class GenerationConfig(BaseModel):
+class GenerationConfig(BaseConfig):
     type: LLM  # Specifies the LLM type
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model-specific parameters")
+    prompt_template: Optional[str] = None
 
 # Step 3: Define Pydantic Model for Overall Generation Configuration
-class GenerationOptionsConfig(BaseModel):
+class GenerationOptionsConfig(BaseConfig):
     llms: List[GenerationConfig]  # List of LLM configurations
-
-# Step 5: Load YAML File and Parse Configurations
-def load_config_from_yaml(file_path: str) -> GenerationConfig:
-    with open(file_path, "r") as file:
-        yaml_data = yaml.safe_load(file)  # Load YAML into a dictionary
-    return GenerationConfig(**yaml_data["generation"]) 
+    prompt_template_path: Optional[str] = None

@@ -94,7 +94,7 @@ class RAGASEvaluator(Evaluator):
         result_df = result.to_pandas()
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_csv_path = 'rag_eval_results_'+timestamp+'.csv'
-        selected_columns = ["prompt_key","prompt","question","answer","ground_truth","answer_correctness","faithfulness","answer_relevancy","context_precision","context_recall"]
+        selected_columns = ["prompt_key","prompt","question","answer","ground_truth","answer_correctness","faithfulness","answer_relevancy","context_precision","context_recall",'config']
         result_df[selected_columns].to_csv(output_csv_path, index=False)
         print("evaluate_prompts completed")
         print(Dataset.from_pandas(result_df[selected_columns]))
