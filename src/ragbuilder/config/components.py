@@ -9,6 +9,13 @@ class GraphType(str, Enum):
 class LLMType(str, Enum):
     OPENAI = "openai"
     AZURE_OPENAI = "azure_openai"
+    HUGGINGFACE = "huggingface"
+    OLLAMA = "ollama"
+    COHERE = "cohere"
+    VERTEXAI = "vertexai"
+    BEDROCK = "bedrock"
+    JINA = "jina"
+    CUSTOM = "custom"
 
 class ParserType(str, Enum):
     UNSTRUCTURED = "unstructured"
@@ -80,13 +87,21 @@ class EvaluatorType(str, Enum):
 
 def lazy_load(module_path: str, class_name: str) -> Callable:
     """Lazy loader function that imports a class only when needed."""
-    def get_class():
+    # def get_class():
+    #     module = import_module(module_path)
+    #     return getattr(module, class_name)
+    # return get_class
+    try:
+        # Dynamically import the module
         module = import_module(module_path)
+        # Get the class from the module
         return getattr(module, class_name)
-    return get_class
+    except Exception as e:
+        raise ValueError(f"Error loading {class_name} from module {module_path}: {e}")
 
 # Component mappings with lazy loading
 LLM_MAP = {
+    LLMType.OPENAI: lazy_load("langchain_openai", "ChatOpenAI"),
     LLMType.AZURE_OPENAI: lazy_load("langchain_openai", "AzureChatOpenAI"),
 }
 

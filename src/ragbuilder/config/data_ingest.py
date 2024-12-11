@@ -4,10 +4,18 @@ import yaml
 from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType, LLMType
 from .base import OptimizationConfig, EvaluationConfig, LogConfig
 
+# class LLMConfig(BaseModel):
+#     model_config  = ConfigDict(protected_namespaces=())
+#     type: LLMType
+#     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
+
+
 class LLMConfig(BaseModel):
-    model_config  = ConfigDict(protected_namespaces=())
-    type: LLMType
-    model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
+    model_config = {"protected_namespaces": ()}
+    
+    type: LLMType  # Enum to specify the LLM
+    model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model-specific parameters like model name/type")
+    # custom_class: Optional[str] = None  # Optional: If using a custom class
 
 class LoaderConfig(BaseModel):
     type: ParserType
