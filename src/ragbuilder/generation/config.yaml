@@ -1,0 +1,15 @@
+Generation:
+  llms:
+    # - type: "openai"
+    #   model_kwargs:
+    #     model_name: "gpt-4o-mini"
+    #     temperature: 0.7
+    - type: "azure_openai"
+      model_kwargs:
+        model_name: "gpt-4o-mini"
+        temperature: 0.6
+  # eval_data_set_path: "path/to/eval_data.csv"
+  # prompt_template_path: "path/to/prompt_templates.yaml"
+  # read_local_only: true
+  # evaluator: "custom_evaluator"
+  # retriever: "custom_retriever"
