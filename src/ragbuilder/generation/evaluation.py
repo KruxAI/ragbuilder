@@ -2,8 +2,8 @@
 from abc import ABC, abstractmethod
 from datasets import Dataset
 import pandas as pd
-from ragbuilder.generation.config import EvalDataset
-from ragbuilder.generation.utils import get_eval_dataset
+from ragbuilder.config.generator import EvalDataset
+# from ragbuilder.generation.utils import get_eval_dataset
 from ragas.metrics import (
     answer_relevancy,
     faithfulness,
@@ -16,7 +16,7 @@ from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 from datetime import datetime
 from datasets import Dataset
 import pandas as pd
-from ragbuilder.generation.config import EvalDataset
+from ragbuilder.config.generator import EvalDataset
 from typing import List
 
 from langchain_core.callbacks import CallbackManagerForRetrieverRun

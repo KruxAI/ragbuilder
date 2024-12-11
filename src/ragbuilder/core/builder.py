@@ -9,6 +9,11 @@ from .exceptions import DependencyError
 import logging
 import yaml
 
+# TODO: Bring generation entry point here
+# - Add optimize_generation method
+# - Handle retriever as a argument vs using optimized retriever
+# - Save the results
+# TODO: Return consistent results across optimize methods - ideally dict of whatever relevant
 class RAGBuilder:
     def __init__(
             self, 

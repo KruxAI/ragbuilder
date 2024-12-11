@@ -4,8 +4,9 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 from operator import itemgetter
 from langchain_core.output_parsers import StrOutputParser
-from ragbuilder.generation.config import GenerationOptionsConfig, GenerationConfig
-from ragbuilder.generation.components import LLM_MAP, LLMConfig
+from ragbuilder.config.generator import GenerationOptionsConfig, GenerationConfig
+from ragbuilder.config.components import LLM_MAP
+from ragbuilder.config.data_ingest import LLMConfig
 from ragbuilder.generation.prompt_templates import load_prompts
 from ragbuilder.generation.sample_retriever import sample_retriever
 from ragbuilder.generation.evaluation import RAGASEvaluator
@@ -115,7 +116,9 @@ class SystemPromptGenerator:
         pipeline=None
         results = {}
         evaluator = RAGASEvaluator()
-        evaldataset=evaluator.get_eval_dataset('/Users/ashwinaravind/Desktop/kruxgitrepo/ragbuilder/gensimtest.csv')
+        # TODO: Read from yaml
+        # TODO: Read prompt url from yaml
+        evaldataset=evaluator.get_eval_dataset('/Users/aravind/KruxAI/ragbuilder/gensimtest.csv')
         for trial_config in trial_configs:
             pipeline = self._create_pipeline(trial_config,self.retriever())
             for entry in evaldataset:

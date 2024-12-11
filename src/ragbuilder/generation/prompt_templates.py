@@ -1,7 +1,7 @@
 import yaml
 import os
 import requests
-from ragbuilder.generation.config import PromptTemplate
+from ragbuilder.config.generator import PromptTemplate
 import pandas as pd
 def load_prompts(file_name: str = "rag_prompts.yaml", url: str= os.getenv("RAG_PROMPT_URL"),read_local: bool = False):
     """
