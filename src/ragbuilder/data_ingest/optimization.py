@@ -1,26 +1,18 @@
 import optuna
-import os
+import time
 import numpy as np
 import logging
 from dataclasses import dataclass
 from typing import List, Dict, Any, Tuple
 from importlib import import_module
-from ragbuilder.config.data_ingest import DataIngestOptionsConfig, DataIngestConfig, LogConfig, EvaluatorType
+from ragbuilder.config import DataIngestOptionsConfig, DataIngestConfig, LogConfig
 from ragbuilder.config.components import LLM_MAP
-from ragbuilder.core.callbacks import DBLoggerCallback
+from ragbuilder.core import DBLoggerCallback, DocumentStore, ConfigStore, setup_rich_logging, console
 from ragbuilder.core.utils import load_environment, validate_environment
-from ragbuilder.core.logging_utils import setup_rich_logging, console
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
-from ragbuilder.core.document_store import DocumentStore
-from ragbuilder.core.config_store import ConfigStore
-import time
 from langchain.docstore.document import Document
 from ragbuilder.graph_utils.graph_loader import load_graph 
-
-# Add this near the top of the file, after imports
-if not os.getenv("USER_AGENT"):
-    os.environ["USER_AGENT"] = "RAGBuilder_1.0"
 
 class DataIngestOptimizer:
     def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, show_progress_bar: bool, callback=None):
@@ -31,6 +23,7 @@ class DataIngestOptimizer:
         self.doc_store = DocumentStore()
         self.config_store = ConfigStore()
         self.logger = logging.getLogger("ragbuilder.data_ingest.optimizer")
+        # self.logger = setup_rich_logging(log_level=logging.INFO)
 
         # Setup DB logging callback if enabled
         if options_config.database_logging:
@@ -86,7 +79,6 @@ class DataIngestOptimizer:
         
         params = {
             "input_source": self.options_config.input_source,
-            "test_dataset": self.options_config.test_dataset,
             "document_loader": document_loader,
             "chunking_strategy": chunking_strategy,
             "chunk_overlap": chunk_overlap,
@@ -181,7 +173,6 @@ class DataIngestOptimizer:
         
         best_config = DataIngestConfig(
             input_source=self.options_config.input_source,
-            test_dataset=self.options_config.test_dataset,
             document_loader=self.document_loader_map[self.study.best_params["document_loader_index"]] if "document_loader_index" in self.study.best_params else self.options_config.document_loaders[0],
             chunking_strategy=self.chunking_strategy_map[self.study.best_params["chunking_strategy_index"]] if "chunking_strategy_index" in self.study.best_params else self.options_config.chunking_strategies[0],
             chunk_size=self.study.best_params["chunk_size"],
@@ -238,16 +229,15 @@ def run_data_ingest_optimization(options_config: DataIngestOptionsConfig, log_co
         )
 
     # Create evaluator based on config
-    if options_config.evaluation_config.type == EvaluatorType.CUSTOM:
+    if options_config.evaluation_config.type == "custom":
         module_path, class_name = options_config.evaluation_config.custom_class.rsplit('.', 1)
         module = import_module(module_path)
         evaluator_class = getattr(module, class_name)
         evaluator = evaluator_class(
-            options_config.test_dataset,
             options_config.evaluation_config
         )
     else:
-        evaluator = SimilarityEvaluator(options_config.test_dataset, options_config.evaluation_config)
+        evaluator = SimilarityEvaluator(options_config.evaluation_config)
     
     optimizer = DataIngestOptimizer(options_config, evaluator, show_progress_bar=log_config.show_progress_bar)
     best_config, best_score = optimizer.optimize()
@@ -274,7 +264,6 @@ def run_data_ingest_optimization(options_config: DataIngestOptionsConfig, log_co
         
         config = DataIngestConfig(
             input_source=options_config.input_source,
-            test_dataset=options_config.test_dataset,
             document_loader=doc_loader,
             chunking_strategy=chunking_strategy,
             chunk_size=chunk_size,
@@ -300,8 +289,8 @@ def run_data_ingest_optimization(options_config: DataIngestOptionsConfig, log_co
         "best_config": best_config,
         "best_score": best_score,
         "best_index": best_index,
-        "best_pipeline": pipeline,  # Optionally include the pipeline object
-        "study_statistics": {       # Optionally include additional useful information
+        "best_pipeline": pipeline,
+        "study_statistics": {
             "n_trials": options_config.optimization.n_trials,
             "completed_trials": len(optimizer.study.trials),
             "optimization_time": optimizer.study.trials[-1].datetime_complete - optimizer.study.trials[0].datetime_start

@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any, Union
 import yaml
 from .base import OptimizationConfig, EvaluationConfig, LogConfig
 from .components import RetrieverType, RerankerType, EvaluatorType
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 
 class BaseRetrieverConfig(BaseModel):
     """Configuration for a specific retriever instance"""
@@ -49,6 +50,47 @@ class RetrievalOptionsConfig(BaseModel):
         ),
         description="Evaluation configuration"
     )
+
+    @classmethod
+    def with_defaults(cls) -> 'RetrievalOptionsConfig':
+        """Create a RetrievalOptionsConfig with default values optimized for quick start
+        
+        Args:
+            vectorstore: Optional vectorstore to use for retrieval. If provided, will be
+                       passed to the retriever configuration.
+        
+        Returns:
+            RetrievalOptionsConfig with default values optimized for quick start
+        """
+        
+        return cls(
+            retrievers=[
+                BaseRetrieverConfig(
+                    type=RetrieverType.SIMILARITY,
+                    retriever_k=[20],
+                    weight=1
+                ),
+                BaseRetrieverConfig(
+                    type="bm25",
+                    retriever_k=[20],
+                    weight=1
+                )
+            ],
+            rerankers=[RerankerConfig(type=RerankerType.BGE_BASE)],
+            top_k=[3, 5],
+            optimization=OptimizationConfig(
+                n_trials=10,
+                n_jobs=1,
+                optimization_direction="maximize"
+            ),
+            evaluation_config=EvaluationConfig(
+                type=EvaluatorType.RAGAS,
+                evaluator_kwargs={
+                    "llm": AzureChatOpenAI(model="gpt-4o-mini", temperature=0.0),
+                    "embeddings": AzureOpenAIEmbeddings(model="text-embedding-3-large"),
+                }
+            )
+        )
 
 class RetrievalConfig(BaseModel):
     retrievers: List[BaseRetrieverConfig] = Field(

@@ -1,0 +1,48 @@
+data_ingest:
+  input_source: "/Users/aravind/KruxAI/ragbuilder/lillog_agents.pdf"  # Required: file path, directory path, or URL
+  document_loaders:
+    - type: "unstructured"
+  chunking_strategies:
+    - type: "RecursiveCharacterTextSplitter"
+  chunk_size:
+    min: 500
+    max: 3000
+    stepsize: 500
+  chunk_overlap: [100]
+  embedding_models:
+    - type: "huggingface"
+      model_kwargs:
+        model_name: "mixedbread-ai/mxbai-embed-large-v1"
+  vector_databases:
+    - type: "chroma"
+      vectordb_kwargs:
+        collection_metadata:
+          hnsw:space: "cosine"
+  evaluation_config:
+    type: "similarity"
+    test_dataset: "/Users/aravind/KruxAI/ragbuilder/rag_test_data_lilianweng_gpt-4o_1721032414.736622_SEMI.csv"
+    evaluator_kwargs:
+      top_k: 5
+      position_weights: [1, 0.7, 0.5, 0.4, 0.2]
+      relevance_threshold: 0.75
+  optimization:
+    n_trials: 10
+    n_jobs: 1
+    optimization_direction: "maximize"
+
+retrieval:
+  retrievers:
+    - type: "similarity"
+    - type: "bm25"
+  rerankers:
+    - type: "BAAI/bge-reranker-base"
+      reranker_kwargs:
+        model_type: "TransformerRanker"
+  top_k: [3, 5]
+  optimization:
+    n_trials: 10
+    n_jobs: 1
+    optimization_direction: "maximize"
+    study_name: "retrieval_optimization"
+  database_logging: true
+  database_path: "eval.db"

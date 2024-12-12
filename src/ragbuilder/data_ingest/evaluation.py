@@ -22,14 +22,10 @@ class Evaluator(ABC):
 
 
 class SimilarityEvaluator(Evaluator):
-    def __init__(self, 
-                 test_dataset: str,
-                 evaluation_config: EvaluationConfig):
-        """
-        Args:
-            test_dataset: Path to file containing test questions
-            evaluation_config: Configuration for evaluation
-        """
+    def __init__(self, evaluation_config: EvaluationConfig):
+        self.evaluation_config = evaluation_config
+        if not evaluation_config.test_dataset:
+            raise ValueError("test_dataset must be provided in evaluation_config")
         kwargs = evaluation_config.evaluator_kwargs or {}
         self.top_k = kwargs.get("top_k", 5)
         self.position_weights = kwargs.get("position_weights")
@@ -46,7 +42,7 @@ class SimilarityEvaluator(Evaluator):
         # Load test questions
         # TODO: Integrate synthetic test data generation
         # TODO: Make this more robust to skip 1st line ONLY if it's a header
-        with open(test_dataset, 'r') as f:
+        with open(evaluation_config.test_dataset, 'r') as f:
             self.test_questions = [q.strip() for q in f.readlines()[1:] if q.strip()]
 
     def _calculate_weighted_score(self, relevance_scores: List[float]) -> float:

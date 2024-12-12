@@ -6,12 +6,8 @@ from optuna import Study, Trial, create_study
 import numpy as np
 from langchain.schema import Document
 
-from ragbuilder.config.retriever import RetrievalOptionsConfig, RetrievalConfig
-from ragbuilder.core.callbacks import DBLoggerCallback
-from ragbuilder.config.components import RetrieverType, RerankerType, EvaluatorType
-from ragbuilder.core.document_store import DocumentStore
-from ragbuilder.core.config_store import ConfigStore
-from ragbuilder.core.logging_utils import setup_rich_logging, console
+from ragbuilder.config import LogConfig, RetrievalOptionsConfig, RetrievalConfig
+from ragbuilder.core import DocumentStore, ConfigStore, DBLoggerCallback, setup_rich_logging, console
 from ragbuilder.core.exceptions import OptimizationError
 from ragbuilder.retriever.pipeline import RetrieverPipeline
 from .evaluation import Evaluator, RetrieverF1ScoreEvaluator
@@ -107,9 +103,9 @@ class RetrieverOptimization:
                 # Assign weight for ensemble (except for single retriever)
                 weight = 1.0
                 if n_retrievers > 1:
-                    # Use the existing weight if set, otherwise suggest a new one
-                    weight = (retriever_config.weight if retriever_config.weight != 1.0 
-                             else trial.suggest_float(f"retriever_{i}_weight", 0.0, 1.0))
+                    weight = retriever_config.weight if hasattr(retriever_config, 'weight') else 1.0
+                    # weight = (retriever_config.weight if retriever_config.weight != 1.0 
+                    #          else trial.suggest_float(f"retriever_{i}_weight", 0.0, 1.0))
                 
                 retrievers.append(
                     retriever_config.model_copy(
@@ -148,7 +144,7 @@ class RetrieverOptimization:
             "rerankers": rerankers,
             "top_k": final_k
         }
-        self.logger.info(f"Trial parameters: {params}")
+        self.logger.debug(f"Trial parameters: {params}")
 
         return RetrievalConfig(**params)
 
@@ -293,20 +289,54 @@ class RetrieverOptimization:
             "avg_context_recall": np.nanmean([d["metrics"]["context_recall"] for d in successful_evals])
         }
 
-def run_retrieval_optimization(options_config: RetrievalOptionsConfig, vectorstore: Optional[Any] = None) -> Dict[str, Any]:
-    """Run retriever optimization process."""
+def run_retrieval_optimization(
+    options_config: RetrievalOptionsConfig, 
+    vectorstore: Optional[Any] = None,
+    log_config: Optional[LogConfig] = None
+) -> Dict[str, Any]:
     # TODO: Add environment validation
-    # TODO: Consider accepting the vectorstore as an input if someone wants to skip the data ingestion optimization
+    """
+    Run retriever optimization process.
+    
+    Args:
+        options_config: Retrieval configuration options
+        vectorstore: Optional vectorstore to use instead of loading from DocumentStore
+        log_config: Optional logging configuration
+    
+    Returns:
+        Dict containing optimization results including best_config, best_score,
+        best_pipeline, and study_statistics
+    """
+    logger = setup_rich_logging(
+        log_config.log_level if log_config else logging.INFO,
+        log_config.log_file if log_config else None
+    )
+    
     # Create evaluator based on config
-    if options_config.evaluation_config.type == EvaluatorType.CUSTOM:
+    if options_config.evaluation_config.type == "custom":
         module_path, class_name = options_config.evaluation_config.custom_class.rsplit('.', 1)
         module = import_module(module_path)
         evaluator_class = getattr(module, class_name)
-        evaluator = evaluator_class(
-            options_config.evaluation_config
-        )
+        evaluator = evaluator_class(options_config.evaluation_config)
     else:
         evaluator = RetrieverF1ScoreEvaluator(options_config.evaluation_config)
 
-    optimizer = RetrieverOptimization(options_config, evaluator, vectorstore=vectorstore)
-    return optimizer.optimize()
+    optimizer = RetrieverOptimization(
+        options_config, 
+        evaluator, 
+        vectorstore=vectorstore,
+        show_progress_bar=log_config.show_progress_bar if log_config else True
+    )
+    
+    best_config, best_score, best_pipeline = optimizer.optimize()
+    
+    return {
+        "best_config": best_config,
+        "best_score": best_score,
+        "best_pipeline": best_pipeline,
+        "study_statistics": {
+            "n_trials": options_config.optimization.n_trials,
+            "completed_trials": len(optimizer.study.trials),
+            "optimization_time": optimizer.study.trials[-1].datetime_complete - optimizer.study.trials[0].datetime_start
+        }
+    }

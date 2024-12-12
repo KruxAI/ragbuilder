@@ -91,13 +91,16 @@ def lazy_load(module_path: str, class_name: str) -> Callable:
     #     module = import_module(module_path)
     #     return getattr(module, class_name)
     # return get_class
-    try:
-        # Dynamically import the module
-        module = import_module(module_path)
-        # Get the class from the module
-        return getattr(module, class_name)
-    except Exception as e:
-        raise ValueError(f"Error loading {class_name} from module {module_path}: {e}")
+    def get_class():
+        try:
+            # Dynamically import the module
+            module = import_module(module_path)
+            # Get the class from the module
+            return getattr(module, class_name)
+        except Exception as e:
+            raise ValueError(f"Error loading {class_name} from module {module_path}: {e}")
+    return get_class
+
 
 # Component mappings with lazy loading
 LLM_MAP = {

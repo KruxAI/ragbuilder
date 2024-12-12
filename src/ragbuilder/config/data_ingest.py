@@ -69,7 +69,6 @@ class DataIngestOptionsConfig(BaseModel):
     - etc.
     """
     input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
-    test_dataset: str = Field(..., description="Path to CSV file containing test questions")
     document_loaders: Optional[List[LoaderConfig]] = Field(
         default_factory=lambda: [LoaderConfig(type=ParserType.UNSTRUCTURED)], 
         description="Document loader configurations"
@@ -121,7 +120,6 @@ class DataIngestOptionsConfig(BaseModel):
         """
         return cls(
             input_source=input_source,
-            test_dataset=test_dataset,
             document_loaders=[LoaderConfig(type=ParserType.UNSTRUCTURED)],
             chunking_strategies=[ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE)],
             chunk_size=ChunkSizeConfig(
@@ -141,6 +139,15 @@ class DataIngestOptionsConfig(BaseModel):
                 n_trials=10,
                 n_jobs=1,
                 optimization_direction="maximize"
+            ),
+            evaluation_config=EvaluationConfig(
+                type=EvaluatorType.SIMILARITY,
+                test_dataset=test_dataset,
+                evaluator_kwargs={
+                    "top_k": 5,
+                    "position_weights": None,
+                    "relevance_threshold": 0.75
+                }
             )
         )
 
@@ -154,7 +161,6 @@ class DataIngestConfig(BaseModel):
     - etc.
     """
     input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
-    test_dataset: str = Field(..., description="Path to CSV file containing test questions")
     document_loader: LoaderConfig = Field(
         default_factory=lambda: LoaderConfig(type=ParserType.UNSTRUCTURED), 
         description="Document loader configuration"

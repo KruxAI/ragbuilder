@@ -39,7 +39,7 @@ class SystemPromptGenerator:
             for llm_config in self.config.llms:
                 # llm_class = LLM_MAP[llm_config.type]  # Get the corresponding LLM class)
                 llm_instance = LLMConfig(type=llm_config.type, model_kwargs=llm_config.model_kwargs)
-                llm_class = LLM_MAP[llm_config.type]
+                llm_class = LLM_MAP[llm_config.type]()
                 # Step 8: Instantiate the Model with the Configured Parameters
                 llm = llm_class(**llm_config.model_kwargs)
                 # print(llm_config.type,llm_config.model_kwargs,llm.invoke("what is the capital of France?"))
@@ -82,7 +82,7 @@ class SystemPromptGenerator:
                 return "\n".join(doc.page_content for doc in docs)
 
             # Prompt setup
-            llm_class = LLM_MAP[trial_config.type]
+            llm_class = LLM_MAP[trial_config.type]()
                 # Step 8: Instantiate the Model with the Configured Parameters
             llm = llm_class(**trial_config.model_kwargs)
             prompt_template = trial_config.prompt_template
