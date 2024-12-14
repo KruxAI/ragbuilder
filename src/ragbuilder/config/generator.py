@@ -70,6 +70,7 @@ import importlib
 
 # Step 1: Lazy Loading Helper Function
 def lazy_load(module_name: str, class_name: str):
+    print("lazy_load",module_name,class_name)
     try:
         # Dynamically import the module
         module = importlib.import_module(module_name)
@@ -77,6 +78,7 @@ def lazy_load(module_name: str, class_name: str):
         return getattr(module, class_name)
     except Exception as e:
         raise ValueError(f"Error loading {class_name} from module {module_name}: {e}")
+
 
 # Step 2: Enum Class for LLM Types
 class LLM(str, Enum):
@@ -129,10 +131,17 @@ class BaseConfig(BaseModel):
 # Step 2: Define Pydantic Model for Individual LLM Configuration
 class GenerationConfig(BaseConfig):
     type: LLM  # Specifies the LLM type
+    model_name: Optional[str] = None
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model-specific parameters")
     prompt_template: Optional[str] = None
+    eval_data_set_path: Optional[str] = None
+    local_prompt_template_path: Optional[str] = None
+    read_local_only: Optional[bool] = False
 
 # Step 3: Define Pydantic Model for Overall Generation Configuration
 class GenerationOptionsConfig(BaseConfig):
     llms: List[GenerationConfig]  # List of LLM configurations
     prompt_template_path: Optional[str] = None
+    eval_data_set_path: Optional[str] = None
+    local_prompt_template_path: Optional[str] = None
+    read_local_only: Optional[bool] = False

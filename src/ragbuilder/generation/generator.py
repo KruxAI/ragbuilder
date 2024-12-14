@@ -10,19 +10,23 @@ from ragbuilder.config.data_ingest import LLMConfig
 from ragbuilder.generation.prompt_templates import load_prompts
 from ragbuilder.generation.sample_retriever import sample_retriever
 from ragbuilder.generation.evaluation import RAGASEvaluator
-
+from typing import List, Dict, Any, Optional
+from ragbuilder.config.components import EvaluatorType
+from importlib import import_module
 class SystemPromptGenerator:
-    def __init__(self, config: GenerationOptionsConfig, evaluator_class: Type):
+    def __init__(self, config: GenerationOptionsConfig, evaluator_class: Type= None,retriever: Optional[Any] = None):
+        print("config",config)
         self.llms = []  # List to store instantiated LLMs
         self.config = config
+        self.eval_data_set_path = config.eval_data_set_path
+        self.local_prompt_template_path = config.local_prompt_template_path
+        self.read_local_only = config.read_local_only
         print("printing config",config) 
         print("printing config",config)
         # self.evaluator = evaluator_class() 
         self.retriever=sample_retriever
-        if config.prompt_template_path:
-            self.prompt_templates = load_prompts(config.prompt_template_path)
-        else:
-            self.prompt_templates = load_prompts()
+        self.prompt_templates = load_prompts(config.prompt_template_path,config.local_prompt_template_path,config.read_local_only)
+        print("prompt_templates from init",self.prompt_templates)
         # for llm_config in config.llms:
         #     llm_class = LLM_MAP[llm_config.type]  # Get the corresponding LLM class)
     def _build_trial_config(self) -> List[GenerationConfig]:
@@ -39,18 +43,19 @@ class SystemPromptGenerator:
             for llm_config in self.config.llms:
                 # llm_class = LLM_MAP[llm_config.type]  # Get the corresponding LLM class)
                 llm_instance = LLMConfig(type=llm_config.type, model_kwargs=llm_config.model_kwargs)
-                llm_class = LLM_MAP[llm_config.type]()
+                llm_class = LLM_MAP[llm_config.type]
                 # Step 8: Instantiate the Model with the Configured Parameters
                 llm = llm_class(**llm_config.model_kwargs)
                 # print(llm_config.type,llm_config.model_kwargs,llm.invoke("what is the capital of France?"))
                 # print(self.prompt_templates)
+                print("prompt_templates",self.prompt_templates)
                 for prompt_template in self.prompt_templates:
                     trial_config = GenerationConfig(
                         type=llm_config.type,  # Pass the LLMConfig instance here
                         model_kwargs=llm_config.model_kwargs,
                         # evaluator=self.evaluator,
                         # retriever=self.retriever,
-                        # eval_data_set_path=self.config.eval_data_set_path,
+                        eval_data_set_path=self.config.eval_data_set_path,
                         prompt_template=prompt_template.template,
                         # read_local_only=self.config.read_local_only,
                         )
@@ -82,9 +87,11 @@ class SystemPromptGenerator:
                 return "\n".join(doc.page_content for doc in docs)
 
             # Prompt setup
-            llm_class = LLM_MAP[trial_config.type]()
+            llm_class = LLM_MAP[trial_config.type]
                 # Step 8: Instantiate the Model with the Configured Parameters
-            llm = llm_class(**trial_config.model_kwargs)
+            # Filter out None values and create clean model_kwargs
+            model_kwargs = {k: v for k, v in trial_config.model_kwargs.items() if v is not None}
+            llm = llm_class(**model_kwargs)
             prompt_template = trial_config.prompt_template
             print('prompt_template',prompt_template)
             print("testing retriever\n",retriever.invoke("Who is Clara?"))
@@ -118,10 +125,14 @@ class SystemPromptGenerator:
         evaluator = RAGASEvaluator()
         # TODO: Read from yaml
         # TODO: Read prompt url from yaml
-        evaldataset=evaluator.get_eval_dataset('/Users/aravind/KruxAI/ragbuilder/gensimtest.csv')
+        evaldataset=evaluator.get_eval_dataset(self.eval_data_set_path)
+        print("evaldataset",evaldataset)
+        print("trial_configs",trial_configs)
         for trial_config in trial_configs:
+            print("running",trial_config.prompt_template)
             pipeline = self._create_pipeline(trial_config,self.retriever())
             for entry in evaldataset:
+                print("running",trial_config.prompt_template)
                 question = entry.get("question", "")
                 result=pipeline.invoke(question)
                 results[trial_config.prompt_template] = []
@@ -152,7 +163,7 @@ class SystemPromptGenerator:
                 }
             )
 
-        print("test_prompt completed")
+        print("test_prompt completed",results_dataset.column_names)
         # return results_dataset
         eval_results=evaluator.evaluate(results_dataset)
         # print('eval_results',GenerationConfig(**eval_results['config'][0]))
@@ -208,7 +219,33 @@ class SystemPromptGenerator:
         prompt = best_prompt_row['prompt']
         max_average_correctness = best_prompt_row['average_correctness']
         config = best_prompt_row['config']
-
-        return prompt_key, prompt, max_average_correctness, config
+        gen=SystemPromptGenerator(config=GenerationOptionsConfig.from_yaml("config.yaml"))
+        best_pipeline=gen._create_pipeline(GenerationConfig(**config),self.retriever())
+        # return prompt_key, prompt, max_average_correctness, GenerationConfig(**config)
+        print("best_pipeline",best_pipeline)
+        print("best_prompt",prompt)
+        print("best_score",max_average_correctness)
+        print("best_prompt_key",prompt_key)
+        return {
+            "best_prompt_key": prompt_key,
+            "best_prompt": prompt,
+            "best_score": max_average_correctness,
+            "best_pipeline": best_pipeline
+        }
 
         # return prompt_key, prompt, max_average_correctness
+import importlib
+def run_generation_optimization(options_config: GenerationOptionsConfig, retriever: Optional[Any] = None) -> Dict[str, Any]:
+    """Run Prompt optimization process."""
+    # if options_config.evaluation_config.type == EvaluatorType.CUSTOM:
+    #     module_path, class_name = options_config.evaluation_config.custom_class.rsplit('.', 1)
+    #     module = import_module(module_path)
+    #     evaluator_class = getattr(module, class_name)
+    #     evaluator = evaluator_class(
+    #         options_config.evaluation_config
+    #     )
+    # else:
+    #     evaluator = RAGASEvaluator()
+    evaluator = RAGASEvaluator()
+    optimizer = SystemPromptGenerator(options_config, evaluator, retriever=retriever)
+    return optimizer.optimize()

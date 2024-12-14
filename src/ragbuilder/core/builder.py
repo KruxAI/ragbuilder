@@ -1,9 +1,12 @@
 from typing import Optional, Any, Dict, Union
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig 
 from ragbuilder.config.retriever import RetrievalOptionsConfig
+from ragbuilder.config.generator import GenerationOptionsConfig
+
 from ragbuilder.config.base import LogConfig
 from ragbuilder.data_ingest.optimization import run_data_ingest_optimization
 from ragbuilder.retriever.optimization import run_retrieval_optimization
+from ragbuilder.generation.generator import run_generation_optimization
 from ragbuilder.generate_data import TestDatasetManager
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from .exceptions import DependencyError
@@ -20,20 +23,24 @@ class RAGBuilder:
             self, 
             data_ingest_config: Optional[DataIngestOptionsConfig] = None,
             retrieval_config: Optional[RetrievalOptionsConfig] = None,
+            generation_config: Optional[GenerationOptionsConfig] = None,
             log_config: Optional[LogConfig] = None
         ):
         self._log_config = log_config or LogConfig()
         self._data_ingest_config = data_ingest_config
         self._retrieval_config = retrieval_config
+        self._generation_config = generation_config
         self.logger = setup_rich_logging(
             self._log_config.log_level,
             self._log_config.log_file
         )
         self._optimized_store = None
         self._optimized_retriever = None
+        self._optimized_generation = None
         self._optimization_results = {
             "data_ingest": None,
-            "retrieval": None
+            "retrieval": None,
+            "generation": None
         }
         self._test_dataset_manager = TestDatasetManager(self._log_config)
 
@@ -152,6 +159,40 @@ class RAGBuilder:
         self._optimized_retriever = results["best_pipeline"]
         
         return results
+    def optimize_generation(
+        self, 
+        config: Optional[GenerationOptionsConfig] = None, 
+        retriever: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Run Generation optimization
+        
+        Returns:
+            Dict containing optimization results including best_config, best_score,
+            best_pipeline, and study_statistics
+        """
+        if retriever:
+            self._optimized_retriever = retriever
+        # elif self._optimized_store is None:
+        #     raise DependencyError("No vectorstore found. Run data ingestion first or provide existing vectorstore.")
+        self._generation_config = config
+        # if config:
+        #     self._generation_config = config
+        # elif not self._generation_config:
+        #     self._generation_config = GenerationOptionsConfig.with_defaults(
+        #         retriever=self._optimized_retreiver
+        #     )
+            
+        results = run_generation_optimization(
+            self._generation_config, 
+            retriever=self._optimized_retriever
+        )
+        
+        # Store results for later use
+        self._optimization_results["generation"] = results
+        self._optimized_generation = results["best_pipeline"]
+        
+        return results
     
     def optimize(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -162,6 +203,7 @@ class RAGBuilder:
         """
         data_ingest_results = self.optimize_data_ingest()
         retrieval_results = self.optimize_retrieval()
+        generation_results = self.optimize_generation()
         
         self._optimization_results = {
             "data_ingest": data_ingest_results,

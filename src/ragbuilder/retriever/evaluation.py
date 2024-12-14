@@ -13,7 +13,7 @@ from ragas import evaluate
 from ragas import RunConfig
 import time
 from datetime import datetime
-
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 from ragbuilder.retriever.pipeline import RetrieverPipeline
 from ragbuilder.core.exceptions import EvaluationError
 from ragbuilder.core.logging_utils import console
@@ -75,7 +75,9 @@ class RetrieverF1ScoreEvaluator(Evaluator):
 
     def evaluate(
         self, 
-        pipeline: RetrieverPipeline
+        pipeline: RetrieverPipeline,
+        llm= AzureChatOpenAI(model="gpt-4o-mini"), 
+        embeddings=AzureOpenAIEmbeddings(model="text-embedding-3-large")
     ) -> Tuple[float, List[Dict[str, Any]]]:
         """
         Evaluate the retriever pipeline using RAGAS metrics.
