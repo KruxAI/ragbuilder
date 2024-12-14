@@ -46,7 +46,11 @@ class RetrievalOptionsConfig(BaseModel):
     evaluation_config: Optional[EvaluationConfig] = Field(
         default_factory=lambda: EvaluationConfig(
             type=EvaluatorType.RAGAS,
-            evaluator_kwargs={"metrics": ["precision", "recall", "f1_score"]}
+            evaluator_kwargs={
+                # "metrics": ["precision", "recall", "f1_score"]
+                "llm": AzureChatOpenAI(model="gpt-4o-mini", temperature=0.0),
+                "embeddings": AzureOpenAIEmbeddings(model="text-embedding-3-large"),
+            }
         ),
         description="Evaluation configuration"
     )

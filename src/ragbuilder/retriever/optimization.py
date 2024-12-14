@@ -215,7 +215,7 @@ class RetrieverOptimization:
 
     def optimize(self) -> Dict[str, Any]:
         """Run optimization process."""
-        console.print("[status]Starting retriever optimization...[/status]")
+        console.rule("[heading]Starting retriever optimization...[/heading]")
         
         if self.options_config.optimization.overwrite_study and \
             self.options_config.optimization.study_name in optuna.study.get_all_study_names(storage=self.options_config.optimization.storage):
@@ -307,7 +307,7 @@ def run_retrieval_optimization(
         Dict containing optimization results including best_config, best_score,
         best_pipeline, and study_statistics
     """
-    logger = setup_rich_logging(
+    setup_rich_logging(
         log_config.log_level if log_config else logging.INFO,
         log_config.log_file if log_config else None
     )

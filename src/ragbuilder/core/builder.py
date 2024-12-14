@@ -70,6 +70,7 @@ class RAGBuilder:
     def _ensure_eval_dataset(self, config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig]) -> None:
         """Ensure config has a test dataset, generating one if needed"""
         if config.evaluation_config.test_dataset:
+            self.logger.info(f"Using provided test dataset: {config.evaluation_config.test_dataset}")
             return
         
         # Check if we already have a test dataset from data ingestion

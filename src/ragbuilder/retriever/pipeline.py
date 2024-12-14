@@ -14,7 +14,7 @@ from ragbuilder.config.retriever import RetrievalConfig, RerankerConfig
 from ragbuilder.core.logging_utils import console, setup_rich_logging
 from ragbuilder.core.document_store import DocumentStore
 from ragbuilder.core.config_store import ConfigStore
-from ragbuilder.graph_utils.graph_retriever import Neo4jGraphRetriever
+# from ragbuilder.graph_utils.graph_retriever import Neo4jGraphRetriever
 from ragbuilder.core.exceptions import (
     RAGBuilderError,
     ConfigurationError,
@@ -244,11 +244,17 @@ class RetrieverPipeline:
             # Get the Reranker class using lazy loading
             Reranker = reranker_config['lazy_load']()
             
-            # Create reranker with base config and any additional kwargs
+            # Merge configurations, giving precedence to user-provided kwargs
+            merged_kwargs = {
+                k: v for k, v in reranker_config.items() 
+                if k not in config.reranker_kwargs and k != 'lazy_load'
+            }
+            merged_kwargs.update(config.reranker_kwargs)  # Add/override with user configs
+            
+            # Create reranker with merged config
             ranker = Reranker(
                 config.type.value,  # model name/path
-                **{k:v for k,v in reranker_config.items() if k != "lazy_load"},  # Remove lazy_load from kwargs
-                **config.reranker_kwargs
+                **merged_kwargs
             )
             self.logger.info("Created reranker")
             return ranker.as_langchain_compressor(k=self.final_k)

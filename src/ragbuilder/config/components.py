@@ -167,6 +167,7 @@ RERANKER_MAP = {
     },
     RerankerType.BGE_BASE: {
         'model_type': 'TransformerRanker',
+        'verbose': 0,
         'lazy_load': lazy_load("rerankers", "Reranker")
     },
     RerankerType.FLASH_RANK: {
@@ -177,18 +178,22 @@ RERANKER_MAP = {
     RerankerType.COHERE: {
         'model_type': 'APIRanker',
         'lang': 'en',
+        'verbose': 0,
         'lazy_load': lazy_load("rerankers", "Reranker")
     },
     RerankerType.JINA: {
         'model_type': 'APIRanker',
+        'verbose': 0,
         'lazy_load': lazy_load("rerankers", "Reranker")
     },
     RerankerType.COLBERT: {
         'model_type': 'ColBERTRanker',
+        'verbose': 0,
         'lazy_load': lazy_load("rerankers", "Reranker")
     },
     RerankerType.RANKLLM: {
         'model_type': 'RankLLMRanker',
+        'verbose': 0,
         'lazy_load': lazy_load("rerankers", "Reranker")
     }
 }

@@ -2,6 +2,8 @@ from typing import List, Any
 from langchain.docstore.document import Document
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
+from ragbuilder.graph_utils import check_graph_dependencies
+
 
 class Neo4jGraphRetriever(BaseRetriever):
     """Custom retriever that uses Neo4j graph database for retrieval.
@@ -14,11 +16,14 @@ class Neo4jGraphRetriever(BaseRetriever):
         embeddings: Embedding model to embed queries
         index_name: Name of the vector index
     """
-    
+    def __init__(self, *args, **kwargs):
+        check_graph_dependencies()
+
     # Define fields directly as class variables
     graph: Any
     top_k: int = 3
     max_hops: int = 2
+    max_related_docs_per_doc: int = 3
     graph_weight: float = 0.3
     embeddings: Any
     index_name: str = "document_embeddings"
@@ -92,6 +97,7 @@ class Neo4jGraphRetriever(BaseRetriever):
                 seen_docs = set()
                 unique_related_docs = []
                 connection_info = {} 
+                connection_count = 0
                 
                 for rel_doc in sorted(
                     result.get('related_docs', []),
@@ -103,6 +109,9 @@ class Neo4jGraphRetriever(BaseRetriever):
                         seen_docs.add(doc_text)
                         unique_related_docs.append(rel_doc)
                         connection_info[doc_text] = [rel_doc['connection']]
+                        connection_count += 1
+                        if connection_count >= self.max_related_docs_per_doc:
+                            break
                     else:
                         # Add this connection info to the existing document
                         connection_info[doc_text].append(rel_doc['connection'])
