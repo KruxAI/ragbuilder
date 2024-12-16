@@ -15,7 +15,7 @@ class LLMConfig(BaseModel):
     
     type: LLMType  # Enum to specify the LLM
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model-specific parameters like model name/type")
-    # custom_class: Optional[str] = None  # Optional: If using a custom class
+    custom_class: Optional[str] = None  # Optional: If using a custom class
 
 class LoaderConfig(BaseModel):
     type: ParserType
@@ -136,7 +136,7 @@ class DataIngestOptionsConfig(BaseModel):
             ],
             vector_databases=[VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}})],
             optimization=OptimizationConfig(
-                n_trials=10,
+                n_trials=1,
                 n_jobs=1,
                 optimization_direction="maximize"
             ),

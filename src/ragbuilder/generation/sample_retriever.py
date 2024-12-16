@@ -10,6 +10,7 @@ from langchain_core.runnables import RunnablePassthrough, RunnableParallel, Runn
 from langchain.retrievers import EnsembleRetriever
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from ragbuilder.generation.evaluation import RAGASEvaluator
+from langchain_community.vectorstores import FAISS
 def sample_retriever():
     print("rag_get_retriever initiated")
     try:
@@ -31,12 +32,13 @@ def sample_retriever():
         splits = splitter.split_documents(docs)
 
         # Initialize Chroma database
-        c = Chroma.from_documents(
-            documents=splits,
-            embedding=embedding,
-            collection_name="testindex-ragbuilder-retreiver",
-            client_settings=chromadb.config.Settings(allow_reset=True),
-        )
+        c=FAISS.from_documents(documents=splits, embedding=embedding)
+        # c = Chroma.from_documents(
+        #     documents=splits,
+        #     embedding=embedding,
+        #     collection_name="testindex-ragbuilder-retreiver_33333",
+        #     client_settings=chromadb.config.Settings(allow_reset=True),
+        # )
 
         # Retriever setup
         retriever = c.as_retriever(search_type="similarity", search_kwargs={"k": 5})

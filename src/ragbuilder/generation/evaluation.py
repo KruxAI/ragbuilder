@@ -88,6 +88,8 @@ class RAGASEvaluator(Evaluator):
                     context_recall,
                 ],
                 raise_exceptions=False, 
+                llm=llm,
+                embeddings=embeddings,
                 is_async=True,
                 run_config=RunConfig(timeout=240, max_workers=1, max_wait=180, max_retries=10)
             )

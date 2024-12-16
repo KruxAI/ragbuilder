@@ -57,89 +57,49 @@ class RAGBuilder:
         return cls(data_ingest_config=config, log_config=log_config)
     
     @classmethod
-    def generation_with_defaults(cls, 
-                         input_source: str, 
-                         eval_data_set_path: str,
-                         retriever: Optional[Any] = None,
-                         llm: Optional[Any] = None,
-                         model_kwargs: Optional[Any] = None,
-                         local_prompt_template_path: Optional[Any] = None,
-                         read_local_only: Optional[Any] = None,
-                         log_config: Optional[LogConfig] = None
-                         ) -> 'RAGBuilder':
-        config = GenerationOptionsConfig.with_defaults(
-            input_source=input_source,
-            eval_data_set_path=eval_data_set_path,
-            retriever=retriever,
-            llm=llm,
-            model_kwargs=model_kwargs,
-            local_prompt_template_path=local_prompt_template_path,
-            read_local_only=read_local_only
-        )
-        return cls(generation_config=config, log_config=log_config)
-    
-    @classmethod
     def from_yaml(cls, file_path: str) -> 'RAGBuilder':
         """Create RAGBuilder from YAML config"""
         with open(file_path, 'r') as f:
             config_dict = yaml.safe_load(f)
         
         builder = cls()
-        if not any(key in config_dict for key in ['data_ingest', 'retrieval', 'generation']):
-            raise ValueError("YAML must contain at least 'data_ingest', 'retrieval' or 'generation' configuration")
+        if not any(key in config_dict for key in ['data_ingest', 'retrieval','generation']):
+            raise ValueError(" ")
         
         if 'data_ingest' in config_dict:
             builder._data_ingest_config = DataIngestOptionsConfig(**config_dict['data_ingest'])
         
         # TODO: Handle vectorstore provided by user instead of using the one from data_ingest
-        if 'retrieval' in config_dict:  
+        if 'retrieval' in config_dict:
             builder._retrieval_config = RetrievalOptionsConfig(**config_dict['retrieval'])
-
-        if 'generation' in config_dict:
-            builder._generation_config = GenerationOptionsConfig(**config_dict['generation'])
-            print("generation_config",GenerationOptionsConfig(**config_dict['generation']))
         return builder
-
-    def _ensure_eval_dataset(self, config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig, GenerationOptionsConfig]) -> None:
-            """Ensure config has a test dataset, generating one if needed"""
-            if (hasattr(config, 'evaluation_config') and config.evaluation_config.test_dataset) or (hasattr(config, 'eval_data_set_path') and config.eval_data_set_path):
-            # if config.evaluation_config.test_dataset or hasattr(config, 'eval_data_set_path'):
-                # self.logger.info(f"Using provided test dataset: {config.evaluation_config.test_dataset or config.eval_data_set_path}")
-                return
+    
+    def _ensure_eval_dataset(self, config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig]) -> None:
+        """Ensure config has a test dataset, generating one if needed"""
+        if config.evaluation_config.test_dataset:
+            return
+        
+        # Check if we already have a test dataset from data ingestion
+        if (self._data_ingest_config and self._data_ingest_config.evaluation_config.test_dataset):
+            config.evaluation_config.test_dataset = self._data_ingest_config.evaluation_config.test_dataset
+            self.logger.info(f"Reusing test dataset from data ingestion: {config.evaluation_config.test_dataset}")
+            return
+        
+        if not hasattr(config, 'input_source'):
+            raise ValueError("input_source is required when test_dataset is not provided")
+        
+        source_data = (getattr(config, 'input_source', None) or 
+                      (self._data_ingest_config.input_source if self._data_ingest_config else None))
+        
+        if not source_data:
+            raise ValueError("input_source is required when test_dataset is not provided")
             
-            # Check if we already have a test dataset from data ingestion
-            if (self._data_ingest_config and self._data_ingest_config.evaluation_config.test_dataset):
-                if hasattr(config, 'evaluation_config'):
-                    config.evaluation_config.test_dataset = self._data_ingest_config.evaluation_config.test_dataset
-                else:
-                    config.eval_data_set_path = self._data_ingest_config.evaluation_config.test_dataset
-                    self.logger.info(f"Reusing test dataset from data ingestion: {config.eval_data_set_path}")
-                return
-            
-            elif (self._retrieval_config and self._retrieval_config.evaluation_config.test_dataset):
-                config.eval_data_set_path = self._retrieval_config.evaluation_config.test_dataset
-                self.logger.info(f"Reusing test dataset from retrieval: {config.eval_data_set_path}")
-                return
-            
-            if not hasattr(config, 'input_source'):
-                raise ValueError("input_source is required when test_dataset is not provided")
-            
-            source_data = (getattr(config, 'input_source', None) or 
-                        (self._data_ingest_config.input_source if self._data_ingest_config else None))
-            
-            if not source_data:
-                raise ValueError("input_source is required when test_dataset is not provided")
-                
-            with console.status("Generating eval dataset..."):
-                test_dataset = self._test_dataset_manager.get_or_generate_dataset(
-                    source_data=source_data
-                )
-            if hasattr(config, 'evaluation_config'):
-                config.evaluation_config.test_dataset = test_dataset
-            else:
-                config.eval_data_set_path = test_dataset
-            self.logger.info(f"Eval dataset: {test_dataset}")
-
+        with console.status("Generating eval dataset..."):
+            test_dataset = self._test_dataset_manager.get_or_generate_dataset(
+                source_data=source_data
+            )
+        config.evaluation_config.test_dataset = test_dataset
+        self.logger.info(f"Eval dataset: {test_dataset}")
 
     def optimize_data_ingest(self, config: Optional[DataIngestOptionsConfig] = None) -> Dict[str, Any]:
         """
@@ -211,18 +171,18 @@ class RAGBuilder:
             Dict containing optimization results including best_config, best_score,
             best_pipeline, and study_statistics
         """
-        print("self._generation_config",self._generation_config)
         if retriever:
             self._optimized_retriever = retriever
-        elif self._optimized_retriever is None:
+        elif self._optimized_store is None:
             raise DependencyError("No vectorstore found. Run data ingestion first or provide existing vectorstore.")
+        self._generation_config = config
         if config:
             self._generation_config = config
         elif not self._generation_config:
-            self._generation_config = GenerationOptionsConfig.with_defaults()
-        
-        self._ensure_eval_dataset(self._generation_config)
-
+            self._generation_config = GenerationOptionsConfig.with_defaults(
+                retriever=self._optimized_retriever
+            )
+            
         results = run_generation_optimization(
             self._generation_config, 
             retriever=self._optimized_retriever
@@ -247,8 +207,7 @@ class RAGBuilder:
         
         self._optimization_results = {
             "data_ingest": data_ingest_results,
-            "retrieval": retrieval_results,
-            "generation": generation_results
+            "retrieval": retrieval_results
         }
 
         return self._optimization_results

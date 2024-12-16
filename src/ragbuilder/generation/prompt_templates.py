@@ -33,7 +33,7 @@ def load_prompts(
     """
     yaml_content_local = None
     yaml_content_online = None
-
+    prompt_template_path=os.getenv('RAG_PROMPT_URL',None)
     # Handle local-only behavior
     if read_local_only:
         if not local_prompt_template_path:
@@ -51,7 +51,7 @@ def load_prompts(
             yaml_content_local = f.read()
 
     # Handle loading from the online source if specified
-    if not read_local_only and prompt_template_path:
+    if not read_local_only and prompt_template_path :
         print(f"Fetching prompts from online file: {prompt_template_path}")
         try:
             response = requests.get(prompt_template_path)

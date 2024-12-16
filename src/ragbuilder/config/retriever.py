@@ -79,7 +79,7 @@ class RetrievalOptionsConfig(BaseModel):
             rerankers=[RerankerConfig(type=RerankerType.BGE_BASE)],
             top_k=[3, 5],
             optimization=OptimizationConfig(
-                n_trials=10,
+                n_trials=1,
                 n_jobs=1,
                 optimization_direction="maximize"
             ),

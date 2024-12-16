@@ -5,26 +5,30 @@ from langchain_core.runnables import RunnablePassthrough, RunnableParallel, Runn
 from operator import itemgetter
 from langchain_core.output_parsers import StrOutputParser
 from ragbuilder.config.generator import GenerationOptionsConfig, GenerationConfig
-from ragbuilder.config.components import LLM_MAP
-from ragbuilder.config.data_ingest import LLMConfig
+from ragbuilder.config.generator import LLM_MAP
+from ragbuilder.config.generator import LLMConfig
 from ragbuilder.generation.prompt_templates import load_prompts
 from ragbuilder.generation.sample_retriever import sample_retriever
 from ragbuilder.generation.evaluation import RAGASEvaluator
 from typing import List, Dict, Any, Optional
 from ragbuilder.config.components import EvaluatorType
 from importlib import import_module
+from ragbuilder.core.exceptions import DependencyError
 class SystemPromptGenerator:
     def __init__(self, config: GenerationOptionsConfig, evaluator_class: Type= None,retriever: Optional[Any] = None):
         print("config",config)
         self.llms = []  # List to store instantiated LLMs
         self.config = config
         self.eval_data_set_path = config.eval_data_set_path
+        print(self.eval_data_set_path,'print_path')
         self.local_prompt_template_path = config.local_prompt_template_path
         self.read_local_only = config.read_local_only
         print("printing config",config) 
         print("printing config",config)
         # self.evaluator = evaluator_class() 
-        self.retriever=sample_retriever
+        self.retriever=retriever
+        if self.retriever is None:
+            raise DependencyError("Retriever Not set")
         self.prompt_templates = load_prompts(config.prompt_template_path,config.local_prompt_template_path,config.read_local_only)
         print("prompt_templates from init",self.prompt_templates)
         # for llm_config in config.llms:
@@ -44,6 +48,7 @@ class SystemPromptGenerator:
                 # llm_class = LLM_MAP[llm_config.type]  # Get the corresponding LLM class)
                 llm_instance = LLMConfig(type=llm_config.type, model_kwargs=llm_config.model_kwargs)
                 llm_class = LLM_MAP[llm_config.type]
+                # llm_class = LLM_MAP[llm_config.type]()#Lazy old fix
                 # Step 8: Instantiate the Model with the Configured Parameters
                 llm = llm_class(**llm_config.model_kwargs)
                 # print(llm_config.type,llm_config.model_kwargs,llm.invoke("what is the capital of France?"))
@@ -55,7 +60,7 @@ class SystemPromptGenerator:
                         model_kwargs=llm_config.model_kwargs,
                         # evaluator=self.evaluator,
                         # retriever=self.retriever,
-                        eval_data_set_path=self.config.eval_data_set_path,
+                        eval_data_set_path=self.eval_data_set_path,
                         prompt_template=prompt_template.template,
                         # read_local_only=self.config.read_local_only,
                         )
@@ -81,42 +86,6 @@ class SystemPromptGenerator:
             #     )
             #     trial_configs.append(trial_config)
             return trial_configs
-    def _create_pipeline(self, trial_config: GenerationConfig, retriever: RunnableParallel):
-        try:
-            def format_docs(docs):
-                return "\n".join(doc.page_content for doc in docs)
-
-            # Prompt setup
-            llm_class = LLM_MAP[trial_config.type]
-                # Step 8: Instantiate the Model with the Configured Parameters
-            # Filter out None values and create clean model_kwargs
-            model_kwargs = {k: v for k, v in trial_config.model_kwargs.items() if v is not None}
-            llm = llm_class(**model_kwargs)
-            prompt_template = trial_config.prompt_template
-            print('prompt_template',prompt_template)
-            print("testing retriever\n",retriever.invoke("Who is Clara?"))
-            prompt = ChatPromptTemplate.from_messages(
-                [
-                    ("system", prompt_template),
-                    ("user", "{question}"),
-                    MessagesPlaceholder(variable_name="chat_history", optional=True),
-                ]
-            )
-
-            # RAG Chain setup
-            rag_chain = (
-                RunnableParallel(context=retriever, question=RunnablePassthrough())
-                .assign(context=itemgetter("context") | RunnableLambda(format_docs))
-                .assign(answer=prompt | llm | StrOutputParser())
-                .pick(["answer", "context"])
-            )
-            print("rag_pipeline completed")
-            return rag_chain
-        except Exception as e:
-            import traceback
-            print(f"An error occurred: {e}")
-            traceback.print_exc()
-            return None
     def optimize(self):
         trial_configs = self._build_trial_config()
         print("trial_configs",trial_configs)
@@ -128,13 +97,15 @@ class SystemPromptGenerator:
         evaldataset=evaluator.get_eval_dataset(self.eval_data_set_path)
         print("evaldataset",evaldataset)
         print("trial_configs",trial_configs)
+        # self.retriever=sample_retriever # only to test
         for trial_config in trial_configs:
             print("running",trial_config.prompt_template)
-            pipeline = self._create_pipeline(trial_config,self.retriever())
+            # print(self.retriever().retr("What does the API-Bank benchmark evaluate in tool-augmented LLMs?"))
+            pipeline = create_pipeline(trial_config,self.retriever())
             for entry in evaldataset:
                 print("running",trial_config.prompt_template)
                 question = entry.get("question", "")
-                result=pipeline.invoke(question)
+                result=pipeline.retrieve(question)
                 results[trial_config.prompt_template] = []
                 results[trial_config.prompt_template].append({
                         "prompt_key": trial_config.prompt_template,
@@ -219,15 +190,16 @@ class SystemPromptGenerator:
         prompt = best_prompt_row['prompt']
         max_average_correctness = best_prompt_row['average_correctness']
         config = best_prompt_row['config']
-        gen=SystemPromptGenerator(config=GenerationOptionsConfig.from_yaml("config.yaml"))
-        best_pipeline=gen._create_pipeline(GenerationConfig(**config),self.retriever())
+        print("final config",config)
+        # gen=SystemPromptGenerator(config=config,retriever=self.retriever)
+        best_pipeline=create_pipeline(GenerationConfig(**config),self.retriever())
         # return prompt_key, prompt, max_average_correctness, GenerationConfig(**config)
         print("best_pipeline",best_pipeline)
         print("best_prompt",prompt)
         print("best_score",max_average_correctness)
-        print("best_prompt_key",prompt_key)
+        print("best_prompt_key",GenerationConfig(**config))
         return {
-            "best_prompt_key": prompt_key,
+            "best_config": GenerationConfig(**config),
             "best_prompt": prompt,
             "best_score": max_average_correctness,
             "best_pipeline": best_pipeline
@@ -249,3 +221,41 @@ def run_generation_optimization(options_config: GenerationOptionsConfig, retriev
     evaluator = RAGASEvaluator()
     optimizer = SystemPromptGenerator(options_config, evaluator, retriever=retriever)
     return optimizer.optimize()
+
+def create_pipeline(trial_config: GenerationConfig, retriever: RunnableParallel):
+    print('trial_config',trial_config)
+    try:
+        def format_docs(docs):
+            return "\n".join(doc.page_content for doc in docs)
+
+        # Prompt setup
+        llm_class = LLM_MAP[trial_config.type]
+            # Step 8: Instantiate the Model with the Configured Parameters
+        # Filter out None values and create clean model_kwargs
+        model_kwargs = {k: v for k, v in trial_config.model_kwargs.items() if v is not None}
+        llm = llm_class(**model_kwargs)
+        prompt_template = trial_config.prompt_template
+        print('prompt_template',prompt_template)
+        print("testing retriever\n",retriever.invoke("Who is Clara?"))
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt_template),
+                ("user", "{question}"),
+                MessagesPlaceholder(variable_name="chat_history", optional=True),
+            ]
+        )
+
+        # RAG Chain setup
+        rag_chain = (
+            RunnableParallel(context=retriever, question=RunnablePassthrough())
+            .assign(context=itemgetter("context") | RunnableLambda(format_docs))
+            .assign(answer=prompt | llm | StrOutputParser())
+            .pick(["answer", "context"])
+        )
+        print("rag_pipeline completed")
+        return rag_chain
+    except Exception as e:
+        import traceback
+        print(f"An error occurred: {e}")
+        traceback.print_exc()
+        return None
