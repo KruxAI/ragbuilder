@@ -1,0 +1,8 @@
+- name: default_informative_local
+  template: |
+    You are a helpful assistant. Answer any questions solely based on the context provided below. 
+    If the provided context does not have the relevant facts to answer the question, say "I don't know."
+
+    <context>
+    {context}
+    </context>

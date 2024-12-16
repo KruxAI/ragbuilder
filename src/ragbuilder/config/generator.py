@@ -69,7 +69,8 @@ from enum import Enum
 import importlib
 
 # Step 1: Lazy Loading Helper Function
-def lazy_load(module_name: str, class_name: str):
+def lazy_load2(module_name: str, class_name: str):
+    print("lazy_load2",module_name,class_name)
     try:
         # Dynamically import the module
         module = importlib.import_module(module_name)
@@ -77,6 +78,7 @@ def lazy_load(module_name: str, class_name: str):
         return getattr(module, class_name)
     except Exception as e:
         raise ValueError(f"Error loading {class_name} from module {module_name}: {e}")
+
 
 # Step 2: Enum Class for LLM Types
 class LLM(str, Enum):
@@ -92,8 +94,8 @@ class LLM(str, Enum):
 
 # Step 3: Map LLM Types to Lazy-loaded Embedding Classes
 LLM_MAP = {
-    LLM.OPENAI: lazy_load("langchain_openai", "ChatOpenAI"),
-    LLM.AZURE_OPENAI: lazy_load("langchain_openai", "AzureChatOpenAI"),
+    LLM.OPENAI: lazy_load2("langchain_openai", "ChatOpenAI"),
+    LLM.AZURE_OPENAI: lazy_load2("langchain_openai", "AzureChatOpenAI"),
 }
 
 # Step 4: Define the LLM Configuration Model
@@ -119,20 +121,56 @@ class BaseConfig(BaseModel):
     def from_yaml(cls, file_path: str) -> "GenerationOptionsConfig":
         with open(file_path, "r") as yaml_file:
             config = yaml.safe_load(yaml_file)
-        return cls(**config["Generation"])
+        return cls(**config["generation"])
 
     def to_yaml(self, file_path: str) -> None:
         """Save configuration to a YAML file."""
         with open(file_path, 'w') as file:
             yaml.dump(self.model_dump(), file)
 
+
+# Step 4: Define the LLM Configuration Model
+class LLMConfig(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    
+    type: LLM  # Enum to specify the LLM
+    model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model-specific parameters like model name/type")
+    custom_class: Optional[str] = None  # Optional: If using a custom class
+
 # Step 2: Define Pydantic Model for Individual LLM Configuration
 class GenerationConfig(BaseConfig):
     type: LLM  # Specifies the LLM type
+    model_name: Optional[str] = None
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model-specific parameters")
     prompt_template: Optional[str] = None
+    eval_data_set_path: Optional[str] = None
+    local_prompt_template_path: Optional[str] = None
+    read_local_only: Optional[bool] = False
 
 # Step 3: Define Pydantic Model for Overall Generation Configuration
 class GenerationOptionsConfig(BaseConfig):
-    llms: List[GenerationConfig]  # List of LLM configurations
+    llms: List[LLMConfig]  # List of LLM configurations
     prompt_template_path: Optional[str] = None
+    eval_data_set_path: Optional[str] = None
+    local_prompt_template_path: Optional[str] = None
+    read_local_only: Optional[bool] = False
+    retriever: Optional[Any]=None
+
+    @classmethod
+    def with_defaults(cls) -> 'GenerationOptionsConfig':
+            """Create a DataIngestOptionsConfig with default values
+
+            Args:
+                input_source: File path, directory path, or URL for input data
+                test_dataset: Optional path to test dataset. If None, synthetic test data will be generated
+            
+            Returns:
+                DataIngestOptionsConfig with default values optimized for quick start
+            """
+            return cls(
+                llms=[
+                    LLMConfig(type=LLM.AZURE_OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}),  
+                ]
+
+
+            )
