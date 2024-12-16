@@ -32,6 +32,18 @@ graph = [
     "langchain-community[neo4j]",
     "langchain-core",
 ]
+ui = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.30.0",
+    "jinja2",
+]
+all = [
+    "ragbuilder[graph]",
+    "ragbuilder[ui]",
+]
+
+[project.scripts]
+ragbuilder = "ragbuilder.ragbuilder:main"
 
 [build-system]
 requires = ["hatchling"]

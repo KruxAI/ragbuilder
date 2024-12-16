@@ -10,6 +10,7 @@ from optuna.study import Study
 from optuna.trial import Trial
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig
 from ragbuilder.config.retriever import RetrievalOptionsConfig
+from .utils import serialize_config
 
 logger = logging.getLogger(__name__)
 
@@ -141,9 +142,9 @@ class DBLoggerCallback(Protocol):
             with self._get_connection() as conn:
                 run_id = int(time.time())
                 cursor = conn.cursor()
+                
                 cursor.execute(
-                    """
-                    INSERT INTO run_details (
+                    """INSERT INTO run_details (
                         run_id, module_type, status, description,
                         src_data, log_path, run_config, disabled_opts, run_ts
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -155,7 +156,7 @@ class DBLoggerCallback(Protocol):
                         self.study_name,
                         getattr(self.config, 'input_source', None),
                         self.log_path,
-                        json.dumps(self.config.model_dump()),
+                        serialize_config(self.config),
                         None,
                         run_id
                     )

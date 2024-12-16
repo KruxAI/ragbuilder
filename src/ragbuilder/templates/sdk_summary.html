@@ -3,46 +3,26 @@
 <div class="container" id="summary-container" data-run-id="{{ run_id }}">
     <div class="row mb-4">
         <div class="col">
-            <h1 class="display-6">RagBuilder: Performance Dashboard</h1>
+            <h1 class="display-6">RagBuilder: SDK Run Summary</h1>
             <div class="breadcrumb py-4">
                 <a href="/">Projects </a> &nbsp;&gt;&nbsp; <span>{{ description }}</span>
             </div>
-            <div class="col">
-                <button id="newProject" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newProjectModal">New Project</button>
-            </div>
         </div>
     </div>
-    <!-- <div class="row mb-4">
+
+    <div class="row mb-2">
         <div class="col">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <h5>TOTAL VARIANTS</h5>
-                            <p>219</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h5>EST. TOKENS</h5>
-                            <p>1.3M</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h5>EST. COST</h5>
-                            <p>$1.06</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h5>EST. ACCURACY</h5>
-                            <p>0.90</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h5>EST. LATENCY</h5>
-                            <p>4.10s</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <button class="btn btn-link" 
+                    type="button" 
+                    data-bs-toggle="offcanvas" 
+                    data-bs-target="#configPanel" 
+                    aria-controls="configPanel">
+                <i class="fas fa-cog"></i> View Configuration
+            </button>
         </div>
-    </div> -->
-    <div class="container">
+    </div>
+
+    <div class="container"></div>
         <ul class="nav nav-tabs" id="summaryTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="table-tab" data-bs-toggle="tab" data-bs-target="#table" type="button" role="tab" aria-controls="table" aria-selected="true">Table</button>
@@ -52,126 +32,83 @@
             </li>
         </ul>
         <div class="tab-content" id="summaryTabsContent">
-            <div class="tab-pane fade show active" id="table" role="tabpanel" aria-labelledby="table-tab">
-                <div class="row my-4">
-                    <div class="col">
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Status</button>
-                                <div class="dropdown-menu">
-                                    <a class="dropdown-item" href="#">All</a>
-                                    <a class="dropdown-item" href="#">Completed</a>
-                                    <a class="dropdown-item" href="#">Pending</a>
-                                </div>
-                            </div>
-                            <input type="text" class="form-control" placeholder="Search..." id="search">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary" type="button">Filter</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col">
-                        <table class="table table-hover table-sm" id="ragTable">
-                            <thead class="thead-light">
-                            <tr>
-                                <th>Run ID</th>
-                                <th class="eval_id">Eval ID</th>
-                                <th>RAG Config</th>
-                                <th class="text-right">Answer Correctness</th>
-                                <th class="text-right">Context Precision</th>
-                                <th class="text-right">Context Recall</th>
-                                <th class="text-right">Tokens</th>
-                                <th class="text-right">Cost / 1K Queries</th>
-                                <th class="text-center">Latency</th>
-                                <th class="timestamp">Timestamp</th>
-                                <th>Details</th>
-                                <th>Code Snippet</th>
-                                <th>Chat</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for eval in evals %}
-                                <tr>
-                                    <td>{{ eval.run_id }}</td>
-                                    <td class="eval_id">{{ eval.eval_id }}</td>
-                                    <td>
-                                        <span class="expandable-text" data-toggle="tooltip" title="{{ eval.rag_config }}">{{ eval.rag_config[:20] }}<span class="ellipsis">...</span></span>
-                                        <pre class="full-text" style="display: none;">{{ eval.rag_config }}</pre>
-                                        <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
-                                    </td>
-                                    <td class="text-right">{{ eval.avg_answer_correctness }}</td>
-                                    <td class="text-right">{{ eval.avg_context_precision }}</td>
-                                    <td class="text-right">{{ eval.avg_context_recall }}</td>
-                                    <td class="text-right">{{ eval.avg_tokens }}</td>
-                                    <td class="text-right">${{ eval.avg_cost_per_query }}</td>
-                                    <td class="text-center">🕓 {{ eval.avg_latency }}s</td>
-                                    <td>{{ eval.eval_ts }}</td>
-                                    <td><a href="/details/{{ eval.eval_id }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Details</span></a></td>
-                                    <td><a href="#" class="btn btn-outline-success btn-sm view-code-snippet" data-code="{{ eval.code_snippet }}"><span style="font-size:smaller;">View Code snippet</span></a></td>
-                                    <td><a href="#" class="btn btn-outline-info btn-sm open-chat" data-eval-id="{{ eval.eval_id }}"><span style="font-size:smaller;">Chat</span></a></td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div> 
-            <div class="tab-pane fade" id="visualizations" role="tabpanel" aria-labelledby="visualizations-tab">
-                <div id="error-message"></div>
-                <div id="optimization-history-plot"></div>
-                <div id="parameter-importance-plot"></div>
-                <div id="pareto-front-plot"></div>
-                <div id="parameter-slice-plot"></div>
-            </div>   
-        </div>
-    </div>
-</div>
-
-<!-- Code Snippet Modal -->
-<div class="modal fade" id="codeSnippetModal" tabindex="-1" role="dialog" aria-labelledby="codeSnippetModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="codeSnippetModalLabel">Code Snippet</h1>
-                <button class="btn ms-2" id="copyCodeSnippet" title="Copy">
-                    <i class="bi bi-copy" style="font-size: 1.2rem;"></i>
-                </button>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="tab-pane fade show active" id="table" role="tabpanel">
+                <table class="table table-hover table-sm" id="sdkTable">
+                    <thead>
+                        <tr>
+                            <th>Trial #</th>
+                            <th>Config</th>
+                            {% if module_type == 'data_ingest' %}
+                                <th>Avg Score</th>
+                                <th>Avg Latency</th>
+                                <th>Success Rate</th>
+                            {% else %}
+                                <th>Avg Score</th>
+                                <th>Context Precision</th>
+                                <th>Context Recall</th>
+                                <th>Avg Latency</th>
+                            {% endif %}
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eval in evals %}
+                        <tr>
+                            <td>{{ eval.trial_number }}</td>
+                            <td>
+                                <span class="expandable-text">{{ eval.config[:30] }}...</span>
+                                <pre class="full-text" style="display: none;">{{ eval.config }}</pre>
+                                <a href="javascript:void(0);" class="toggle-text">➕</a>
+                            </td>
+                            {% if module_type == 'data_ingest' %}
+                                <td>{{ "%.3f"|format(eval.avg_score) }}</td>
+                                <td>{{ "%.2f"|format(eval.avg_latency) }}s</td>
+                                <td>{{ "%.1f"|format(100 * (1 - eval.error_rate)) }}%</td>
+                            {% else %}
+                                <td>{{ "%.3f"|format(eval.avg_score) }}</td>
+                                <td>{{ "%.3f"|format(eval.avg_context_precision) }}</td>
+                                <td>{{ "%.3f"|format(eval.avg_context_recall) }}</td>
+                                <td>{{ "%.2f"|format(eval.avg_latency) }}s</td>
+                            {% endif %}
+                            <td>
+                                <a href="/sdk/details/{{ eval.eval_id }}" 
+                                class="btn btn-outline-primary btn-sm">
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <div class="modal-body">
-                <pre><code id="codeSnippet" class="language-python"></code></pre>
-                <!-- <button class="btn btn-secondary" id="copyCodeSnippet">Copy</button> -->
+        </div>
+        <div class="tab-pane fade" id="visualizations" role="tabpanel" aria-labelledby="visualizations-tab">
+            <div id="error-message"></div>
+            <div id="optimization-history-plot"></div>
+            <div id="parameter-importance-plot"></div>
+            <div id="pareto-front-plot"></div>
+            <div id="parameter-slice-plot"></div>
+        </div>   
+    </div>
+
+    <div class="offcanvas offcanvas-end" 
+        tabindex="-1" 
+        id="configPanel" 
+        aria-labelledby="configPanelLabel"
+        data-bs-backdrop="true"   
+        data-bs-scroll="false">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="configPanelLabel">Run Configuration</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="config-container">
+                <pre><code class="language-json">{{ run_config }}</code></pre>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Chat Modal -->
-<div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="chatModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="chatModalLabel">Chat Playground</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="chat-messages" style="height: 300px; overflow-y: auto;">
-            <!-- Chat messages will be dynamically added here -->
-          </div>
-          <form id="chatForm" class="mt-3">
-            <div class="input-group mb-3">
-              <input type="text" id="userMessage" class="form-control" placeholder="Type your message..." required>
-              <button class="btn btn-primary" type="submit" id="sendMessage" disabled>Send</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-</div>
-
-{{ modal }}
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
@@ -183,40 +120,71 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.3.2/mdb.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
-<script src="{{ url_for('static', path='main.js') }}"></script>
-<!-- Script to show RAG Config as a exandable/ collapsable text. -->
 <script>
     var runId = document.getElementById('summary-container').getAttribute('data-run-id');
     console.log(runId);
-    
+
     $(document).ready(function() {
-        // Show visualizations
         $('#visualizations-tab').on('shown.bs.tab', function () {
             fetchStudyData();
         });
+        
+        const configPanel = new bootstrap.Offcanvas('#configPanel');
+    
+        // Optional: Add fade-in animation for content
+        document.getElementById('configPanel').addEventListener('shown.bs.offcanvas', function () {
+            const codeBlock = this.querySelector('code');
+            if (codeBlock) {
+                codeBlock.style.opacity = '1';
+            }
+        });
+
+        // const configPanel = document.getElementById('configPanel');
+        // configPanel.addEventListener('show.bs.offcanvas', function () {
+        //     const codeBlock = this.querySelector('code');
+        //     codeBlock.style.opacity = '0';
+        //     setTimeout(() => {
+        //         codeBlock.style.transition = 'opacity 0.3s ease-in';
+        //         codeBlock.style.opacity = '1';
+        //     }, 300);
+        // });
+
+        // configPanel.addEventListener('hidden.bs.offcanvas', function () {
+        //     // Ensure body classes are cleaned up
+        //     document.body.classList.remove('modal-open');
+        //     document.body.style.overflow = '';
+        //     document.body.style.paddingRight = '';
+        //     const backdrop = document.querySelector('.offcanvas-backdrop');
+        //     if (backdrop) {
+        //         backdrop.style.opacity = '0';
+        //         // Remove backdrop after fade out animation
+        //         setTimeout(() => {
+        //             backdrop.remove();
+        //         }, 300);
+        //     }
+        // });
+
+        // configPanel.addEventListener('hidden.bs.offcanvas', function () {
+        //     // Re-initialize after a short delay
+        //     setTimeout(() => {
+        //         new bootstrap.Offcanvas(configPanel);
+        //     }, 300);
+        // });
 
         function fetchStudyData() {
             $.ajax({
                 type: "GET",
                 url: "/api/study/{{ run_id }}",
                 success: function (study) {
-                    if (study.trials.length > 0) {
-                        console.log(JSON.stringify(study));
-                        plotParameterImportance(study.parameter_importance, study.directions);
-                        plotOptimizationHistory(study.trials, study.directions);
-                        if (study.directions.length > 1) {
-                            plotParetoFront(study.trials, study.pareto_front, study.directions);
-                        }
-                        plotSlice(study.trials, study.directions);
-                    } else {
-                        $("#error-message")
-                            .text("No optimization data available for this run.")
-                            .show();
-                    }
+                    console.log(JSON.stringify(study));
+                    plotParameterImportance(study.parameter_importance, study.directions);
+                    plotOptimizationHistory(study.trials, study.directions);
+                    plotParetoFront(study.trials, study.pareto_front, study.directions);
+                    plotSlice(study.trials, study.directions);
                 },
                 error: function (error) {
                     console.error(error);
-                    $("#error-message").text("Failed to fetch optimization data. Please try again later.").show();
+                    $("#error-message").text("Failed to fetch study data. Please try again later.").show();
                 }
             });
         }
@@ -507,7 +475,8 @@
             minWidth: 60,
             marginLeft: '8px'
         });
-        
+
+        // Initialize expandable text
         $('.toggle-text').click(function() {
             var expandableText = $(this).siblings('.expandable-text');
             var fullText = $(this).siblings('.full-text');
@@ -531,32 +500,8 @@
                 $(this).text('➕');
             }
         });
-
-        // Handle code snippet modal
-        $('.view-code-snippet').click(function(event) {
-            event.preventDefault();
-            var codeSnippet = $(this).data('code');
-            $('#codeSnippet').text(codeSnippet);
-            Prism.highlightElement($('#codeSnippet')[0]);
-            $('#codeSnippetModal').modal('show');
-        });
-
-        // Copy code snippet to clipboard
-        $('#copyCodeSnippet').click(function() {
-            var codeSnippet = $('#codeSnippet').text();
-            navigator.clipboard.writeText(codeSnippet).then(function() {
-                alert('Copied to clipboard');
-            }, function(err) {
-                console.error('Could not copy text: ', err);
-            });
-        });
-    });
-
-    $(document).on('click', '.open-chat', function(e) {
-        e.preventDefault();
-        const evalId = $(this).data('eval-id');
-        window.open(`/chat/${evalId}`, '_blank');
+    
+        
     });
 </script>
-
-{% endblock content %}
+{% endblock %}
