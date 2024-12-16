@@ -71,9 +71,9 @@
                                 <td>{{ "%.2f"|format(eval.avg_latency) }}s</td>
                             {% endif %}
                             <td>
-                                <a href="/sdk/details/{{ eval.eval_id }}" 
+                                <a href="/sdk/details/{{ module_type }}/{{ eval.eval_id }}" 
                                 class="btn btn-outline-primary btn-sm">
-                                    View Details
+                                    <span style="font-size:smaller;">View Details</span>
                                 </a>
                             </td>
                         </tr>
@@ -138,39 +138,7 @@
                 codeBlock.style.opacity = '1';
             }
         });
-
-        // const configPanel = document.getElementById('configPanel');
-        // configPanel.addEventListener('show.bs.offcanvas', function () {
-        //     const codeBlock = this.querySelector('code');
-        //     codeBlock.style.opacity = '0';
-        //     setTimeout(() => {
-        //         codeBlock.style.transition = 'opacity 0.3s ease-in';
-        //         codeBlock.style.opacity = '1';
-        //     }, 300);
-        // });
-
-        // configPanel.addEventListener('hidden.bs.offcanvas', function () {
-        //     // Ensure body classes are cleaned up
-        //     document.body.classList.remove('modal-open');
-        //     document.body.style.overflow = '';
-        //     document.body.style.paddingRight = '';
-        //     const backdrop = document.querySelector('.offcanvas-backdrop');
-        //     if (backdrop) {
-        //         backdrop.style.opacity = '0';
-        //         // Remove backdrop after fade out animation
-        //         setTimeout(() => {
-        //             backdrop.remove();
-        //         }, 300);
-        //     }
-        // });
-
-        // configPanel.addEventListener('hidden.bs.offcanvas', function () {
-        //     // Re-initialize after a short delay
-        //     setTimeout(() => {
-        //         new bootstrap.Offcanvas(configPanel);
-        //     }, 300);
-        // });
-
+        
         function fetchStudyData() {
             $.ajax({
                 type: "GET",

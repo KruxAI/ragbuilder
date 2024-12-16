@@ -261,7 +261,7 @@ class RetrieverOptimization:
         CONFIG_STORE.store_best_retriever_pipeline(best_pipeline)
         
         return {
-            "best_params": best_config,
+            "best_config": best_config,
             "best_score": self.study.best_value,
             "best_pipeline": best_pipeline
         }
@@ -328,12 +328,12 @@ def run_retrieval_optimization(
         show_progress_bar=log_config.show_progress_bar if log_config else True
     )
     
-    best_config, best_score, best_pipeline = optimizer.optimize()
+    results = optimizer.optimize()
     
     return {
-        "best_config": best_config,
-        "best_score": best_score,
-        "best_pipeline": best_pipeline,
+        "best_config": results["best_config"],
+        "best_score": results["best_score"],
+        "best_pipeline": results["best_pipeline"],
         "study_statistics": {
             "n_trials": options_config.optimization.n_trials,
             "completed_trials": len(optimizer.study.trials),

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, Path as PathParam
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -208,6 +208,7 @@ async def summary(request: Request, run_id: int, db: sqlite3.Connection = Depend
 
 @app.get('/details/{eval_id}', response_class=HTMLResponse)
 async def details(request: Request, eval_id: int, db: sqlite3.Connection = Depends(get_db)):
+    module_type = 'ui_workflow'
     cur = db.execute("""
         SELECT 
             question_id,
@@ -229,7 +230,11 @@ async def details(request: Request, eval_id: int, db: sqlite3.Connection = Depen
     """, (eval_id,))
     details = cur.fetchall()
     db.close()
-    return templates.TemplateResponse(request=request, name='details.html', context={"details": details})
+    return templates.TemplateResponse(
+        request=request, 
+        name='details.html', 
+        context={"details": details, "module_type": module_type}
+    )
 
 @app.get("/sdk/summary/{run_id}")
 async def sdk_summary(request: Request, run_id: int, db: sqlite3.Connection = Depends(get_db)):
@@ -254,13 +259,13 @@ async def sdk_summary(request: Request, run_id: int, db: sqlite3.Connection = De
         cursor.execute("""
             SELECT * FROM data_ingest_eval_summary 
             WHERE run_id = ? 
-            ORDER BY trial_number
+            ORDER BY avg_score desc
         """, (run_id,))
     else:  # retriever
         cursor.execute("""
             SELECT * FROM retriever_eval_summary 
             WHERE run_id = ? 
-            ORDER BY trial_number
+            ORDER BY avg_score desc
         """, (run_id,))
         
     evals = cursor.fetchall()
@@ -284,6 +289,60 @@ async def sdk_summary(request: Request, run_id: int, db: sqlite3.Connection = De
             "run_config": formatted_config,
             "evals": [dict(zip([col[0] for col in cursor.description], row)) 
                      for row in evals]
+        }
+    )
+
+@app.get("/sdk/details/{module_type}/{eval_id}")
+async def sdk_details(
+    request: Request, 
+    eval_id: int, 
+    module_type: str = PathParam(..., regex="^(data_ingest|retriever)$"),
+    db: sqlite3.Connection = Depends(get_db)
+):
+    cursor = db.cursor()
+    # Get details based on module type
+    if module_type == 'data_ingest':
+        cursor.execute("""
+            SELECT 
+                question_id,
+                question,
+                retrieved_chunks,
+                relevance_scores,
+                weighted_score,
+                latency,
+                error,
+                datetime(eval_ts/1000.0, 'unixepoch', 'localtime') as eval_timestamp
+            FROM data_ingest_eval_details
+            WHERE eval_id = ?
+            ORDER BY question_id
+        """, (eval_id,))
+    else:
+        cursor.execute("""
+            SELECT 
+                question_id,
+                question,
+                contexts,
+                ground_truth,
+                context_precision,
+                context_recall,
+                f1_score,
+                latency,
+                error,
+                datetime(eval_ts/1000.0, 'unixepoch', 'localtime') as eval_timestamp
+            FROM retriever_eval_details
+            WHERE eval_id = ?
+            ORDER BY question_id
+        """, (eval_id,))
+        
+    details = cursor.fetchall()
+    db.close()
+    
+    return templates.TemplateResponse(
+        "details.html",
+        {
+            "request": request,
+            "module_type": module_type,
+            "details": details
         }
     )
 
