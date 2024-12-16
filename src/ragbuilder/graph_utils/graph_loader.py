@@ -1,41 +1,23 @@
-from langchain_core.runnables import  RunnablePassthrough
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_core.output_parsers import StrOutputParser
 import os
-from langchain_community.graphs import Neo4jGraph
-from langchain.text_splitter import MarkdownHeaderTextSplitter
-from langchain_openai import ChatOpenAI
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
-from langchain_community.document_loaders import *
+from pydantic import BaseModel, Field, ValidationError
+from typing import List, Optional
 from dotenv import load_dotenv
-from langchain_chroma import Chroma
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_community.graphs import Neo4jGraph
 from langchain_community.graphs.graph_document import (
     Node as BaseNode,
     Relationship as BaseRelationship,
     GraphDocument,
 )
-from operator import itemgetter
-from langchain import hub
-from langchain_core.runnables import RunnablePassthrough, RunnableParallel
 from langchain.schema import Document
-from typing import List, Dict, Any, Optional
 from langchain.pydantic_v1 import Field, BaseModel
 from langchain.docstore.document import Document
 from langchain.prompts import ChatPromptTemplate
-from langchain_ollama import ChatOllama
-from langchain_groq import ChatGroq
-from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
-from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
-from langchain_community.llms import Ollama
-from langchain_community.embeddings import OllamaEmbeddings
 from langchain_core.output_parsers import PydanticToolsParser
-from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type, before_sleep_log
-from pydantic import ValidationError
+from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
+from ragbuilder.graph_utils import check_graph_dependencies
+
 load_dotenv()
-import os
 
 
 class Property(BaseModel):
@@ -207,6 +189,7 @@ def extract_and_store_graph(embeddings, llm, graph, document: Document, nodes: O
         print(f"Failed to extract graph data after retries: {e}")
 
 def load_graph(documents, embeddings, llm):
+    check_graph_dependencies()
     NEO4J_URI = os.getenv("NEO4J_URI")
     NEO4J_USER = os.getenv("NEO4J_USER")
     NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")

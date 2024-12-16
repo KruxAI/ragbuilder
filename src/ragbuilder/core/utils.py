@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Any, Dict
 from dotenv import load_dotenv
 from langchain_community.document_loaders import (
     DirectoryLoader, 
@@ -13,6 +13,7 @@ from langchain_core.documents import Document
 from ragbuilder.config.components import COMPONENT_ENV_REQUIREMENTS
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig
 from ragbuilder.config.retriever import RetrievalOptionsConfig
+import json
 
 logger = logging.getLogger(__name__)
 os.environ['USER_AGENT'] = "ragbuilder"
@@ -100,3 +101,34 @@ def validate_component_environment(component_value: str) -> List[str]:
     requirements = COMPONENT_ENV_REQUIREMENTS.get(component_value, {"required": [], "optional": []})
     missing = [var for var in requirements["required"] if not os.getenv(var)]
     return missing
+
+def simplify_model_config(obj: Any) -> Dict[str, Any]:
+    """Extract essential info from LLM/embeddings model."""
+    config = {
+        "class": obj.__class__.__name__,
+        "model": getattr(obj, "model_name", None) or getattr(obj, "model", None)
+    }
+    
+    # Add temperature only for LLMs
+    if hasattr(obj, "temperature"):
+        config["temperature"] = obj.temperature
+        
+    return config
+
+class SimpleConfigEncoder(json.JSONEncoder):
+    """Simple JSON encoder for config objects."""
+    def default(self, obj: Any) -> Any:
+        if hasattr(obj, "model_name") or hasattr(obj, "model"):
+            return simplify_model_config(obj)
+        return super().default(obj)
+
+def serialize_config(config: Any) -> str:
+    """Serialize config object to JSON string."""
+    try:
+        return json.dumps(
+            config.model_dump() if hasattr(config, 'model_dump') else config,
+            cls=SimpleConfigEncoder
+        )
+    except Exception as e:
+        logger.error(f"Failed to serialize config: {str(e)}")
+        return str(config)  # Fallback to string representation

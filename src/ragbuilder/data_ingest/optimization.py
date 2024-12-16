@@ -90,7 +90,7 @@ class DataIngestOptimizer:
         return DataIngestConfig(**params)
 
     def optimize(self):
-        console.rule("[heading]Starting Optimization Process[/heading]")
+        console.rule("[heading]Starting Data Ingestion Optimization...[/heading]")
         
         def objective(trial):
             console.print(f"[heading]Trial {trial.number}/{self.options_config.optimization.n_trials - 1}[/heading]")

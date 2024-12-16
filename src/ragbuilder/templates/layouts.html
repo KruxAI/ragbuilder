@@ -972,6 +972,30 @@
         /* .modal-footer {
             justify-content: space-between;
         } */
+         /* Custom width for the offcanvas panel */
+        .offcanvas.offcanvas-end {
+            width: 600px;  /* Adjust width as needed */
+        }
+
+        /* Style for the JSON content */
+        .offcanvas-body pre {
+            margin: 0;
+            height: 100%;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 1rem;
+        }
+
+        .offcanvas-body code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            font-size: 0.8rem;
+            line-height: 1.1;
+        }
+
+        /* Smooth transition for the panel */
+        .offcanvas {
+            transition: transform 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body>

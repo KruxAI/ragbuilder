@@ -1,4 +1,4 @@
-import yaml
+import inspect
 import time
 import random
 import logging
@@ -13,11 +13,19 @@ class OptimizationConfig(BaseModel):
     n_trials: Optional[int] = Field(default=10, description="Number of trials for optimization")
     n_jobs: Optional[int] = Field(default=1, description="Number of jobs for optimization")
     timeout: Optional[int] = Field(default=None, description="Timeout for optimization")
-    storage: Optional[str] = Field(default=None, description="Storage URL for Optuna (e.g., 'sqlite:///optuna.db')")
-    study_name: Optional[str] = Field(default=f"data_ingest_{int(time.time()*1000+random.randint(1, 1000))}", description="Name of the Optuna study")
+    storage: Optional[str] = Field(default="sqlite:///eval.db", description="Storage URL for Optuna (e.g., 'sqlite:///optuna.db')")
+    study_name: Optional[str] = Field(default=None, description="Name of the Optuna study")
     load_if_exists: Optional[bool] = Field(default=False, description="Load existing study if it exists")
     overwrite_study: Optional[bool] = Field(default=False, description="Overwrite existing study if it exists")
     optimization_direction: Optional[str] = Field(default="maximize", description="Whether to maximize or minimize the optimization metric")
+
+    def model_post_init(self, *args, **kwargs):
+        if self.study_name is None:
+            # Get the caller module name (data_ingest or retriever)
+            frame = inspect.currentframe()
+            caller_module = inspect.getmodule(frame.f_back).__name__.split('.')[-1]
+            timestamp = int(time.time()*1000 + random.randint(1, 1000))
+            self.study_name = f"{caller_module}_{timestamp}"
 
 class EvaluationConfig(BaseModel):
     type: EvaluatorType = Field(default=EvaluatorType.SIMILARITY, description="Type of evaluator to use")
