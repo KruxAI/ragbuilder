@@ -196,9 +196,10 @@ class RAGBuilder:
         )
         
         self._optimization_results["retrieval"] = results
-        self._optimized_retriever = results["best_pipeline"]
+        self._optimized_retriever = results["best_pipeline"].retriever_chain
         
         return results
+    
     def optimize_generation(
         self, 
         config: Optional[GenerationOptionsConfig] = None, 

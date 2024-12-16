@@ -23,7 +23,18 @@ class OptimizationConfig(BaseModel):
         if self.study_name is None:
             # Get the caller module name (data_ingest or retriever)
             frame = inspect.currentframe()
-            caller_module = inspect.getmodule(frame.f_back).__name__.split('.')[-1]
+            while frame:
+                module_name = inspect.getmodule(frame).__name__
+                if 'data_ingest' in module_name:
+                    caller_module = 'data_ingest'
+                    break
+                elif 'retriever' in module_name:
+                    caller_module = 'retriever'
+                    break
+                frame = frame.f_back
+            else:
+                caller_module = 'unknown'
+                
             timestamp = int(time.time()*1000 + random.randint(1, 1000))
             self.study_name = f"{caller_module}_{timestamp}"
 

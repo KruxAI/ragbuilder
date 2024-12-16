@@ -1,6 +1,7 @@
 from typing import Optional, List
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict
 import pandas as pd
+from ragbuilder.config.components import lazy_load
 import yaml
 # Define Pydantic Model for the Prompt Template
 class PromptTemplate(BaseModel):
@@ -69,15 +70,15 @@ from enum import Enum
 import importlib
 
 # Step 1: Lazy Loading Helper Function
-def lazy_load2(module_name: str, class_name: str):
-    print("lazy_load2",module_name,class_name)
-    try:
-        # Dynamically import the module
-        module = importlib.import_module(module_name)
-        # Get the class from the module
-        return getattr(module, class_name)
-    except Exception as e:
-        raise ValueError(f"Error loading {class_name} from module {module_name}: {e}")
+# def lazy_load2(module_name: str, class_name: str):
+#     # print("lazy_load2",module_name,class_name)
+#     try:
+#         # Dynamically import the module
+#         module = importlib.import_module(module_name)
+#         # Get the class from the module
+#         return getattr(module, class_name)
+#     except Exception as e:
+#         raise ValueError(f"Error loading {class_name} from module {module_name}: {e}")
 
 
 # Step 2: Enum Class for LLM Types
@@ -94,8 +95,8 @@ class LLM(str, Enum):
 
 # Step 3: Map LLM Types to Lazy-loaded Embedding Classes
 LLM_MAP = {
-    LLM.OPENAI: lazy_load2("langchain_openai", "ChatOpenAI"),
-    LLM.AZURE_OPENAI: lazy_load2("langchain_openai", "AzureChatOpenAI"),
+    LLM.OPENAI: lazy_load("langchain_openai", "ChatOpenAI"),
+    LLM.AZURE_OPENAI: lazy_load("langchain_openai", "AzureChatOpenAI"),
 }
 
 # Step 4: Define the LLM Configuration Model
@@ -139,6 +140,7 @@ class LLMConfig(BaseModel):
 
 # Step 2: Define Pydantic Model for Individual LLM Configuration
 class GenerationConfig(BaseConfig):
+    model_config  = ConfigDict(protected_namespaces=())
     type: LLM  # Specifies the LLM type
     model_name: Optional[str] = None
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model-specific parameters")

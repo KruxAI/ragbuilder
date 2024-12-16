@@ -47,7 +47,7 @@ class SystemPromptGenerator:
             for llm_config in self.config.llms:
                 # llm_class = LLM_MAP[llm_config.type]  # Get the corresponding LLM class)
                 llm_instance = LLMConfig(type=llm_config.type, model_kwargs=llm_config.model_kwargs)
-                llm_class = LLM_MAP[llm_config.type]
+                llm_class = LLM_MAP[llm_config.type]()
                 # llm_class = LLM_MAP[llm_config.type]()#Lazy old fix
                 # Step 8: Instantiate the Model with the Configured Parameters
                 llm = llm_class(**llm_config.model_kwargs)
@@ -101,11 +101,11 @@ class SystemPromptGenerator:
         for trial_config in trial_configs:
             print("running",trial_config.prompt_template)
             # print(self.retriever().retr("What does the API-Bank benchmark evaluate in tool-augmented LLMs?"))
-            pipeline = create_pipeline(trial_config,self.retriever())
+            pipeline = create_pipeline(trial_config,self.retriever)
             for entry in evaldataset:
                 print("running",trial_config.prompt_template)
                 question = entry.get("question", "")
-                result=pipeline.retrieve(question)
+                result=pipeline.invoke(question)
                 results[trial_config.prompt_template] = []
                 results[trial_config.prompt_template].append({
                         "prompt_key": trial_config.prompt_template,
@@ -192,7 +192,7 @@ class SystemPromptGenerator:
         config = best_prompt_row['config']
         print("final config",config)
         # gen=SystemPromptGenerator(config=config,retriever=self.retriever)
-        best_pipeline=create_pipeline(GenerationConfig(**config),self.retriever())
+        best_pipeline=create_pipeline(GenerationConfig(**config),self.retriever)
         # return prompt_key, prompt, max_average_correctness, GenerationConfig(**config)
         print("best_pipeline",best_pipeline)
         print("best_prompt",prompt)
@@ -229,14 +229,14 @@ def create_pipeline(trial_config: GenerationConfig, retriever: RunnableParallel)
             return "\n".join(doc.page_content for doc in docs)
 
         # Prompt setup
-        llm_class = LLM_MAP[trial_config.type]
+        llm_class = LLM_MAP[trial_config.type]()
             # Step 8: Instantiate the Model with the Configured Parameters
         # Filter out None values and create clean model_kwargs
         model_kwargs = {k: v for k, v in trial_config.model_kwargs.items() if v is not None}
         llm = llm_class(**model_kwargs)
         prompt_template = trial_config.prompt_template
         print('prompt_template',prompt_template)
-        print("testing retriever\n",retriever.invoke("Who is Clara?"))
+        # print("testing retriever\n",retriever.invoke("Who is Clara?"))
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", prompt_template),
