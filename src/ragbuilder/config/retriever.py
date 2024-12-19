@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Dict, Any, Union
 import yaml
-from .base import OptimizationConfig, EvaluationConfig, LogConfig
+from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata
 from .components import RetrieverType, RerankerType, EvaluatorType
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 
@@ -93,7 +93,8 @@ class RetrievalOptionsConfig(BaseModel):
                     "llm": AzureChatOpenAI(model="gpt-4o-mini", temperature=0.0),
                     "embeddings": AzureOpenAIEmbeddings(model="text-embedding-3-large"),
                 }
-            )
+            ),
+            metadata=ConfigMetadata(is_default=True)
         )
 
 class RetrievalConfig(BaseModel):

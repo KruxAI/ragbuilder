@@ -84,7 +84,8 @@ class DataIngestOptimizer:
             "chunk_overlap": chunk_overlap,
             "chunk_size": chunk_size,
             "embedding_model": embedding_model,
-            "vector_database": vector_database
+            "vector_database": vector_database,
+            "sampling_rate": self.options_config.sampling_rate
         }
         self.logger.info(f"Trial parameters: {params}")
         return DataIngestConfig(**params)

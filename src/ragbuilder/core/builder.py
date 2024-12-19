@@ -9,6 +9,7 @@ from ragbuilder.retriever.optimization import run_retrieval_optimization
 from ragbuilder.generation.generator import run_generation_optimization
 from ragbuilder.generate_data import TestDatasetManager
 from ragbuilder.core.logging_utils import setup_rich_logging, console
+from ragbuilder.core.telemetry import telemetry
 from .exceptions import DependencyError
 import logging
 import yaml
@@ -151,20 +152,36 @@ class RAGBuilder:
         """
         if config:
             self._data_ingest_config = config
+        elif not self._data_ingest_config:
+            raise ValueError("No data ingestion configuration provided")
 
         self._ensure_eval_dataset(self._data_ingest_config)
         self.logger.info("Starting data ingestion optimization")
         
-        results = run_data_ingest_optimization(
-            self._data_ingest_config, 
-            log_config=self._log_config
-        )
-        
-        self._optimization_results["data_ingest"] = results
-        self._optimized_store = results["best_index"]
-        
-        return results
-    
+        with telemetry.optimization_span("data_ingest", self._data_ingest_config.model_dump()) as span:
+            try:
+                results = run_data_ingest_optimization(
+                    self._data_ingest_config, 
+                    log_config=self._log_config
+                )
+                
+                # Store results and update telemetry
+                self._optimization_results["data_ingest"] = results
+                self._optimized_store = results["best_index"]
+                telemetry.update_optimization_results(span, results, "data_ingest")
+                
+                return results
+                
+            except Exception as e:
+                telemetry.track_error(
+                    "data_ingest",
+                    e,
+                    context={
+                        "config_type": "default" if not config else "custom",
+                    }
+                )
+                raise
+
     def optimize_retrieval(
         self, 
         config: Optional[RetrievalOptionsConfig] = None, 
@@ -188,18 +205,33 @@ class RAGBuilder:
             self._retrieval_config = RetrievalOptionsConfig.with_defaults()
             
         self._ensure_eval_dataset(self._retrieval_config)
-            
-        results = run_retrieval_optimization(
-            self._retrieval_config, 
-            vectorstore=self._optimized_store,
-            log_config=self._log_config
-        )
         
-        self._optimization_results["retrieval"] = results
-        self._optimized_retriever = results["best_pipeline"].retriever_chain
-        
-        return results
-    
+        with telemetry.optimization_span("retriever", self._retrieval_config.model_dump()) as span:
+            try:
+                results = run_retrieval_optimization(
+                    self._retrieval_config, 
+                    vectorstore=self._optimized_store,
+                    log_config=self._log_config
+                )
+                
+                # Store results and update telemetry
+                self._optimization_results["retrieval"] = results
+                self._optimized_retriever = results["best_pipeline"].retriever_chain
+                telemetry.update_optimization_results(span, results, "retriever")
+                
+                return results
+                
+            except Exception as e:
+                telemetry.track_error(
+                    "retriever",
+                    e,
+                    context={
+                        "config_type": "default" if not config else "custom",   
+                        "vectorstore_provided": vectorstore is not None                     
+                    }
+                )
+                raise
+
     def optimize_generation(
         self, 
         config: Optional[GenerationOptionsConfig] = None, 
@@ -212,29 +244,43 @@ class RAGBuilder:
             Dict containing optimization results including best_config, best_score,
             best_pipeline, and study_statistics
         """
-        print("self._generation_config",self._generation_config)
         if retriever:
             self._optimized_retriever = retriever
         elif self._optimized_retriever is None:
-            raise DependencyError("No vectorstore found. Run data ingestion first or provide existing vectorstore.")
+            raise DependencyError("No retriever found. Run retrieval optimization first or provide existing retriever.")
+        
         if config:
             self._generation_config = config
         elif not self._generation_config:
             self._generation_config = GenerationOptionsConfig.with_defaults()
         
         self._ensure_eval_dataset(self._generation_config)
+        
+        with telemetry.optimization_span("generator", self._generation_config.model_dump()) as span:
+            try:
+                results = run_generation_optimization(
+                    self._generation_config, 
+                    retriever=self._optimized_retriever
+                )
+                
+                # Store results and update telemetry
+                self._optimization_results["generation"] = results
+                self._optimized_generation = results["best_pipeline"]
+                telemetry.update_optimization_results(span, results, "generator")
+                
+                return results
+                
+            except Exception as e:
+                telemetry.track_error(
+                    "generator",
+                    e,
+                    context={
+                        "config_type": "default" if not config else "custom",
+                        "retriever_provided": retriever is not None
+                    }
+                )
+                raise
 
-        results = run_generation_optimization(
-            self._generation_config, 
-            retriever=self._optimized_retriever
-        )
-        
-        # Store results for later use
-        self._optimization_results["generation"] = results
-        self._optimized_generation = results["best_pipeline"]
-        
-        return results
-    
     def optimize(self) -> Dict[str, Dict[str, Any]]:
         """
         Run end-to-end optimization for both data ingestion and retrieval
@@ -242,17 +288,29 @@ class RAGBuilder:
         Returns:
             Dict containing results for both data ingestion and retrieval optimizations
         """
-        data_ingest_results = self.optimize_data_ingest()
-        retrieval_results = self.optimize_retrieval()
-        generation_results = self.optimize_generation()
-        
-        self._optimization_results = {
-            "data_ingest": data_ingest_results,
-            "retrieval": retrieval_results,
-            "generation": generation_results
-        }
+        try:
+            data_ingest_results = self.optimize_data_ingest()
+            retrieval_results = self.optimize_retrieval()
+            generation_results = self.optimize_generation()
+            
+            self._optimization_results = {
+                "data_ingest": data_ingest_results,
+                "retrieval": retrieval_results,
+                "generation": generation_results
+            }
 
-        return self._optimization_results
+            return self._optimization_results
+            
+        except Exception as e:
+            telemetry.track_error(
+                "pipeline",
+                e,
+                context={
+                    "stage": "optimize",
+                    "completed_modules": [k for k, v in self._optimization_results.items() if v is not None]
+                }
+            )
+            raise
     
     @property
     def optimization_results(self) -> Dict[str, Dict[str, Any]]:

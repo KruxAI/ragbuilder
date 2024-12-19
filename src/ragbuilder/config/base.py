@@ -56,3 +56,7 @@ class LogConfig:
     log_file: Optional[str] = None
     show_progress_bar: bool = True
     verbose: bool = False
+
+class ConfigMetadata(BaseModel):
+    is_default: bool = False
+    version: str = "1.0"

@@ -7,7 +7,13 @@ import numpy as np
 from langchain.schema import Document
 
 from ragbuilder.config import LogConfig, RetrievalOptionsConfig, RetrievalConfig
-from ragbuilder.core import DocumentStore, ConfigStore, DBLoggerCallback, setup_rich_logging, console
+from ragbuilder.core import (
+    DocumentStore, 
+    ConfigStore, 
+    DBLoggerCallback, 
+    setup_rich_logging, 
+    console
+)
 from ragbuilder.core.exceptions import OptimizationError
 from ragbuilder.retriever.pipeline import RetrieverPipeline
 from .evaluation import Evaluator, RetrieverF1ScoreEvaluator

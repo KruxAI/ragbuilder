@@ -2,6 +2,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, validator, ConfigDict
 import pandas as pd
 from ragbuilder.config.components import lazy_load
+from ragbuilder.config.base import ConfigMetadata
 import yaml
 # Define Pydantic Model for the Prompt Template
 class PromptTemplate(BaseModel):
@@ -172,7 +173,8 @@ class GenerationOptionsConfig(BaseConfig):
             return cls(
                 llms=[
                     LLMConfig(type=LLM.AZURE_OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}),  
-                ]
+                ],
+                metadata=ConfigMetadata(is_default=True)
 
 
             )

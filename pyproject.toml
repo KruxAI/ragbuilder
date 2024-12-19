@@ -1,6 +1,6 @@
 [project]
 name = "ragbuilder"
-version = "0.1.0"
+dynamic = ["version"] 
 description = "RagBuilder SDK - Create optimal Production-ready RAG pipelines"
 authors = [
     {name = "Ashwin Aravind", email = "ashwin@krux.ai"},
@@ -16,6 +16,9 @@ dependencies = [
     "langchain-core==0.2.20",
     "langchain_huggingface",
     "langchain_openai",
+    "opentelemetry-api>=1.23.0",
+    "opentelemetry-sdk>=1.23.0",
+    "opentelemetry-exporter-otlp>=1.23.0",
     "optuna",
     "tenacity==8.4.2",
     "pydantic>=2.0.0",
@@ -23,6 +26,7 @@ dependencies = [
     "ragas==0.1.7",
     "sentence-transformers",
     "chromadb",
+    "rerankers"
 ]
 
 # Optional dependencies
@@ -46,8 +50,10 @@ all = [
 ragbuilder = "ragbuilder.ragbuilder:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/ragbuilder"]
+[tool.setuptools_scm]
+write_to = "src/ragbuilder/_version.py"
+version_scheme = "python-simplified-semver"
+
