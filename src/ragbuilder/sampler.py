@@ -13,8 +13,8 @@ from unstructured.documents.elements import Element
 from ragbuilder.langchain_module.common import setup_logging
 from ragbuilder.analytics import track_event
 
-setup_logging()
-logger = logging.getLogger("ragbuilder")
+# setup_logging()
+logger = logging.getLogger("ragbuilder.sampler")
 SAMPLING_RATIO = float(os.getenv('SAMPLING_RATIO', '0.1'))
 SAMPLING_SIZE_THRESHOLD = int(os.getenv('SAMPLING_SIZE_THRESHOLD', '750_000'))
 SAMPLING_FILE_SIZE_THRESHOLD = int(os.getenv('SAMPLING_FILE_SIZE_THRESHOLD', '500_000'))

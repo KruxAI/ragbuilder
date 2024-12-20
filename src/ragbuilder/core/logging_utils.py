@@ -33,6 +33,7 @@ def setup_rich_logging(log_level=logging.INFO, log_file=None):
     logging.getLogger("openai").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("chromadb.telemetry").setLevel(logging.WARNING)
+    logging.getLogger("ragas.testset.evolutions").setLevel(logging.WARNING)
     
     logging.basicConfig(
         level=log_level,

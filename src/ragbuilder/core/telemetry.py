@@ -6,7 +6,8 @@ from platformdirs import user_data_dir
 from typing import Optional, Dict, Any, Literal
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics import MeterProvider, Counter
+from opentelemetry.sdk.metrics.export import AggregationTemporality
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -19,15 +20,24 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
-ModuleType = Literal["data_ingest", "retriever", "generator"]
+ModuleType = Literal["data_ingest", "retriever", "generator", "ragbuilder"]
 
 class RAGBuilderTelemetry:
     def __init__(self):
-        self.enabled = os.getenv("ENABLE_ANALYTICS", "true").lower() != "false"
-        self.user_id = self._get_or_create_user_id()
+        self.enabled = False  # Start disabled by default
+        self.tracer = None
+        self.meter = None
+        self.meter_provider = None
         
-        if self.enabled:
-            self._setup_telemetry()
+        try:
+            self.enabled = os.getenv("ENABLE_ANALYTICS", "true").lower() != "false"
+            self.user_id = self._get_or_create_user_id()
+            
+            if self.enabled:
+                self._setup_telemetry()
+        except Exception as e:
+            logger.debug(f"Failed to initialize telemetry: {e}")
+            self.enabled = False
     
     def _get_or_create_user_id(self) -> str:
         try:
@@ -41,7 +51,7 @@ class RAGBuilderTelemetry:
             id_file.write_text(user_id)
             return user_id
         except Exception as e:
-            logger.warning(f"Failed to persist user ID: {e}")
+            logger.debug(f"Failed to persist user ID: {e}")
             return 'a-' + uuid.uuid4().hex
 
     def _setup_telemetry(self):
@@ -53,6 +63,7 @@ class RAGBuilderTelemetry:
                 "environment": os.getenv("RAGBUILDER_ENV", "production"),
                 "python.version": platform.python_version(),
                 "os.type": platform.system(),
+                "os.machine": platform.machine(),
                 "anonymous_user_id": self.user_id
             })
 
@@ -69,90 +80,150 @@ class RAGBuilderTelemetry:
             # Setup metrics
             metric_exporter = OTLPMetricExporter(
                 endpoint="https://api.honeycomb.io/v1/metrics",
-                headers={"x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY", "CM7BwTAsHffuxBeRgyJpkN")}
+                headers={
+                    "x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY", "CM7BwTAsHffuxBeRgyJpkN"),
+                    "x-honeycomb-dataset": "ragbuilder-metrics"
+                },
+                preferred_temporality={Counter: AggregationTemporality.DELTA}
             )
             reader = PeriodicExportingMetricReader(metric_exporter)
-            meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
-            metrics.set_meter_provider(meter_provider)
+            self.meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
+            metrics.set_meter_provider(self.meter_provider)
             self.meter = metrics.get_meter(__name__)
 
             self._setup_metrics()
 
         except Exception as e:
             self.enabled = False
-            logger.warning(f"Failed to initialize telemetry: {e}")
+            logger.debug(f"Failed to initialize telemetry: {e}")
 
     def _setup_metrics(self):
         """Initialize metrics instruments."""
-        # User tracking metrics
-        self.users_total = self.meter.create_up_down_counter(
-            "ragbuilder.users.total",
-            description="Total number of users"
-        )
-        self.users_by_module = self.meter.create_counter(
-            "ragbuilder.users.module",
-            description="Users by module"
-        )
+        try:
+            self.optimization_starts = self.meter.create_counter(
+                "optimization.starts",
+                description="Number of optimization runs started"
+            )
+            self.optimization_completions = self.meter.create_counter(
+                "optimization.completions",
+                description="Number of successful optimization completions"
+            )
+            self.errors = self.meter.create_counter(
+                "errors",
+                description="Number of errors by type"
+            )
+            self.eval_datagen_starts = self.meter.create_counter(
+                "eval_datagen.starts",
+                description="Number of evaluation dataset generations started"
+            )
+            self.eval_datagen_completions = self.meter.create_counter(
+                "eval_datagen.completions",
+                description="Number of successful evaluation dataset generations"
+            )
+        except Exception as e:
+            logger.debug(f"Failed to setup metrics: {e}")
+            self.enabled = False
 
-        # Core operation metrics
-        self.optimization_starts = self.meter.create_counter(
-            "ragbuilder.optimization.starts",
-            description="Number of optimization runs started"
-        )
-        self.optimization_completions = self.meter.create_counter(
-            "ragbuilder.optimization.completions",
-            description="Number of successful optimization completions"
-        )
+    def _safe_add_counter(self, counter, value: int = 1, attributes: Dict = None):
+        """Safely add to counter with error handling."""
+        try:
+            if self.enabled and counter:
+                counter.add(value, attributes)
+        except Exception as e:
+            logger.debug(f"Failed to add to counter: {e}")
 
-        # Error metrics
-        self.errors = self.meter.create_counter(
-            "ragbuilder.errors",
-            description="Number of errors by type"
-        )
+    def _safe_set_attribute(self, span, key: str, value: Any):
+        """Safely set span attribute with error handling."""
+        try:
+            if span:
+                span.set_attribute(key, value)
+        except Exception as e:
+            logger.debug(f"Failed to set span attribute {key}: {e}")
 
-        # Record initial user
-        self.users_total.add(1)
+    @contextmanager
+    def eval_datagen_span(self, **attributes):
+        """Context manager for eval data generation spans."""
+        if not self.enabled or not self.tracer:
+            yield None
+            return
+            
+        span = None
+        start_time = datetime.now()
+        
+        try:
+            with self.tracer.start_as_current_span("eval_data_generation") as span:
+                self._safe_add_counter(self.eval_datagen_starts, 1)
+                self._safe_set_attribute(span, "user_id", self.user_id)
+                
+                # Add all provided attributes
+                for key, value in attributes.items():
+                    if value is not None:
+                        self._safe_set_attribute(span, key, value)
+                        
+                try:
+                    yield span
+                    
+                    self._safe_add_counter(self.eval_datagen_completions, 1)
+                    duration = (datetime.now() - start_time).total_seconds()
+                    self._safe_set_attribute(span, "generation_duration", duration)
+                    self._safe_set_attribute(span, "generation_success", True)
+                    
+                except Exception as e:
+                    self._safe_set_attribute(span, "generation_success", False)
+                    raise e
+                    
+        except Exception as e:
+            logger.debug(f"Error in eval data generation span: {e}")
+            yield None
 
     @contextmanager
     def optimization_span(self, module: ModuleType, config: Dict[str, Any]):
         """Context manager for optimization spans with module-specific attributes."""
-        if not self.enabled:
+        if not self.enabled or not self.tracer:
             yield None
             return
-
-        self.optimization_starts.add(1, {"module": module})
-        self.users_by_module.add(1, {"module": module})
+        
+        span = None
         start_time = datetime.now()
         
-        with self.tracer.start_as_current_span(f"{module}_optimization") as span:
-            span.set_attribute("module", module)
-            span.set_attribute("user_id", self.user_id)
-            span.set_attribute("n_trials", config.get("optimization", {}).get("n_trials", 0))
-            span.set_attribute("n_jobs", config.get("optimization", {}).get("n_jobs", 1))
-            span.set_attribute("is_default_config", config.get("metadata", {}).get("is_default", False))
+        try:
+            with self.tracer.start_as_current_span(f"{module}_optimization") as span:
+                self._safe_add_counter(self.optimization_starts, 1, {"module": module})
+                self._safe_set_attribute(span, "module", module)
+                self._safe_set_attribute(span, "user_id", self.user_id)
 
-            # Module-specific attributes
-            if module == "data_ingest":
-                self._set_data_ingest_attributes(span, config)
-            elif module == "retriever":
-                self._set_retriever_attributes(span, config)
-            elif module == "generator":
-                self._set_generator_attributes(span, config)
+                if module != "ragbuilder":
+                    self._safe_set_attribute(span, "n_trials", config.get("optimization", {}).get("n_trials", 0))
+                    self._safe_set_attribute(span, "n_jobs", config.get("optimization", {}).get("n_jobs", 1))
+                    self._safe_set_attribute(span, "is_default_config", config.get("metadata", {}).get("is_default", False))
 
-            try:
-                yield span
-                
-                self.optimization_completions.add(1, {"module": module})
-                
-                # Add duration
-                duration = (datetime.now() - start_time).total_seconds()
-                span.set_attribute("optimization_duration", duration)
-                
-            except Exception as e:
-                span.set_attribute("optimization_success", False)
-                raise e
-            else:
-                span.set_attribute("optimization_success", True)
+                # Module-specific attributes
+                try:
+                    if module == "data_ingest":
+                        self._set_data_ingest_attributes(span, config)
+                    elif module == "retriever":
+                        self._set_retriever_attributes(span, config)
+                    elif module == "generator":
+                        self._set_generator_attributes(span, config)
+                except Exception:
+                    logger.debug(f"Failed to set telemetry span attributes for module {module}: {e}")
+
+                try:
+                    yield span
+                    
+                    self._safe_add_counter(self.optimization_completions, 1, {"module": module})
+                    duration = (datetime.now() - start_time).total_seconds()
+                    self._safe_set_attribute(span, "optimization_duration", duration)
+                    self._safe_set_attribute(span, "optimization_success", True)
+                    
+                except Exception as e:
+                    self._safe_set_attribute(span, "optimization_success", False)
+                    raise e
+        
+        except Exception as e:
+            logger.debug(f"Error in optimization span: {e}")
+            yield None
+
 
     def _set_data_ingest_attributes(self, span, config):
         """Set data ingestion specific span attributes."""
@@ -160,45 +231,45 @@ class RAGBuilderTelemetry:
         input_source_type = "url" if urlparse(input_source).scheme in ['http', 'https'] else (
             'dir' if os.path.isdir(input_source) else 'file'
         )
-        span.set_attribute("input_source_type", input_source_type)
-        config.get("sampling_rate") and span.set_attribute("sampling_rate", config.get("sampling_rate"))
-        config.get("graph") and span.set_attribute("graph_enabled", True)
+        self._safe_set_attribute(span, "input_source_type", input_source_type)
+        config.get("sampling_rate") and self._safe_set_attribute(span, "sampling_rate", config.get("sampling_rate"))
+        config.get("graph") and self._safe_set_attribute(span, "graph_enabled", True)
 
     def _set_retriever_attributes(self, span, config):
         """Set retriever specific span attributes."""
         retrievers = config.get("retrievers", [])
-        span.set_attribute("n_retrievers", len(retrievers))
-        span.set_attribute("reranker_enabled", bool(config.get("rerankers", [])))
+        self._safe_set_attribute(span, "n_retrievers", len(retrievers))
+        self._safe_set_attribute(span, "reranker_enabled", bool(config.get("rerankers", [])))
 
     def _set_generator_attributes(self, span, config):
         """Set generator specific span attributes."""
-        span.set_attribute("n_llms", len(config.get("llms", [])))
+        self._safe_set_attribute(span, "n_llms", len(config.get("llms", [])))
 
     def update_optimization_results(self, span, results: Dict[str, Any], module: ModuleType):
         """Update span with optimization results."""
         if not self.enabled or not span:
             return
 
-        span.set_attribute("best_score", results.get("best_score", 0))
+        self._safe_set_attribute(span, "best_score", results.get("best_score", 0))
         
         if module == "data_ingest" and "best_config" in results:
             config = results["best_config"]
-            span.set_attribute("best_parser_type", str(config.document_loader.type))
             model_name = config.embedding_model.model_kwargs.get('model') or config.embedding_model.model_kwargs.get('model_name', '')
             embedding_model = f"{config.embedding_model.type}:{model_name}" if model_name else str(config.embedding_model.type)
-            span.set_attribute("best_embedding_model", embedding_model)
-            span.set_attribute("best_chunking_strategy", str(config.chunking_strategy.type))
-            span.set_attribute("best_chunk_size", config.chunk_size)
-            span.set_attribute("best_chunk_overlap", config.chunk_overlap)
-            span.set_attribute("vector_db", str(config.vector_database.type))
-            span.set_attribute("data_source_size", getattr(results["best_pipeline"], "data_source_size", 0))
+            self._safe_set_attribute(span, "best_parser_type", str(config.document_loader.type))
+            self._safe_set_attribute(span, "best_embedding_model", embedding_model)
+            self._safe_set_attribute(span, "best_chunking_strategy", str(config.chunking_strategy.type))
+            self._safe_set_attribute(span, "best_chunk_size", config.chunk_size)
+            self._safe_set_attribute(span, "best_chunk_overlap", config.chunk_overlap)
+            self._safe_set_attribute(span, "vector_db", str(config.vector_database.type))
+            self._safe_set_attribute(span, "data_source_size", getattr(results["best_pipeline"], "data_source_size", 0))
             
         elif module == "retriever" and "best_config" in results:
             config = results["best_config"]
-            span.set_attribute("best_retriever_types", [str(r.type) for r in config.retrievers])
+            self._safe_set_attribute(span, "best_retriever_types", [str(r.type) for r in config.retrievers])
             if config.rerankers:
-                span.set_attribute("best_reranker", str(config.rerankers[0].type))
-            span.set_attribute("best_top_k", config.top_k)
+                self._safe_set_attribute(span, "best_reranker", str(config.rerankers[0].type))
+            self._safe_set_attribute(span, "best_top_k", config.top_k)
 
     def track_error(self, module: ModuleType, error: Exception, context: Dict[str, Any]):
         """Track error occurrence with span and metrics."""
@@ -206,15 +277,24 @@ class RAGBuilderTelemetry:
             return
 
         with self.tracer.start_as_current_span(f"{module}_error") as span:
-            span.set_attribute("module", module)
-            span.set_attribute("user_id", self.user_id)
-            span.set_attribute("error_type", error.__class__.__name__)
-            span.set_attribute("error_message", str(error))
+            self._safe_set_attribute(span, "module", module)
+            self._safe_set_attribute(span, "user_id", self.user_id)
+            self._safe_set_attribute(span, "error_type", error.__class__.__name__)
+            self._safe_set_attribute(span, "error_message", str(error))
             
             for key, value in context.items():
                 if isinstance(value, (str, int, float, bool)):
-                    span.set_attribute(f"context.{key}", value)
+                    self._safe_set_attribute(span, f"context.{key}", value)
 
-        self.errors.add(1, {"module": module, "error_type": error.__class__.__name__})
+        self._safe_add_counter(self.errors, 1, {"module": module, "error_type": error.__class__.__name__})
+
+    def flush(self):
+        if self.enabled and self.meter_provider:
+            self.meter_provider.force_flush()
+
+    def shutdown(self):
+        if self.enabled and self.meter_provider:
+            self.meter_provider.force_flush()
+            self.meter_provider.shutdown()
 
 telemetry = RAGBuilderTelemetry()

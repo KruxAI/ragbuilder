@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from typing import List, Optional, Union, Dict, Any
 import yaml
 from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType, LLMType
-from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata
+from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata, EvalDataGenerationConfig
 
 # class LLMConfig(BaseModel):
 #     model_config  = ConfigDict(protected_namespaces=())
@@ -140,13 +140,14 @@ class DataIngestOptionsConfig(BaseModel):
             ],
             vector_databases=[VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}})],
             optimization=OptimizationConfig(
-                n_trials=1,
+                n_trials=10,
                 n_jobs=1,
                 optimization_direction="maximize"
             ),
             evaluation_config=EvaluationConfig(
                 type=EvaluatorType.SIMILARITY,
                 test_dataset=test_dataset,
+                eval_data_generation_config=EvalDataGenerationConfig(),
                 evaluator_kwargs={
                     "top_k": 5,
                     "position_weights": None,

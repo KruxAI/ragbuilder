@@ -132,8 +132,9 @@ class RAGBuilder:
                 raise ValueError("input_source is required when test_dataset is not provided")
                 
             with console.status("Generating eval dataset..."):
-                test_dataset = self._test_dataset_manager.get_or_generate_dataset(
-                    source_data=source_data
+                test_dataset = self._test_dataset_manager.get_or_generate_eval_dataset(
+                    source_data=source_data,
+                    eval_data_generation_config=config.evaluation_config.eval_data_generation_config if hasattr(config, 'evaluation_config') else None
                 )
             if hasattr(config, 'evaluation_config'):
                 config.evaluation_config.test_dataset = test_dataset
@@ -168,8 +169,7 @@ class RAGBuilder:
                 # Store results and update telemetry
                 self._optimization_results["data_ingest"] = results
                 self._optimized_store = results["best_index"]
-                telemetry.update_optimization_results(span, results, "data_ingest")
-                
+                telemetry.update_optimization_results(span, results, "data_ingest")                
                 return results
                 
             except Exception as e:
@@ -181,6 +181,9 @@ class RAGBuilder:
                     }
                 )
                 raise
+            finally:
+                telemetry.flush()
+        
 
     def optimize_retrieval(
         self, 
@@ -218,7 +221,6 @@ class RAGBuilder:
                 self._optimization_results["retrieval"] = results
                 self._optimized_retriever = results["best_pipeline"].retriever_chain
                 telemetry.update_optimization_results(span, results, "retriever")
-                
                 return results
                 
             except Exception as e:
@@ -231,6 +233,8 @@ class RAGBuilder:
                     }
                 )
                 raise
+            finally:
+                telemetry.flush()
 
     def optimize_generation(
         self, 
@@ -267,7 +271,6 @@ class RAGBuilder:
                 self._optimization_results["generation"] = results
                 self._optimized_generation = results["best_pipeline"]
                 telemetry.update_optimization_results(span, results, "generator")
-                
                 return results
                 
             except Exception as e:
@@ -280,6 +283,8 @@ class RAGBuilder:
                     }
                 )
                 raise
+            finally:
+                telemetry.flush()
 
     def optimize(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -288,29 +293,37 @@ class RAGBuilder:
         Returns:
             Dict containing results for both data ingestion and retrieval optimizations
         """
-        try:
-            data_ingest_results = self.optimize_data_ingest()
-            retrieval_results = self.optimize_retrieval()
-            generation_results = self.optimize_generation()
-            
-            self._optimization_results = {
-                "data_ingest": data_ingest_results,
-                "retrieval": retrieval_results,
-                "generation": generation_results
-            }
-
-            return self._optimization_results
-            
-        except Exception as e:
-            telemetry.track_error(
-                "pipeline",
-                e,
-                context={
-                    "stage": "optimize",
-                    "completed_modules": [k for k, v in self._optimization_results.items() if v is not None]
+        with telemetry.optimization_span("ragbuilder", {"end_to_end": True}) as span:
+            try:
+                data_ingest_results = self.optimize_data_ingest()
+                retrieval_results = self.optimize_retrieval()
+                generation_results = self.optimize_generation()
+                
+                self._optimization_results = {
+                    "data_ingest": data_ingest_results,
+                    "retrieval": retrieval_results,
+                    "generation": generation_results
                 }
-            )
-            raise
+                span.set_attribute("data_ingest_score", data_ingest_results.get("best_score", 0))
+                span.set_attribute("retrieval_score", retrieval_results.get("best_score", 0))
+                span.set_attribute("generation_score", generation_results.get("best_score", 0))
+
+                return self._optimization_results
+                
+            except Exception as e:
+                telemetry.track_error(
+                    "ragbuilder",
+                    e,
+                    context={
+                        "completed_modules": [k for k, v in self._optimization_results.items() if v is not None]
+                    }
+                )
+                raise
+            finally:
+                telemetry.flush()
+
+    def __del__(self):
+        telemetry.shutdown()
     
     @property
     def optimization_results(self) -> Dict[str, Dict[str, Any]]:

@@ -7,6 +7,14 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass
 from .components import EvaluatorType
 
+class EvalDataGenerationConfig(BaseModel):
+    generator_model: Optional[Any] = Field(default=None, description="Generator model")
+    critic_model: Optional[Any] = Field(default=None, description="Critic model")
+    embedding_model: Optional[Any] = Field(default=None, description="Embedding model")
+    test_size: Optional[int] = Field(default=5, description="Test size")
+    distribution: Optional[Dict[str, float]] = Field(default=None, description="Distribution")
+    run_config: Optional[Any] = Field(default=None, description="Run configuration")
+
 class OptimizationConfig(BaseModel):
     """Optimization settings"""
     type: Optional[str] = "Optuna"
@@ -44,6 +52,7 @@ class EvaluationConfig(BaseModel):
     test_dataset: Optional[str] = Field(default=None, description="Path to test dataset")
     # llm: Optional[BaseLLM] = Field(default=None, description="LLM configuration")
     # embeddings: Optional[Embeddings] = Field(default=None, description="Embedding configuration")
+    eval_data_generation_config: Optional[EvalDataGenerationConfig] = Field(default=None, description="Evaluation data generation configuration")
     evaluator_kwargs: Optional[Dict[str, Any]] = Field(
         default = {},
         description="Additional parameters for evaluator initialization"
