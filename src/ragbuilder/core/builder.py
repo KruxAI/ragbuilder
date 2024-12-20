@@ -6,12 +6,15 @@ from ragbuilder.config.generator import GenerationOptionsConfig
 from ragbuilder.config.base import LogConfig
 from ragbuilder.data_ingest.optimization import run_data_ingest_optimization
 from ragbuilder.retriever.optimization import run_retrieval_optimization
-from ragbuilder.generation.generator import run_generation_optimization
+from src.ragbuilder.generation.optimization import run_generation_optimization
 from ragbuilder.generate_data import TestDatasetManager
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from .exceptions import DependencyError
 import logging
 import yaml
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import uvicorn
 
 # TODO: Bring generation entry point here
 # - Add optimize_generation method
@@ -287,3 +290,39 @@ class RAGBuilder:
         configs = self.get_configs()
         with open(file_path, 'w') as f:
             yaml.dump(configs, f)
+
+    def serve(self, host: str = "0.0.0.0", port: int = 8005):
+        """
+        Launch a FastAPI server to serve RAG queries
+        
+        Args:
+            host: Host address to bind the server to
+            port: Port number to listen on
+        """
+        if not self._optimization_results.get("generation"):
+            raise DependencyError("No generation pipeline found. Run generation optimization first.")
+            
+        app = FastAPI(title="RAGBuilder API")
+        
+        @app.post("/invoke")
+        async def invoke(request: QueryRequest) -> Dict[str, Any]:
+            try:
+                result = self._optimization_results["generation"]["best_pipeline"].invoke(
+                    request.query
+                )
+                console.print(f"Question:{request.query}")
+                console.print(f"Response:{result}")
+                return {"response": result}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+                
+        self.logger.info(f"Starting RAG server on http://{host}:{port}")
+        uvicorn.run(app, host=host, port=port)
+
+class QueryRequest(BaseModel):
+    query: str
+    question: Optional[str] = None
+
+    def get_query(self) -> str:
+        """Return either query or question field"""
+        return self.query or self.question or ""
