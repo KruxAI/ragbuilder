@@ -11,7 +11,7 @@ from langchain.retrievers import EnsembleRetriever
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from ragbuilder.generation.evaluation import RAGASEvaluator
 from langchain_community.vectorstores import FAISS
-def sample_retriever():
+def sample_retriever(url):
     print("rag_get_retriever initiated")
     try:
         def format_docs(docs):
@@ -21,7 +21,7 @@ def sample_retriever():
         llm = AzureChatOpenAI(model="gpt-4o-mini")
 
         # Document loader
-        loader = WebBaseLoader("https://raw.githubusercontent.com/ashwinaravind/ashwinaravind.github.io/refs/heads/main/thevanishingtown")
+        loader = WebBaseLoader(url)
         docs = loader.load()
 
         # Embedding model
