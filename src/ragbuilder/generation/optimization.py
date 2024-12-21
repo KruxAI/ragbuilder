@@ -5,38 +5,52 @@ from langchain_core.runnables import RunnablePassthrough, RunnableParallel, Runn
 from operator import itemgetter
 from datetime import datetime
 from langchain_core.output_parsers import StrOutputParser
-from ragbuilder.config.generator import GenerationOptionsConfig, GenerationConfig
+from ragbuilder.config import LogConfig, GenerationOptionsConfig, GenerationConfig
 from ragbuilder.config.generator import LLM_MAP
 from ragbuilder.config.generator import LLMConfig
 from ragbuilder.generation.prompt_templates import load_prompts
-from ragbuilder.generation.sample_retriever import sample_retriever
-from ragbuilder.generation.evaluation import RAGASEvaluator
+# from ragbuilder.generation.sample_retriever import sample_retriever
+from ragbuilder.generation.evaluation import Evaluator, RAGASEvaluator
 from typing import List, Dict, Any, Optional
-from ragbuilder.config.components import EvaluatorType
+# from ragbuilder.config.components import EvaluatorType
 from importlib import import_module
 from ragbuilder.core.exceptions import DependencyError
 from ragbuilder.core import setup_rich_logging, console
 import logging
+
 class SystemPromptGenerator:
-    def __init__(self, config: GenerationOptionsConfig, evaluator_class: Type= None,retriever: Optional[Any] = None):
+    def __init__(
+        self, 
+        config: GenerationOptionsConfig, 
+        evaluator: Evaluator, 
+        retriever: Optional[Any] = None, 
+        verbose: bool = False
+    ):
         self.logger = logging.getLogger("ragbuilder.generation.generator")
         self.llms = []  # List to store instantiated LLMs
         self.config = config
+        self.evaluator = evaluator
         self.eval_data_set_path = config.eval_data_set_path
-        self.logger.info("Loading Prompts")
+        self.verbose = verbose
+        self.logger.debug("Loading Prompts")
         self.local_prompt_template_path = config.local_prompt_template_path
         self.read_local_only = config.read_local_only
         
         self.logger.debug(f"Initializing with config: {config}")
-        self.logger.info("Loading Retriever")
+        self.logger.debug("Loading Retriever")
         self.retriever=retriever
         if self.retriever is None:
             raise DependencyError("Retriever Not set")
-        self.prompt_templates = load_prompts(config.prompt_template_path,config.local_prompt_template_path,config.read_local_only)
-        self.logger.debug(f"Loaded prompt templates: {self.prompt_templates}")
+        self.prompt_templates = load_prompts(
+            config.prompt_template_path, 
+            config.local_prompt_template_path, 
+            config.read_local_only
+        )
+        self.logger.debug(f"Loaded prompt templates: {len(self.prompt_templates)}")
+        
     def _build_trial_config(self) -> List[GenerationConfig]:
         trial_configs = []
-        self.logger.info("Building trial Configs")
+        self.logger.debug("Building trial configs")
         for llm_config in self.config.llms:
             for prompt_template in self.prompt_templates:
                 trial_config = GenerationConfig(
@@ -53,19 +67,24 @@ class SystemPromptGenerator:
         console.rule("[heading]Starting Generation Optimization[/heading]")
         
         trial_configs = self._build_trial_config()
-        self.logger.info(f"Generated {len(trial_configs)} trial configurations")
+        n_trials = len(trial_configs)
+        self.logger.info(f"Generated {n_trials} trial configurations")
         
         pipeline = None
         results = {}
-        evaluator = RAGASEvaluator()
         
-        evaldataset = evaluator.get_eval_dataset(self.eval_data_set_path)
-        self.logger.info(f"Loaded evaluation dataset with {len(evaldataset)} entries")
+        evaldataset = self.evaluator.get_eval_dataset(self.eval_data_set_path)
+        self.logger.debug(f"Loaded evaluation dataset with {len(evaldataset)} entries")
 
-        for trial_config in trial_configs:
-            console.print(f"Running trial with prompt template: {trial_config.prompt_template}")
+        for i, trial_config in enumerate(trial_configs):
+            console.print(f"[heading]Trial {i}/{n_trials-1}[/heading]")
+            if self.verbose:
+                console.print(f"Running trial {i} with prompt template: {trial_config.prompt_template}")
+        
+            self.logger.info(f"Creating pipeline for trial {i}")
             pipeline = create_pipeline(trial_config, self.retriever)
             
+            self.logger.info(f"Preparing eval dataset for trial {i}")
             for entry in evaldataset:
                 question = entry.get("question", "")
                 result = pipeline.invoke(question)
@@ -77,7 +96,7 @@ class SystemPromptGenerator:
                     "answer": result.get("answer", "Error"),
                     "context": result.get("context", "Error"),
                     "ground_truth": entry.get("ground_truth", ""),
-                    "config": trial_config.dict(),
+                    "config": trial_config.model_dump(),
                 })
                 # break #REMOVE
         # Convert results to Dataset
@@ -92,13 +111,13 @@ class SystemPromptGenerator:
                 }
             )
 
-        self.logger.info(f"Evaluating Prompt Results")
-        eval_results = evaluator.evaluate(results_dataset)
-        self.logger.info(f"Calualting Final Prompt Testing Results")
+        self.logger.info(f"Evaluating prompt results")
+        eval_results = self.evaluator.evaluate(results_dataset)
+        self.logger.info(f"Calculating final prompt testing results")
         final_results = self.calculate_metrics(eval_results)
         
         console.print("[success]Optimization Complete![/success]")
-        console.print(f"[success]Best Score:[/success] [value]{final_results['best_score']:.4f}[/value]")
+        # console.print(f"[success]Best Score:[/success] [value]{final_results['best_score']:.4f}[/value]")
         
         return final_results
 
@@ -117,7 +136,6 @@ class SystemPromptGenerator:
         output_csv_path = 'rag_average_correctness' + timestamp + '.csv'
         grouped_results.to_csv('rag_average_correctness.csv', index=False)
         self.logger.info("Average correctness results saved to 'rag_average_correctness.csv'")
-        console.print(f"[success]Average correctness results saved to '{output_csv_path}[/success]")
 
         best_prompt_row = grouped_results.loc[grouped_results['average_correctness'].idxmax()]
         prompt_key = best_prompt_row['prompt_key']
@@ -125,8 +143,7 @@ class SystemPromptGenerator:
         max_average_correctness = best_prompt_row['average_correctness']
         config = best_prompt_row['config']
         best_pipeline = create_pipeline(GenerationConfig(**config), self.retriever)
-        console.print(f"[success]Best Prompt {prompt_key}:{prompt}[/success]")
-        console.print(f"[success]Best Score: {max_average_correctness}[/success]")
+        console.print(f"[success]Best Prompt:[/success] {prompt_key[:50]}...\n[success]Best Score:[/success] [value]{max_average_correctness}[/value]")
 
         return {
             "best_config": GenerationConfig(**config),
@@ -135,10 +152,14 @@ class SystemPromptGenerator:
             "best_pipeline": best_pipeline
         }
 
-def run_generation_optimization(options_config: GenerationOptionsConfig, retriever: Optional[Any] = None) -> Dict[str, Any]:
+def run_generation_optimization(options_config: GenerationOptionsConfig, retriever: Optional[Any] = None, log_config: Optional[LogConfig] = None) -> Dict[str, Any]:
     """Run Prompt optimization process."""
+    setup_rich_logging(
+        log_config.log_level if log_config else logging.INFO,
+        log_config.log_file if log_config else None
+    )
     evaluator = RAGASEvaluator()
-    optimizer = SystemPromptGenerator(options_config, evaluator, retriever=retriever)
+    optimizer = SystemPromptGenerator(options_config, evaluator, retriever=retriever, verbose=log_config.verbose)
     return optimizer.optimize()
 
 def create_pipeline(trial_config: GenerationConfig, retriever: RunnableParallel):

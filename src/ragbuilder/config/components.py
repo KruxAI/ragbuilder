@@ -195,6 +195,9 @@ RERANKER_MAP = {
         'model_type': 'RankLLMRanker',
         'verbose': 0,
         'lazy_load': lazy_load("rerankers", "Reranker")
+    },
+    RerankerType.CUSTOM: {
+        'lazy_load': lazy_load("rerankers", "Reranker")
     }
 }
 

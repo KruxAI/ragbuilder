@@ -14,7 +14,6 @@ from ragbuilder.config.retriever import RetrievalConfig, RerankerConfig
 from ragbuilder.core.logging_utils import console, setup_rich_logging
 from ragbuilder.core.document_store import DocumentStore
 from ragbuilder.core.config_store import ConfigStore
-# from ragbuilder.graph_utils.graph_retriever import Neo4jGraphRetriever
 from ragbuilder.core.exceptions import (
     RAGBuilderError,
     ConfigurationError,
@@ -25,7 +24,8 @@ from ragbuilder.core.exceptions import (
 class RetrieverPipeline:
     def __init__(self, 
                  config: RetrievalConfig,
-                 vectorstore: Any):
+                 vectorstore: Any,
+                 verbose: bool = True):
         """Initialize retriever pipeline with specific configuration.
         
         Args:
@@ -39,6 +39,7 @@ class RetrieverPipeline:
         self.config = config
         self.vectorstore = vectorstore
         self.final_k = config.top_k
+        self.verbose = verbose
         self.logger = logging.getLogger("ragbuilder.retriever.pipeline")
         self.store = DocumentStore()
         self.best_data_ingest_config = ConfigStore().get_best_config()
@@ -46,10 +47,10 @@ class RetrieverPipeline:
         
         # Initialize components
         # with console.status("[status]Creating retrieval components...[/status]"):
-        self.logger.info("Initializing Retriever Pipeline...")
+        self.logger.debug("Initializing Retriever Pipeline...")
         self.base_retrievers = self._create_base_retrievers()
         self.retriever_chain = self._create_retriever_chain()
-        self.logger.info("Pipeline initialized successfully")
+        self.logger.debug("Pipeline initialized successfully")
 
     def _validate_config(self, config: RetrievalConfig) -> None:
         """Validate pipeline configuration."""
@@ -67,17 +68,21 @@ class RetrieverPipeline:
         retrievers = []
         weights = []
 
+        # with console.status("[status]Running pipeline...[/status]") as status:
+        console.print("[status]Creating retrievers...[/status]")
         for retriever_config in self.config.retrievers:
             try:
-                self.logger.info(f"Creating {retriever_config.type} retriever...")
-                
+                # if self.verbose:
+                #self.logger.debug(f"Creating {retriever_config.type} retriever...")
+                # status.update(f"[status]Creating {retriever_config.type} retriever...[/status]")
+
                 if retriever_config.type == RetrieverType.SIMILARITY:
                     retriever = self.vectorstore.as_retriever(
                         search_type="similarity",
                         search_kwargs={"k": retriever_config.retriever_k[0]},
                         **retriever_config.retriever_kwargs
                     )
-                    self.logger.info("Created vector similarity search retriever")
+                    # status.update("[status]Created vector similarity search retriever[/status]")
                 
                 elif retriever_config.type == RetrieverType.MMR:
                     retriever = self.vectorstore.as_retriever(
@@ -88,7 +93,7 @@ class RetrieverPipeline:
                         },
                         **retriever_config.retriever_kwargs
                     )
-                    self.logger.info("Created vector MMR search retriever")
+                    # status.update("[status]Created vector MMR search retriever[/status]")
                 
                 elif retriever_config.type == RetrieverType.MULTI_QUERY:
                     retriever = MultiQueryRetriever.from_llm(
@@ -97,20 +102,14 @@ class RetrieverPipeline:
                         ),
                         llm=retriever_config.retriever_kwargs.get("llm"),
                     )
-                    self.logger.info("Created multi-query retriever")
+                    # status.update("[status]Created multi-query retriever[/status]")
                 
                 elif retriever_config.type in [RetrieverType.PARENT_DOC_RETRIEVER_FULL, RetrieverType.PARENT_DOC_RETRIEVER_LARGE]:
                     if not self.best_data_ingest_config:
                         raise PipelineError("No optimized data ingestion configuration found")
                     
-                    self.logger.info("Setting up document splitters for parent document retriever...")
+                    # status.update("[status]Setting up document splitters for parent document retriever...[/status]")
                     child_splitter = self.best_data_ingest_pipeline.chunker
-                    # child_splitter = splitter(
-                    #     chunk_size=self.best_data_ingest_config["chunk_size"],
-                    #     chunk_overlap=self.best_data_ingest_config["chunk_overlap"],
-                    #     **self.best_data_ingest_config["chunking_strategy"]["chunker_kwargs"] or {}
-                    # )
-
                     parent_splitter = None
                     if retriever_config.type == RetrieverType.PARENT_DOC_RETRIEVER_LARGE:
                         if self.best_data_ingest_config["chunking_strategy"]["type"] == "custom":
@@ -139,55 +138,44 @@ class RetrieverPipeline:
                     if not docs:
                         raise PipelineError("No documents found in DocumentStore")
                     
-                    self.logger.info("Adding documents to parent document retriever...")
+                    # status.update("[status]Adding documents to parent document retriever...[/status]")
                     retriever.add_documents(docs)
-                    self.logger.info("Created parent document retriever")
+                    # status.update("[status]Created parent document retriever[/status]")
                 
                 # TODO: Utilize the vector DB's BM25 capability rather than creating in-memory BM25Retriever
                 elif retriever_config.type == RetrieverType.BM25_RETRIEVER:
+                    # status.update("[status]Getting documents from best data ingestion pipeline for BM25...[/status]")
                     if not self.best_data_ingest_config:
                         raise PipelineError("No optimized data ingestion configuration found")
-                    
-                    # self.logger.info("Setting up splitter for BM25 retriever...")
-                    # splitter = self.best_data_ingest_pipeline.chunker
-                    # splitter_class = CHUNKER_MAP[self.best_data_ingest_config["chunking_strategy"]["type"]]()
-                    # splitter = splitter_class(
-                    #     chunk_size=self.best_data_ingest_config["chunk_size"],
-                    #     chunk_overlap=self.best_data_ingest_config["chunk_overlap"],
-                    #     **self.best_data_ingest_config["chunking_strategy"]["chunker_kwargs"] or {}
-                    # )
-                    # docs, _ = self.store.get_best_config_docs()
-                    # if not docs:
-                    #     raise PipelineError("No documents found in DocumentStore")
-                    
-                    # self.logger.info("Chunking documents...")
-                    # chunks = splitter.split_documents(docs)
-                    chunks = self.best_data_ingest_pipeline.ingest()
+                    chunks = self.best_data_ingest_pipeline.ingest(status=None)
                     if not chunks:
                         raise PipelineError("No chunks were generated from the documents")
                     
-                    self.logger.info("Creating BM25 retriever...")
+                    # status.update("[status]Creating BM25 retriever...[/status]")
                     retriever = BM25Retriever.from_documents(
                         chunks,
                         **retriever_config.retriever_kwargs
                     )
-                    self.logger.info("Created BM25 retriever")
+                    # status.update("[status]Created BM25 retriever[/status]")
                 
                 elif retriever_config.type == RetrieverType.GRAPH_RETRIEVER:
                     # Get graph from DocumentStore
                     # embeddings = AzureOpenAIEmbeddings(model="text-embedding-3-large")
+                    # status.update("[status]Getting graph from DocumentStore...[/status]")
                     embeddings = self.best_data_ingest_pipeline.embedder
                     graph = self.store.get_graph()
                     if not graph:
                         raise PipelineError("No graph found in DocumentStore")
                     
+                    # status.update("[status]Creating Neo4j graph retriever...[/status]")
+                    from ragbuilder.graph_utils.graph_retriever import Neo4jGraphRetriever
                     retriever = Neo4jGraphRetriever(
                         graph=graph,
                         top_k=retriever_config.retriever_k[0],
                         embeddings=embeddings,
                         **retriever_config.retriever_kwargs
                     )
-                    self.logger.info("Created Neo4j graph retriever")
+                    # status.update("[status]Created Neo4j graph retriever[/status]")
 
                 elif retriever_config.type == RetrieverType.CUSTOM:
                     retriever = self._instantiate_custom_class(
@@ -204,27 +192,34 @@ class RetrieverPipeline:
             except Exception as e:
                 self.logger.error(f"Failed to create {retriever_config.type} retriever: {str(e)}")
                 raise ComponentError(f"Failed to create base retriever: {str(e)}") from e
-
+            
+        
         if len(retrievers) == 1:
             return retrievers[0]
         
-        self.logger.info("Creating ensemble retriever...")
+        # status.update("[status]Creating ensemble retriever...[/status]")
+        # self.logger.debug("Creating ensemble retriever...")
         if not any(weights):
-            self.logger.warning("No weights specified, using equal weights")
-            return EnsembleRetriever(retrievers=retrievers)
+            # self.logger.warning("No weights specified, using equal weights")
+            retriever = EnsembleRetriever(retrievers=retrievers)
+            # status.update("[status]Created ensemble retriever[/status]")
+            return retriever
         else:
             total = sum(weights)
             weights = [w/total for w in weights]
-            self.logger.info("Created ensemble retriever")
-            return EnsembleRetriever(retrievers=retrievers, weights=weights)
+            # self.logger.debug("Created ensemble retriever")
+            retriever = EnsembleRetriever(retrievers=retrievers, weights=weights)
+            # status.update("[status]Created ensemble retriever[/status]")
+            return retriever
 
     def _create_reranker(self, config: RerankerConfig):
         """Create a reranker from configuration."""
         try:
-            self.logger.info("Creating reranker...")
+            self.logger.debug("Creating reranker...")
             if config.type == RerankerType.CUSTOM:
                 if "model_name" in config.reranker_kwargs:
                     # Handle custom HuggingFace models
+                    Reranker = RERANKER_MAP[config.type]['lazy_load']()
                     ranker = Reranker(
                         config.reranker_kwargs["model_name"],
                         model_type=config.reranker_kwargs.get("model_type"),
@@ -256,7 +251,7 @@ class RetrieverPipeline:
                 config.type.value,  # model name/path
                 **merged_kwargs
             )
-            self.logger.info("Created reranker")
+            self.logger.debug("Created reranker")
             return ranker.as_langchain_compressor(k=self.final_k)
             
         except Exception as e:
@@ -283,7 +278,7 @@ class RetrieverPipeline:
                 base_compressor=compressor,
                 base_retriever=retriever
             )
-        
+        console.print("[success]✓ Pipeline execution complete![/success]")
         return retriever
 
     def _instantiate_custom_class(self, class_path: str, *args: Any, **kwargs: Any) -> Any:

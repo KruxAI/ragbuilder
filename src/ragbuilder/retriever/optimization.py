@@ -7,7 +7,13 @@ import numpy as np
 from langchain.schema import Document
 
 from ragbuilder.config import LogConfig, RetrievalOptionsConfig, RetrievalConfig
-from ragbuilder.core import DocumentStore, ConfigStore, DBLoggerCallback, setup_rich_logging, console
+from ragbuilder.core import (
+    DocumentStore, 
+    ConfigStore, 
+    DBLoggerCallback, 
+    setup_rich_logging, 
+    console
+)
 from ragbuilder.core.exceptions import OptimizationError
 from ragbuilder.retriever.pipeline import RetrieverPipeline
 from .evaluation import Evaluator, RetrieverF1ScoreEvaluator
@@ -20,14 +26,16 @@ class RetrieverOptimization:
         self, 
         options_config: RetrievalOptionsConfig, 
         evaluator: Evaluator, 
+        vectorstore: Optional[Any] = None,
         show_progress_bar: bool = True,
-        callback=None, 
-        vectorstore: Optional[Any] = None
+        verbose: bool = False,
+        callback=None
     ):
         self.options_config = options_config
         self.evaluator = evaluator
         self.show_progress_bar = show_progress_bar
         self.logger = logging.getLogger("ragbuilder.retriever.optimizer")
+        self.verbose = verbose
         self.best_config = CONFIG_STORE.get_best_config()
         if not self.best_config:
             raise OptimizationError("No optimized data ingestion configuration found")
@@ -55,7 +63,7 @@ class RetrieverOptimization:
                     module_type='retriever'
                 )
                 self.callbacks.append(db_callback)
-                self.logger.info("Database logging enabled")
+                self.logger.debug("Database logging enabled")
             except Exception as e:
                 self.logger.warning(f"Failed to initialize database logging: {e}")
 
@@ -144,6 +152,7 @@ class RetrieverOptimization:
             "rerankers": rerankers,
             "top_k": final_k
         }
+        
         self.logger.debug(f"Trial parameters: {params}")
 
         return RetrievalConfig(**params)
@@ -162,33 +171,14 @@ class RetrieverOptimization:
                     self.logger.info(f"Config already evaluated with score: {t.value}")
                     return t.value
             
-            self.logger.info(f"Running pipeline with config: {config}")
+            if self.verbose:
+                self.logger.info(f"Running pipeline with config: {config}")
+            
             # Create retriever pipeline
-            pipeline = RetrieverPipeline(config=config, vectorstore=self.vectorstore)
-            
-            # Evaluate retrieval performance
-            # metrics = []
-            # for test_query in self.test_queries:
-            #     retrieved_docs = pipeline.retrieve(test_query["query"])
-            #     score = evaluate_retrieval(
-            #         retrieved_docs,
-            #         test_query["relevant_docs"],
-            #         metrics=self.options_config.evaluation_config.metrics
-            #     )
-            #     metrics.append(score)
-            
-            # # Average metrics across test queries
-            # avg_metrics = {
-            #     k: np.mean([m[k] for m in metrics])
-            #     for k in metrics[0].keys()
-            # }
+            pipeline = RetrieverPipeline(config=config, vectorstore=self.vectorstore, verbose=self.verbose)
             avg_score, question_details = self.evaluator.evaluate(pipeline)
-
             metrics = self._calculate_aggregate_metrics(question_details)
             
-            # Store results
-            # trial.set_user_attr("config", config.model_dump())
-            # trial.set_user_attr("metrics", avg_metrics)
             # Store results in study's user attributes
             trial.study.set_user_attr(
                 f"trial_{trial.number}_results",
@@ -206,7 +196,7 @@ class RetrieverOptimization:
                 except Exception as e:
                     self.logger.warning(f"Callback error: {e}")
             
-            console.print(f"[success]Trial Score:[/success] [value]{avg_score:.4f}[/value]")
+            self.logger.debug(f"Trial Score: {avg_score:.4f}")
             return avg_score
             
         except Exception as e:
@@ -325,7 +315,8 @@ def run_retrieval_optimization(
         options_config, 
         evaluator, 
         vectorstore=vectorstore,
-        show_progress_bar=log_config.show_progress_bar if log_config else True
+        show_progress_bar=log_config.show_progress_bar,
+        verbose=log_config.verbose
     )
     
     results = optimizer.optimize()

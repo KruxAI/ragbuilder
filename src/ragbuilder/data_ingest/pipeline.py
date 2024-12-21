@@ -18,15 +18,19 @@ from ragbuilder.config.data_ingest import DataIngestConfig
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from ragbuilder.core.exceptions import RAGBuilderError, ConfigurationError, ComponentError, PipelineError
 from ragbuilder.core.document_store import DocumentStore
+from ragbuilder.sampler import DataSampler
 
 class DataIngestPipeline:
-    def __init__(self, config: DataIngestConfig, documents: List[Document] = None):
+    def __init__(self, config: DataIngestConfig, documents: List[Document] = None, verbose: bool = False):
         self._validate_config(config)
         self.config = config
         self.logger = logging.getLogger("ragbuilder")
-        self.doc_store = DocumentStore()
-        
-        # Generate unique keys for caching
+        self.verbose = verbose
+        self.doc_store = DocumentStore()        
+        self.data_source_type = 'url' if urlparse(self.config.input_source).scheme in ['http', 'https'] else (
+            'dir' if os.path.isdir(self.config.input_source) else 'file'
+        )
+        self.data_source_size = None
         self.loader_key = self._get_loader_key()
         self.config_key = self._get_config_key()
         
@@ -34,8 +38,7 @@ class DataIngestPipeline:
         self.chunker = self._create_chunker()
         self.embedder = self._create_embedder()
         self.indexer = None
-        
-        # Get cached documents or store provided ones
+        self.enable_sampling = self.config.sampling_rate is not None and self.config.sampling_rate < 1
         self._documents = documents if documents is not None else self._get_or_load_documents()
 
     def _make_hashable(self, obj: Any) -> Any:
@@ -75,24 +78,73 @@ class DataIngestPipeline:
     def _get_or_load_documents(self) -> List[Document]:
         """Get documents from cache or load them"""
         if self.doc_store.has_documents(self.loader_key):
-            self.logger.info(f"Using cached documents for loader: {self.config.document_loader.type}")
+            self.logger.debug(f"Using cached documents for loader: {self.config.document_loader.type}")
+            self.data_source_size = self.doc_store.get_metadata(self.loader_key).get("data_source_size", 0)
             return self.doc_store.get_documents(self.loader_key)
 
-        self.logger.info(f"Loading documents with loader: {self.config.document_loader.type}")
-        documents = self._create_parser().load()
+        self.logger.debug(f"Loading documents with loader: {self.config.document_loader.type}")
+        
+        input_source = self.config.input_source
+        sampling_metadata = {}
+    
+        
+        # Check if we already have sampled data for this input source
+        cached_sample = self.doc_store.get_sampled_data(input_source)
+        if cached_sample:
+            self.logger.debug("Using previously sampled data...")
+            input_source = cached_sample["sampled_path"]
+            sampling_metadata = cached_sample["metadata"]
+            self.data_source_size = sampling_metadata.get("original_size", 0)
+        else:
+            # TODO: Pass loader spec to sampler to sample using that particular loader
+            sampler = DataSampler(
+                input_source,
+                enable_sampling=self.enable_sampling,
+                sample_ratio=self.config.sampling_rate
+            )
+            
+            self.data_source_size = sampler.estimate_data_size()
+                
+            if self.enable_sampling:
+                self.logger.info("Sampling data before loading...")
+                sampled_path = sampler.sample_data()
+                self.logger.debug(f"Using sampled data from: {sampled_path}")
+                
+                sampling_metadata = {
+                    "sampled": True,
+                    "sampling_ratio": self.config.sampling_rate,
+                    "original_size": self.data_source_size
+                }
+                
+                # Cache the sampled data path and metadata
+                self.doc_store.store_sampled_data(
+                    input_source, 
+                    sampled_path,
+                    sampling_metadata
+                )
+                
+                input_source = sampled_path
+        
+        documents = self._create_parser(input_source).load()
+        
         if not documents:
             raise PipelineError("No documents were loaded from the input source")
         
         # Store documents with metadata
+        metadata = {
+            "loader_type": self.config.document_loader.type,
+            "loader_kwargs": self.config.document_loader.loader_kwargs,
+            "input_source": self.config.input_source,
+            "data_source_type": self.data_source_type,
+            "data_source_size": self.data_source_size,
+            "timestamp": time.time(),
+            **sampling_metadata
+        }
+        
         self.doc_store.store_documents(
             self.loader_key, 
             documents,
-            metadata={
-                "loader_type": self.config.document_loader.type,
-                "loader_kwargs": self.config.document_loader.loader_kwargs,
-                "input_source": self.config.input_source,
-                "timestamp": time.time()
-            }
+            metadata=metadata
         )
         
         return documents
@@ -110,50 +162,51 @@ class DataIngestPipeline:
         if not config.vector_database:
             raise ConfigurationError("Vector database configuration is required")
 
-    def _create_parser(self):
+    def _create_parser(self, input_source: str):
         try:
-            if not self.config.input_source:
+            if not input_source:
                 raise ConfigurationError("Input source cannot be empty")
             
-            if not os.path.exists(self.config.input_source) and not urlparse(self.config.input_source).scheme:
-                raise ConfigurationError(f"Unable to access input source: {self.config.input_source}")
+            if not os.path.exists(input_source) and not urlparse(input_source).scheme:
+                raise ConfigurationError(f"Unable to access input source: {input_source}")
+            
             
             if self.config.document_loader.type == ParserType.CUSTOM:
                 return self._instantiate_custom_class(
                     self.config.document_loader.custom_class,
-                    self.config.input_source,
+                    input_source,
                     **(self.config.document_loader.loader_kwargs or {})
                 )
             
             loader_kwargs = self.config.document_loader.loader_kwargs or {}
             
             # URL handling
-            if urlparse(self.config.input_source).scheme in ['http', 'https']:
+            if self.data_source_type == 'url':
                 web_loader_class = LOADER_MAP[ParserType.WEB]()
-                return web_loader_class(self.config.input_source, **loader_kwargs)
+                return web_loader_class(input_source, **loader_kwargs)
             
             # Directory handling
-            elif os.path.isdir(self.config.input_source):
+            elif self.data_source_type == 'dir':
                 glob_pattern = loader_kwargs.pop('glob', '*')
                 loader_class = LOADER_MAP.get(self.config.document_loader.type)()
                 if not loader_class:
                     raise ValueError(f"Unsupported document loader type: {self.config.document_loader.type}")
                 directory_loader_class = LOADER_MAP[ParserType.DIRECTORY]()
                 return directory_loader_class(
-                    self.config.input_source,
+                    input_source,
                     glob=glob_pattern,
                     loader_cls=loader_class,
                     loader_kwargs=loader_kwargs
                 )
             
             # Single file handling
-            elif os.path.isfile(self.config.input_source):
+            elif self.data_source_type == 'file':
                 loader_class = LOADER_MAP.get(self.config.document_loader.type)()
                 if not loader_class:
                     raise ValueError(f"Unsupported document loader type: {self.config.document_loader.type}")
-                return loader_class(self.config.input_source, **loader_kwargs)
+                return loader_class(input_source, **loader_kwargs)
             
-            raise ValueError(f"Unsupported input source: {self.config.input_source}")
+            raise ValueError(f"Unsupported input source: {input_source}")
             
         except Exception as e:
             raise ComponentError(f"Failed to create document parser: {str(e)}") from e
@@ -245,41 +298,53 @@ class DataIngestPipeline:
         return custom_class(*args, **kwargs)
 
 
-    def ingest(self):
+    def ingest(self, status=None):
         try:
-            with console.status("[status]Running pipeline...[/status]") as status:
-                if self._documents is None:
-                    raise PipelineError("No documents were loaded from the input source")
-                
-                status.update("[status]Chunking documents...[/status]")
-                chunks = self.chunker.split_documents(self._documents)
-                if not chunks:
-                    raise ValueError("No chunks were generated from the documents")
-                
-                print("Chunking done", len(chunks))
-                # console.print("[success]✓ Pipeline execution complete![/success]")
-                return chunks
+            if status is None:
+                with console.status("[status]Running pipeline...[/status]") as status:
+                    return self._ingest(status)
+            else:
+                return self._ingest(status)
             
         except RAGBuilderError as e:
             console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
             console.print_exception()
             raise
+
+    def _ingest(self, status):
+        if self._documents is None:
+            raise PipelineError("No documents were loaded from the input source")
+        
+        if self.verbose:
+            status.update("[status]Chunking documents...[/status]")
+        chunks = self.chunker.split_documents(self._documents)
+        if not chunks:
+            raise ValueError("No chunks were generated from the documents")
+        
+        self.logger.debug("Chunking done", len(chunks))
+        # console.print("[success]✓ Pipeline execution complete![/success]")
+        return chunks
+
     
     def run(self):
         try:
             with console.status("[status]Running pipeline...[/status]") as status:
                 # Check vectorstore cache first
                 if vectorstore := self.doc_store.get_vectorstore(self.config_key):
-                    self.logger.info(f"Using cached vectorstore for config: {self.config_key}")
+                    self.logger.debug(f"Using cached vectorstore for config: {self.config_key}")
                     self.indexer = vectorstore
                     return vectorstore
                 
-                status.update("[status]Chunking documents...[/status]")
+                if self.verbose:
+                    status.update("[status]Chunking documents...[/status]")
+                
                 chunks = self.chunker.split_documents(self._documents)
                 if not chunks:
                     raise ValueError("No chunks were generated from the documents")
                 
-                status.update("[status]Creating vector index...[/status]")
+                if self.verbose:
+                    status.update("[status]Creating vector index...[/status]")
+                
                 self.indexer = self._create_indexer(chunks)
                 
                 # Store vectorstore in cache
@@ -287,6 +352,7 @@ class DataIngestPipeline:
                 
                 console.print("[success]✓ Pipeline execution complete![/success]")
                 return self.indexer
+            
             
         except RAGBuilderError as e:
             console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")

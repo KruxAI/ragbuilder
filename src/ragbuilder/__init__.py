@@ -1,4 +1,8 @@
-from .core.builder import RAGBuilder, DataIngestOptionsConfig, RetrievalOptionsConfig
+from .core.builder import RAGBuilder
 
-__version__ = "0.1.0"
-__all__ = ['RAGBuilder', 'DataIngestOptionsConfig', 'RetrievalOptionsConfig']
+try:
+    from ._version import version as __version__
+except ImportError:
+    __version__ = "unknown version"
+
+__all__ = ['RAGBuilder', '__version__']

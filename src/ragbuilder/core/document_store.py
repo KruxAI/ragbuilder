@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Any
 from langchain.docstore.document import Document
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +11,7 @@ class DocumentStore:
     _documents: Dict[str, List[Document]] = {}
     _metadata: Dict[str, Dict] = {}  # Store metadata about each document set
     _vectorstores: Dict[str, Any] = {}  # Store vectorstores
+    _sampled_paths: Dict[str, Dict[str, Any]] = {}  # Store sampled data paths and metadata
     _best_config_key: Optional[str] = None  # New property to store best config key
     _graph: Optional[Any] = None
 
@@ -24,7 +26,7 @@ class DocumentStore:
         cls._documents[key] = documents
         if metadata:
             cls._metadata[key] = metadata
-        logger.info(f"Stored {len(documents)} documents with key: {key}")
+        logger.debug(f"Stored {len(documents)} documents with key: {key}")
 
     @classmethod
     def get_documents(cls, key: str) -> Optional[List[Document]]:
@@ -46,10 +48,11 @@ class DocumentStore:
 
     @classmethod
     def clear(cls):
-        """Clear all stored documents, metadata, and vectorstores"""
+        """Clear all stored documents, metadata, vectorstores, and sampled paths"""
         cls._documents.clear()
         cls._metadata.clear()
         cls._vectorstores.clear()
+        cls._sampled_paths.clear()
         cls._graph = None
         cls._best_config_key = None
         cls._best_loader_key = None
@@ -100,7 +103,7 @@ class DocumentStore:
     def store_vectorstore(cls, key: str, vectorstore: Any):
         """Store vectorstore for a given configuration"""
         cls._vectorstores[key] = vectorstore
-        logger.info(f"Stored vectorstore with key: {key}")
+        logger.debug(f"Stored vectorstore with key: {key}")
 
     @classmethod
     def get_vectorstore(cls, key: str) -> Optional[Any]:
@@ -123,7 +126,7 @@ class DocumentStore:
     def store_graph(cls, graph: Any):
         """Store a knowledge graph"""
         cls._graph = graph
-        logger.info(f"Stored knowledge graph")
+        logger.debug(f"Stored knowledge graph")
 
     @classmethod
     def get_graph(cls) -> Optional[Any]:
@@ -131,3 +134,21 @@ class DocumentStore:
         if cls._graph is None:
             logger.debug("No graph found")
         return cls._graph
+
+    @classmethod
+    def store_sampled_data(cls, original_path: str, sampled_path: str, metadata: Dict[str, Any]):
+        """Store sampled data path and its metadata"""
+        cls._sampled_paths[original_path] = {
+            "sampled_path": sampled_path,
+            "metadata": metadata,
+            "timestamp": time.time()
+        }
+        logger.debug(f"Stored sampled data path for {original_path}")
+
+    @classmethod
+    def get_sampled_data(cls, original_path: str) -> Optional[Dict[str, Any]]:
+        """Retrieve sampled data path and metadata for an original path"""
+        if original_path in cls._sampled_paths:
+            logger.debug(f"Found cached sampled data for {original_path}")
+            return cls._sampled_paths[original_path]
+        return None

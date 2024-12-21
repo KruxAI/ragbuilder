@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from typing import List, Optional, Union, Dict, Any
 import yaml
 from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType, LLMType
-from .base import OptimizationConfig, EvaluationConfig, LogConfig
+from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata, EvalDataGenerationConfig
 
 # class LLMConfig(BaseModel):
 #     model_config  = ConfigDict(protected_namespaces=())
@@ -106,6 +106,10 @@ class DataIngestOptionsConfig(BaseModel):
         description="Evaluation configuration"
     )
     graph: Optional[GraphConfig] = Field(default=None, description="Graph configuration")
+    metadata: Optional[ConfigMetadata] = Field(
+        default_factory=ConfigMetadata,
+        description="Metadata about the configuration"
+    )
 
     @classmethod
     def with_defaults(cls, input_source: str, test_dataset: Optional[str] = None) -> 'DataIngestOptionsConfig':
@@ -143,12 +147,14 @@ class DataIngestOptionsConfig(BaseModel):
             evaluation_config=EvaluationConfig(
                 type=EvaluatorType.SIMILARITY,
                 test_dataset=test_dataset,
+                eval_data_generation_config=EvalDataGenerationConfig(),
                 evaluator_kwargs={
                     "top_k": 5,
                     "position_weights": None,
                     "relevance_threshold": 0.75
                 }
-            )
+            ),
+            metadata=ConfigMetadata(is_default=True)
         )
 
 class DataIngestConfig(BaseModel):
@@ -177,6 +183,7 @@ class DataIngestConfig(BaseModel):
         default_factory=lambda: VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={}), 
         description="Vector store configuration"
     )
+    sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
 
 def load_config(file_path: str) -> Union[DataIngestOptionsConfig, DataIngestConfig]:
     with open(file_path, 'r') as file:
