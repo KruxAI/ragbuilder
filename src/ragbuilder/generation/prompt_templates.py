@@ -1,9 +1,11 @@
 from ragbuilder.config.generator import PromptTemplate
 import os
+import logging
 import yaml
 import requests
 from typing import List, Dict
 from ragbuilder.core import DBLoggerCallback, DocumentStore, ConfigStore, setup_rich_logging, console
+logger = logging.getLogger("ragbuilder.prompt_templates")
 
 class PromptTemplate:
     def __init__(self, name: str, template: str):
@@ -40,19 +42,19 @@ def load_prompts(
             raise ValueError("`local_prompt_template_path` must be provided when `read_local_only` is True.")
         if not os.path.exists(local_prompt_template_path):
             raise FileNotFoundError(f"Local file not found: {local_prompt_template_path}")
-        console.print(f"Loading prompts from local file: {local_prompt_template_path}")
+        logger.debug(f"Loading prompts from local file: {local_prompt_template_path}")
         with open(local_prompt_template_path, 'r') as f:
             yaml_content_local = f.read()
-        console.print(f"Loading Prompts from {local_prompt_template_path}")
+        logger.debug(f"Loading Prompts from {local_prompt_template_path}")
     # Handle loading from the local file if specified
     elif local_prompt_template_path and os.path.exists(local_prompt_template_path):
-        console.print(f"Loading prompts from local file: {local_prompt_template_path}")
+        logger.debug(f"Loading prompts from local file: {local_prompt_template_path}")
         with open(local_prompt_template_path, 'r') as f:
             yaml_content_local = f.read()
 
     # Handle loading from the online source if specified
     if not read_local_only and prompt_template_path:
-        console.print(f"Fetching prompts from online file: {prompt_template_path}")
+        logger.debug(f"Fetching prompts from online file: {prompt_template_path}")
         try:
             response = requests.get(prompt_template_path)
             response.raise_for_status()

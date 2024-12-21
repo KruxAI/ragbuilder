@@ -26,7 +26,7 @@ class DocumentStore:
         cls._documents[key] = documents
         if metadata:
             cls._metadata[key] = metadata
-        logger.info(f"Stored {len(documents)} documents with key: {key}")
+        logger.debug(f"Stored {len(documents)} documents with key: {key}")
 
     @classmethod
     def get_documents(cls, key: str) -> Optional[List[Document]]:
@@ -103,7 +103,7 @@ class DocumentStore:
     def store_vectorstore(cls, key: str, vectorstore: Any):
         """Store vectorstore for a given configuration"""
         cls._vectorstores[key] = vectorstore
-        logger.info(f"Stored vectorstore with key: {key}")
+        logger.debug(f"Stored vectorstore with key: {key}")
 
     @classmethod
     def get_vectorstore(cls, key: str) -> Optional[Any]:
@@ -126,7 +126,7 @@ class DocumentStore:
     def store_graph(cls, graph: Any):
         """Store a knowledge graph"""
         cls._graph = graph
-        logger.info(f"Stored knowledge graph")
+        logger.debug(f"Stored knowledge graph")
 
     @classmethod
     def get_graph(cls) -> Optional[Any]:
@@ -143,7 +143,7 @@ class DocumentStore:
             "metadata": metadata,
             "timestamp": time.time()
         }
-        logger.info(f"Stored sampled data path for {original_path}")
+        logger.debug(f"Stored sampled data path for {original_path}")
 
     @classmethod
     def get_sampled_data(cls, original_path: str) -> Optional[Dict[str, Any]]:

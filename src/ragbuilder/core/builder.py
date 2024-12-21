@@ -11,17 +11,12 @@ from ragbuilder.generate_data import TestDatasetManager
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from ragbuilder.core.telemetry import telemetry
 from .exceptions import DependencyError
-import logging
 import yaml
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
 
-# TODO: Bring generation entry point here
-# - Add optimize_generation method
-# - Handle retriever as a argument vs using optimized retriever
-# - Save the results
-# TODO: Return consistent results across optimize methods - ideally dict of whatever relevant
+# TODO: Return consistent results across optimize methods - ideally create a results object
 class RAGBuilder:
     def __init__(
             self, 
@@ -117,12 +112,12 @@ class RAGBuilder:
                     config.evaluation_config.test_dataset = self._data_ingest_config.evaluation_config.test_dataset
                 else:
                     config.eval_data_set_path = self._data_ingest_config.evaluation_config.test_dataset
-                    self.logger.info(f"Reusing test dataset from data ingestion: {config.eval_data_set_path}")
+                    self.logger.debug(f"Reusing test dataset from data ingestion: {config.eval_data_set_path}")
                 return
             
             elif (self._retrieval_config and self._retrieval_config.evaluation_config.test_dataset):
                 config.eval_data_set_path = self._retrieval_config.evaluation_config.test_dataset
-                self.logger.info(f"Reusing test dataset from retrieval: {config.eval_data_set_path}")
+                self.logger.debug(f"Reusing test dataset from retrieval: {config.eval_data_set_path}")
                 return
             
             if not hasattr(config, 'input_source'):
@@ -143,7 +138,7 @@ class RAGBuilder:
                 config.evaluation_config.test_dataset = test_dataset
             else:
                 config.eval_data_set_path = test_dataset
-            self.logger.info(f"Eval dataset: {test_dataset}")
+            self.logger.debug(f"Eval dataset: {test_dataset}")
 
 
     def optimize_data_ingest(self, config: Optional[DataIngestOptionsConfig] = None) -> Dict[str, Any]:
@@ -160,7 +155,6 @@ class RAGBuilder:
             raise ValueError("No data ingestion configuration provided")
 
         self._ensure_eval_dataset(self._data_ingest_config)
-        self.logger.info("Starting data ingestion optimization")
         
         with telemetry.optimization_span("data_ingest", self._data_ingest_config.model_dump()) as span:
             try:
@@ -267,7 +261,8 @@ class RAGBuilder:
             try:
                 results = run_generation_optimization(
                     self._generation_config, 
-                    retriever=self._optimized_retriever
+                    retriever=self._optimized_retriever,
+                    log_config=self._log_config
                 )
                 
                 # Store results and update telemetry

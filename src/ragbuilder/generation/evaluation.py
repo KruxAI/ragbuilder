@@ -35,7 +35,7 @@ class Evaluator(ABC):
 class RAGASEvaluator(Evaluator):
     def __init__(self) -> None:
         super().__init__()
-        self.logger.info("RAGASEvaluator initiated")
+        self.logger.debug("RAGASEvaluator initiated")
 
     def get_eval_dataset(self, eval_dataset_path) -> Dataset:
         """
@@ -95,8 +95,8 @@ class RAGASEvaluator(Evaluator):
         selected_columns = ["prompt_key", "prompt", "question", "answer", "ground_truth", "answer_correctness", "faithfulness", "answer_relevancy", "context_precision", "context_recall", 'config']
         result_df[selected_columns].to_csv(output_csv_path, index=False)
         
-        self.logger.info("Prompt evaluation completed")
-        console.print(f"[success]Evaluation results saved to: {output_csv_path}[/success]")
-        console.print(Dataset.from_pandas(result_df[selected_columns]))
+        self.logger.debug("Prompt evaluation completed")
+        self.logger.debug(f"Evaluation results saved to: {output_csv_path}")
+        self.logger.debug(Dataset.from_pandas(result_df[selected_columns]))
         
         return Dataset.from_pandas(result_df[selected_columns])

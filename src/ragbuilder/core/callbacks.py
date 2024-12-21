@@ -38,7 +38,7 @@ class DBLoggerCallback(Protocol):
         try:
             self._init_tables()
             self.run_id = self._create_run()
-            logger.info(f"Initialized DB logging for run_id: {self.run_id}")
+            logger.debug(f"Initialized DB logging for run_id: {self.run_id}")
         except Exception as e:
             logger.warning(f"Failed to initialize database logging: {e}")
 

@@ -10,6 +10,7 @@ from rich.progress import (
 )
 from rich.theme import Theme
 import logging
+import optuna
 
 # Define a custom theme that works well in both light and dark modes
 custom_theme = Theme({
@@ -27,13 +28,15 @@ custom_theme = Theme({
 
 console = Console(theme=custom_theme)
 
-def setup_rich_logging(log_level=logging.INFO, log_file=None):
+def setup_rich_logging(log_level=logging.INFO, log_file=None, verbose=False):
     """Configure rich logging with optional file output"""
     # Suppress HTTP request logs from specific libraries
     logging.getLogger("openai").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("chromadb.telemetry").setLevel(logging.WARNING)
     logging.getLogger("ragas.testset.evolutions").setLevel(logging.WARNING)
+    logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+    logging.getLogger("pikepdf._core").setLevel(logging.WARNING)
     
     logging.basicConfig(
         level=log_level,
@@ -42,10 +45,11 @@ def setup_rich_logging(log_level=logging.INFO, log_file=None):
         handlers=[
             RichHandler(
                 console=console,
-                rich_tracebacks=True,
+                rich_tracebacks=False,
                 markup=True,
                 show_time=True,
-                show_level=True
+                show_level=True,
+                show_path=False
             )
         ]
     )

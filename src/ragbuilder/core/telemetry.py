@@ -71,7 +71,7 @@ class RAGBuilderTelemetry:
             trace_provider = TracerProvider(resource=resource)
             trace_exporter = OTLPSpanExporter(
                 endpoint="https://api.honeycomb.io/v1/traces",
-                headers={"x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY", "CM7BwTAsHffuxBeRgyJpkN")}
+                headers={"x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY", "hcaik_01jfmbeze0tvzt6rwv3dvcc276addbpctde4kyv3bq2f7zbng30fqjysq7")}
             )
             trace_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
             trace.set_tracer_provider(trace_provider)
@@ -81,7 +81,7 @@ class RAGBuilderTelemetry:
             metric_exporter = OTLPMetricExporter(
                 endpoint="https://api.honeycomb.io/v1/metrics",
                 headers={
-                    "x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY", "CM7BwTAsHffuxBeRgyJpkN"),
+                    "x-honeycomb-team": os.getenv("HONEYCOMB_API_KEY", "hcaik_01jfmbeze0tvzt6rwv3dvcc276addbpctde4kyv3bq2f7zbng30fqjysq7"),
                     "x-honeycomb-dataset": "ragbuilder-metrics"
                 },
                 preferred_temporality={Counter: AggregationTemporality.DELTA}

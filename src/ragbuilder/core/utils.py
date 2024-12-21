@@ -62,7 +62,7 @@ def load_environment(env_path: Optional[str] = None) -> None:
     try:
         loaded = load_dotenv(dotenv_path=env_path, override=True)
         if loaded:
-            logger.info(f"Loaded environment variables from {env_path or '.env'}")
+            logger.debug(f"Loaded environment variables from {env_path or '.env'}")
         else:
             logger.debug(f"No environment variables loaded from {env_path or '.env'}")
     except Exception as e:

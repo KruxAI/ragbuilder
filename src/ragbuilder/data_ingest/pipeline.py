@@ -21,10 +21,11 @@ from ragbuilder.core.document_store import DocumentStore
 from ragbuilder.sampler import DataSampler
 
 class DataIngestPipeline:
-    def __init__(self, config: DataIngestConfig, documents: List[Document] = None):
+    def __init__(self, config: DataIngestConfig, documents: List[Document] = None, verbose: bool = False):
         self._validate_config(config)
         self.config = config
         self.logger = logging.getLogger("ragbuilder")
+        self.verbose = verbose
         self.doc_store = DocumentStore()        
         self.data_source_type = 'url' if urlparse(self.config.input_source).scheme in ['http', 'https'] else (
             'dir' if os.path.isdir(self.config.input_source) else 'file'
@@ -38,8 +39,6 @@ class DataIngestPipeline:
         self.embedder = self._create_embedder()
         self.indexer = None
         self.enable_sampling = self.config.sampling_rate is not None and self.config.sampling_rate < 1
-        
-        # Get cached documents or store provided ones
         self._documents = documents if documents is not None else self._get_or_load_documents()
 
     def _make_hashable(self, obj: Any) -> Any:
@@ -79,11 +78,11 @@ class DataIngestPipeline:
     def _get_or_load_documents(self) -> List[Document]:
         """Get documents from cache or load them"""
         if self.doc_store.has_documents(self.loader_key):
-            self.logger.info(f"Using cached documents for loader: {self.config.document_loader.type}")
+            self.logger.debug(f"Using cached documents for loader: {self.config.document_loader.type}")
             self.data_source_size = self.doc_store.get_metadata(self.loader_key).get("data_source_size", 0)
             return self.doc_store.get_documents(self.loader_key)
 
-        self.logger.info(f"Loading documents with loader: {self.config.document_loader.type}")
+        self.logger.debug(f"Loading documents with loader: {self.config.document_loader.type}")
         
         input_source = self.config.input_source
         sampling_metadata = {}
@@ -92,7 +91,7 @@ class DataIngestPipeline:
         # Check if we already have sampled data for this input source
         cached_sample = self.doc_store.get_sampled_data(input_source)
         if cached_sample:
-            self.logger.info("Using previously sampled data...")
+            self.logger.debug("Using previously sampled data...")
             input_source = cached_sample["sampled_path"]
             sampling_metadata = cached_sample["metadata"]
             self.data_source_size = sampling_metadata.get("original_size", 0)
@@ -109,7 +108,7 @@ class DataIngestPipeline:
             if self.enable_sampling:
                 self.logger.info("Sampling data before loading...")
                 sampled_path = sampler.sample_data()
-                self.logger.info(f"Using sampled data from: {sampled_path}")
+                self.logger.debug(f"Using sampled data from: {sampled_path}")
                 
                 sampling_metadata = {
                     "sampled": True,
@@ -299,41 +298,53 @@ class DataIngestPipeline:
         return custom_class(*args, **kwargs)
 
 
-    def ingest(self):
+    def ingest(self, status=None):
         try:
-            with console.status("[status]Running pipeline...[/status]") as status:
-                if self._documents is None:
-                    raise PipelineError("No documents were loaded from the input source")
-                
-                status.update("[status]Chunking documents...[/status]")
-                chunks = self.chunker.split_documents(self._documents)
-                if not chunks:
-                    raise ValueError("No chunks were generated from the documents")
-                
-                print("Chunking done", len(chunks))
-                # console.print("[success]✓ Pipeline execution complete![/success]")
-                return chunks
+            if status is None:
+                with console.status("[status]Running pipeline...[/status]") as status:
+                    return self._ingest(status)
+            else:
+                return self._ingest(status)
             
         except RAGBuilderError as e:
             console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
             console.print_exception()
             raise
+
+    def _ingest(self, status):
+        if self._documents is None:
+            raise PipelineError("No documents were loaded from the input source")
+        
+        if self.verbose:
+            status.update("[status]Chunking documents...[/status]")
+        chunks = self.chunker.split_documents(self._documents)
+        if not chunks:
+            raise ValueError("No chunks were generated from the documents")
+        
+        self.logger.debug("Chunking done", len(chunks))
+        # console.print("[success]✓ Pipeline execution complete![/success]")
+        return chunks
+
     
     def run(self):
         try:
             with console.status("[status]Running pipeline...[/status]") as status:
                 # Check vectorstore cache first
                 if vectorstore := self.doc_store.get_vectorstore(self.config_key):
-                    self.logger.info(f"Using cached vectorstore for config: {self.config_key}")
+                    self.logger.debug(f"Using cached vectorstore for config: {self.config_key}")
                     self.indexer = vectorstore
                     return vectorstore
                 
-                status.update("[status]Chunking documents...[/status]")
+                if self.verbose:
+                    status.update("[status]Chunking documents...[/status]")
+                
                 chunks = self.chunker.split_documents(self._documents)
                 if not chunks:
                     raise ValueError("No chunks were generated from the documents")
                 
-                status.update("[status]Creating vector index...[/status]")
+                if self.verbose:
+                    status.update("[status]Creating vector index...[/status]")
+                
                 self.indexer = self._create_indexer(chunks)
                 
                 # Store vectorstore in cache
@@ -341,6 +352,7 @@ class DataIngestPipeline:
                 
                 console.print("[success]✓ Pipeline execution complete![/success]")
                 return self.indexer
+            
             
         except RAGBuilderError as e:
             console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")

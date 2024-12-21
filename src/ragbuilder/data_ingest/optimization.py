@@ -15,10 +15,18 @@ from langchain.docstore.document import Document
 from ragbuilder.graph_utils.graph_loader import load_graph 
 
 class DataIngestOptimizer:
-    def __init__(self, options_config: DataIngestOptionsConfig, evaluator: Evaluator, show_progress_bar: bool, callback=None):
+    def __init__(
+        self, 
+        options_config: DataIngestOptionsConfig, 
+        evaluator: Evaluator, 
+        show_progress_bar: bool, 
+        verbose: bool,
+        callback=None
+    ):
         self.options_config = options_config
         self.evaluator = evaluator
         self.show_progress_bar = show_progress_bar
+        self.verbose = verbose
         self.callbacks = []
         self.doc_store = DocumentStore()
         self.config_store = ConfigStore()
@@ -34,7 +42,7 @@ class DataIngestOptimizer:
                     module_type='data_ingest'
                 )
                 self.callbacks.append(db_callback)
-                self.logger.info("Database logging enabled")
+                self.logger.debug("Database logging enabled")
             except Exception as e:
                 self.logger.warning(f"Failed to initialize database logging: {e}")
         
@@ -87,7 +95,8 @@ class DataIngestOptimizer:
             "vector_database": vector_database,
             "sampling_rate": self.options_config.sampling_rate
         }
-        self.logger.info(f"Trial parameters: {params}")
+        
+        self.logger.debug(f"Trial parameters: {params}")        
         return DataIngestConfig(**params)
 
     def optimize(self):
@@ -104,7 +113,7 @@ class DataIngestOptimizer:
                     return t.value
             
             self.logger.debug(f"Running pipeline with config: {config}")
-            pipeline = DataIngestPipeline(config)
+            pipeline = DataIngestPipeline(config, verbose=self.verbose)
             pipeline.run()
             
             avg_score, question_details = self.evaluator.evaluate(pipeline)
@@ -154,8 +163,6 @@ class DataIngestOptimizer:
         )
 
         console.print(f"[heading]Optimization Complete![/heading]")
-        console.print(f"[success]Best Score:[/success] [value]{self.study.best_value:.4f}[/value]")
-        console.print("[success]Best Parameters:[/success]")
         # Translate indices to actual component names
         readable_params = {}
         for param, value in self.study.best_params.items():
@@ -169,8 +176,7 @@ class DataIngestOptimizer:
                 readable_params["vector_database"] = self.vector_db_map[value].type
             else:
                 readable_params[param] = value
-        
-        console.print(readable_params, style="value")
+        console.print(f"[success]Best Score:[/success] [value]{self.study.best_value:.4f}[/value]\n[success]Best Parameters:[/success]\n[value]{readable_params}[/value]")
         
         best_config = DataIngestConfig(
             input_source=self.options_config.input_source,
@@ -240,7 +246,12 @@ def run_data_ingest_optimization(options_config: DataIngestOptionsConfig, log_co
     else:
         evaluator = SimilarityEvaluator(options_config.evaluation_config)
     
-    optimizer = DataIngestOptimizer(options_config, evaluator, show_progress_bar=log_config.show_progress_bar)
+    optimizer = DataIngestOptimizer(
+        options_config, 
+        evaluator, 
+        show_progress_bar=log_config.show_progress_bar,
+        verbose=log_config.verbose
+    )
     best_config, best_score = optimizer.optimize()
     
     # Create pipeline with best config to ensure vectorstore is cached
@@ -271,7 +282,7 @@ def run_data_ingest_optimization(options_config: DataIngestOptionsConfig, log_co
             chunk_overlap=chunk_overlap,
             embedding_model=embedding_model
         )
-        pipeline = DataIngestPipeline(config)
+        pipeline = DataIngestPipeline(config, verbose=log_config.verbose)
         chunks = pipeline.ingest()
         
         llm_config = options_config.graph.llm

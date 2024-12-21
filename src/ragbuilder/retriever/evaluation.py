@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Tuple
-import json
 import pandas as pd
 import numpy as np
-from langchain.schema import Document
 from datasets import Dataset
 from ragas.metrics import (
     context_precision,
@@ -171,9 +169,7 @@ class RetrieverF1ScoreEvaluator(Evaluator):
                 }
                 question_details.append(detail)
             
-            console.print(f"\n[green]Average Score: {avg_score:.3f}[/green]")
-            console.print(f"Context Precision: {np.nanmean(result_df['context_precision']):.3f}")
-            console.print(f"Context Recall: {np.nanmean(result_df['context_recall']):.3f}")
+            console.print(f"\n[green]Average Score: {avg_score:.3f}[/green]\nContext Precision: {np.nanmean(result_df['context_precision']):.3f}\nContext Recall: {np.nanmean(result_df['context_recall']):.3f}")
             
             return avg_score, question_details
             
