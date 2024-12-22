@@ -78,10 +78,10 @@ class RAGASEvaluator(Evaluator):
             eval_dataset,
             metrics=[
                 answer_correctness,
-                faithfulness,
-                answer_relevancy,
-                context_precision,
-                context_recall,
+                # faithfulness,
+                # answer_relevancy,
+                # context_precision,
+                # context_recall,
             ],
             raise_exceptions=False, 
             llm=llm,
@@ -92,7 +92,8 @@ class RAGASEvaluator(Evaluator):
         result_df = result.to_pandas()
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_csv_path = 'rag_eval_results_' + timestamp + '.csv'
-        selected_columns = ["prompt_key", "prompt", "question", "answer", "ground_truth", "answer_correctness", "faithfulness", "answer_relevancy", "context_precision", "context_recall", 'config']
+        # selected_columns = ["prompt_key", "prompt", "question", "answer", "ground_truth", "answer_correctness", "faithfulness", "answer_relevancy", "context_precision", "context_recall", 'config']
+        selected_columns = ["prompt_key", "prompt", "question", "answer", "ground_truth", "answer_correctness", 'config']
         result_df[selected_columns].to_csv(output_csv_path, index=False)
         
         self.logger.debug("Prompt evaluation completed")

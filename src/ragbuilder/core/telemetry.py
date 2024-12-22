@@ -170,11 +170,15 @@ class RAGBuilderTelemetry:
                     
                 except Exception as e:
                     self._safe_set_attribute(span, "generation_success", False)
+                    self._safe_set_attribute(span, "error_type", e.__class__.__name__)
+                    self._safe_set_attribute(span, "error_message", str(e))
                     raise e
                     
         except Exception as e:
             logger.debug(f"Error in eval data generation span: {e}")
-            yield None
+            if span is None:
+                yield None
+            raise
 
     @contextmanager
     def optimization_span(self, module: ModuleType, config: Dict[str, Any]):
@@ -293,8 +297,11 @@ class RAGBuilderTelemetry:
         self._safe_add_counter(self.errors, 1, {"module": module, "error_type": error.__class__.__name__})
 
     def flush(self):
-        if self.enabled and self.meter_provider:
-            self.meter_provider.force_flush()
+        try:
+            if self.enabled and self.meter_provider:
+                self.meter_provider.force_flush()
+        except Exception as e:
+            logger.debug(f"Error flushing telemetry: {e}")
 
     def shutdown(self):
         if self.enabled and self.meter_provider:

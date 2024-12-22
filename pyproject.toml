@@ -12,6 +12,7 @@ license = {text = "Apache-2.0"}
 
 dependencies = [
     "chromadb",
+    "datasets>=2.18.0",
     "fastapi>=0.100.0",
     "jinja2",
     "langchain>=0.1.0",
