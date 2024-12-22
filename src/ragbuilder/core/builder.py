@@ -16,6 +16,7 @@ import yaml
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
+import asyncio
 
 DEFAULT_DB_PATH = "eval.db"
 
@@ -408,7 +409,7 @@ class RAGBuilder:
                 raise HTTPException(status_code=500, detail=str(e))
                 
         self.logger.info(f"Starting RAG server on http://{host}:{port}")
-        uvicorn.run(app, host=host, port=port)
+        asyncio.run(uvicorn.run(app, host=host, port=port))
 
 class QueryRequest(BaseModel):
     query: str
