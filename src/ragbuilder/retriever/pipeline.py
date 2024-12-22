@@ -143,7 +143,7 @@ class RetrieverPipeline:
                     # status.update("[status]Created parent document retriever[/status]")
                 
                 # TODO: Utilize the vector DB's BM25 capability rather than creating in-memory BM25Retriever
-                elif retriever_config.type == RetrieverType.BM25_RETRIEVER:
+                elif retriever_config.type == RetrieverType.BM25:
                     # status.update("[status]Getting documents from best data ingestion pipeline for BM25...[/status]")
                     if not self.best_data_ingest_config:
                         raise PipelineError("No optimized data ingestion configuration found")
@@ -234,6 +234,9 @@ class RetrieverPipeline:
             
             if config.type not in RERANKER_MAP:
                 raise ConfigurationError(f"Unsupported reranker type: {config.type}")
+            
+            if "TOKENIZERS_PARALLELISM" not in os.environ:
+                os.environ["TOKENIZERS_PARALLELISM"] = "FALSE"
             
             reranker_config = RERANKER_MAP[config.type]
             # Get the Reranker class using lazy loading

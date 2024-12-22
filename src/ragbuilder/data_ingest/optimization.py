@@ -5,6 +5,7 @@ import logging
 from dataclasses import dataclass
 from typing import List, Dict, Any, Tuple
 from importlib import import_module
+from optuna import Trial
 from ragbuilder.config import DataIngestOptionsConfig, DataIngestConfig, LogConfig
 from ragbuilder.config.components import LLM_MAP
 from ragbuilder.core import DBLoggerCallback, DocumentStore, ConfigStore, setup_rich_logging, console
@@ -102,7 +103,7 @@ class DataIngestOptimizer:
     def optimize(self):
         console.rule("[heading]Starting Data Ingestion Optimization...[/heading]")
         
-        def objective(trial):
+        def objective(trial: Trial) -> float:
             console.print(f"[heading]Trial {trial.number}/{self.options_config.optimization.n_trials - 1}[/heading]")
             config = self._build_trial_config(trial)
             trials_to_consider = trial.study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,))
@@ -223,17 +224,11 @@ class DataIngestOptimizer:
             "error_rate": 1 - (len(successful_evals) / len(question_details))
         }
 
-def run_data_ingest_optimization(options_config: DataIngestOptionsConfig, log_config: LogConfig):
+def run_data_ingest_optimization(
+    options_config: DataIngestOptionsConfig, 
+    log_config: LogConfig = LogConfig()
+):
     setup_rich_logging(log_config.log_level, log_config.log_file)
-    # Load environment variables first
-    load_environment()
-    missing_vars = validate_environment(options_config)
-    
-    if missing_vars:
-        raise ValueError(
-            "Missing required environment variables for selected components:\n" + 
-            "\n".join(f"- {var}" for var in missing_vars)
-        )
 
     # Create evaluator based on config
     if options_config.evaluation_config.type == "custom":

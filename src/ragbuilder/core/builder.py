@@ -10,11 +10,14 @@ from src.ragbuilder.generation.optimization import run_generation_optimization
 from ragbuilder.generate_data import TestDatasetManager
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from ragbuilder.core.telemetry import telemetry
+from ragbuilder.core.utils import validate_environment
 from .exceptions import DependencyError
 import yaml
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
+
+DEFAULT_DB_PATH = "eval.db"
 
 # TODO: Return consistent results across optimize methods - ideally create a results object
 class RAGBuilder:
@@ -41,7 +44,10 @@ class RAGBuilder:
             "retrieval": None,
             "generation": None
         }
-        self._test_dataset_manager = TestDatasetManager(self._log_config)
+        self._test_dataset_manager = TestDatasetManager(
+            self._log_config,
+            db_path=self._data_ingest_config.database_path if self._data_ingest_config else DEFAULT_DB_PATH
+        )
 
     @classmethod
     def from_source_with_defaults(cls, 
@@ -132,7 +138,8 @@ class RAGBuilder:
             with console.status("Generating eval dataset..."):
                 test_dataset = self._test_dataset_manager.get_or_generate_eval_dataset(
                     source_data=source_data,
-                    eval_data_generation_config=config.evaluation_config.eval_data_generation_config if hasattr(config, 'evaluation_config') else None
+                    eval_data_generation_config=config.evaluation_config.eval_data_generation_config if hasattr(config, 'evaluation_config') else None,
+                    sampling_rate=config.sampling_rate if hasattr(config, 'sampling_rate') else None
                 )
             if hasattr(config, 'evaluation_config'):
                 config.evaluation_config.test_dataset = test_dataset
@@ -141,7 +148,11 @@ class RAGBuilder:
             self.logger.debug(f"Eval dataset: {test_dataset}")
 
 
-    def optimize_data_ingest(self, config: Optional[DataIngestOptionsConfig] = None) -> Dict[str, Any]:
+    def optimize_data_ingest(
+        self, 
+        config: Optional[DataIngestOptionsConfig] = None,
+        validate_env: bool = True
+    ) -> Dict[str, Any]:
         """
         Run data ingestion optimization
         
@@ -153,6 +164,9 @@ class RAGBuilder:
             self._data_ingest_config = config
         elif not self._data_ingest_config:
             raise ValueError("No data ingestion configuration provided")
+        
+        if validate_env:
+            validate_environment(self._data_ingest_config)
 
         self._ensure_eval_dataset(self._data_ingest_config)
         
@@ -185,7 +199,8 @@ class RAGBuilder:
     def optimize_retrieval(
         self, 
         config: Optional[RetrievalOptionsConfig] = None, 
-        vectorstore: Optional[Any] = None
+        vectorstore: Optional[Any] = None,
+        validate_env: bool = True
     ) -> Dict[str, Any]:
         """
         Run retrieval optimization
@@ -203,6 +218,9 @@ class RAGBuilder:
             self._retrieval_config = config
         elif not self._retrieval_config:
             self._retrieval_config = RetrievalOptionsConfig.with_defaults()
+
+        if validate_env:
+            validate_environment(self._retrieval_config)
             
         self._ensure_eval_dataset(self._retrieval_config)
         
@@ -293,8 +311,14 @@ class RAGBuilder:
         """
         with telemetry.optimization_span("ragbuilder", {"end_to_end": True}) as span:
             try:
-                data_ingest_results = self.optimize_data_ingest()
-                retrieval_results = self.optimize_retrieval()
+                with console.status("[bold green]Validating data ingestion environment...") as status:
+                    validate_environment(self._data_ingest_config)
+                    status.update("[bold green]Validating retrieval environment...")
+                    self._retrieval_config = RetrievalOptionsConfig.with_defaults()
+                    validate_environment(self._retrieval_config)
+                
+                data_ingest_results = self.optimize_data_ingest(validate_env=False)
+                retrieval_results = self.optimize_retrieval(validate_env=False)
                 generation_results = self.optimize_generation()
                 
                 self._optimization_results = {
@@ -321,7 +345,8 @@ class RAGBuilder:
                 telemetry.flush()
 
     def __del__(self):
-        telemetry.shutdown()
+        if telemetry:
+            telemetry.shutdown()
     
     @property
     def optimization_results(self) -> Dict[str, Dict[str, Any]]:

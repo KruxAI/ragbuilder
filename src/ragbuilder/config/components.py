@@ -1,6 +1,23 @@
 from typing import Callable
 from enum import Enum
 from importlib import import_module
+from dataclasses import dataclass
+
+@dataclass
+class _PkgSpec:
+    install_name: str
+    import_name: str = ""
+    
+    def __post_init__(self):
+        if not self.import_name:
+            self.import_name = self.install_name.replace("-", "_")
+
+    def validate(self) -> str:
+        try:
+            import_module(self.import_name)
+            return ""
+        except (ImportError, ModuleNotFoundError):
+            return self.install_name
 
 # Component type definitions
 class GraphType(str, Enum):
@@ -63,7 +80,7 @@ class RetrieverType(str, Enum):
     SIMILARITY = "similarity"
     MMR = "mmr"
     MULTI_QUERY = "multi_query"
-    BM25_RETRIEVER = "bm25"
+    BM25 = "bm25"
     PARENT_DOC_RETRIEVER_FULL = "parent_doc_full"
     PARENT_DOC_RETRIEVER_LARGE = "parent_doc_large"
     GRAPH_RETRIEVER = "graph"
@@ -151,7 +168,7 @@ VECTORDB_MAP = {
 }
 
 RETRIEVER_MAP = {
-    RetrieverType.BM25_RETRIEVER: lazy_load("langchain.retrievers", "BM25Retriever"),
+    RetrieverType.BM25: lazy_load("langchain.retrievers", "BM25Retriever"),
 }
 
 RERANKER_MAP = {
@@ -206,57 +223,197 @@ COMPONENT_ENV_REQUIREMENTS = {
     # Embedding Models
     EmbeddingModel.AZURE_OPENAI: {
         "required": ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"],
-        "optional": ["AZURE_DEPLOYMENT_NAME"]
+        "optional": ["AZURE_DEPLOYMENT_NAME"],
+        "packages": [
+            _PkgSpec("langchain-openai"),
+            _PkgSpec("openai"),
+            _PkgSpec("tiktoken")
+        ]
+    },
+    EmbeddingModel.OPENAI: {
+        "required": ["OPENAI_API_KEY"],
+        "optional": [],
+        "packages": [
+            _PkgSpec("langchain-openai"),
+            _PkgSpec("openai"),
+            _PkgSpec("tiktoken")
+        ]
     },
     EmbeddingModel.COHERE: {
-        "required": ["COHERE_API_KEY"]
+        "required": ["COHERE_API_KEY"],
+        "optional": [],
+        "packages": [_PkgSpec("cohere")]
     },
     EmbeddingModel.VERTEXAI: {
-        "required": ["GOOGLE_APPLICATION_CREDENTIALS"]
+        "required": ["GOOGLE_APPLICATION_CREDENTIALS"],
+        "optional": [],
+        "packages": [
+            _PkgSpec("langchain-google-vertexai"),
+            _PkgSpec("google-cloud-aiplatform")
+        ]
     },
     EmbeddingModel.BEDROCK: {
-        "required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"]
+        "required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"],
+        "optional": [],
+        "packages": [_PkgSpec("boto3")]
     },
     EmbeddingModel.JINA: {
-        "required": ["JINA_API_KEY"]
+        "required": ["JINA_API_KEY"],
+        "optional": [],
+        "packages": [_PkgSpec("jina")]
+    },
+    EmbeddingModel.HUGGINGFACE: {
+        "required": [],
+        "optional": [],
+        "packages": [
+            _PkgSpec("langchain-huggingface"),
+            _PkgSpec("sentence_transformers"),
+            _PkgSpec("torch")
+        ]
+    },
+    EmbeddingModel.OLLAMA: {
+        "required": [],
+        "optional": [],
+        "packages": [
+            _PkgSpec("langchain-ollama"),
+            _PkgSpec("ollama")
+        ]
     },
     
     # Vector Databases
     VectorDatabase.PINECONE: {
-        "required": ["PINECONE_API_KEY", "PINECONE_ENVIRONMENT"]
+        "required": ["PINECONE_API_KEY", "PINECONE_ENVIRONMENT"],
+        "optional": [],
+        "packages": [_PkgSpec("pinecone-client", "pinecone")]
     },
     VectorDatabase.WEAVIATE: {
-        "required": ["WEAVIATE_URL", "WEAVIATE_API_KEY"]
+        "required": ["WEAVIATE_URL", "WEAVIATE_API_KEY"],
+        "optional": [],
+        "packages": [_PkgSpec("weaviate-client", "weaviate")]
     },
     VectorDatabase.QDRANT: {
         "required": ["QDRANT_URL"],
-        "optional": ["QDRANT_API_KEY"]
+        "optional": ["QDRANT_API_KEY"],
+        "packages": [_PkgSpec("qdrant-client", "qdrant")]
     },
     VectorDatabase.MILVUS: {
-        "required": ["MILVUS_HOST", "MILVUS_PORT"]
+        "required": ["MILVUS_HOST", "MILVUS_PORT"],
+        "optional": [],
+        "packages": [_PkgSpec("pymilvus")]
     },
     VectorDatabase.PGVECTOR: {
-        "required": ["PGVECTOR_CONNECTION_STRING"]
+        "required": ["PGVECTOR_CONNECTION_STRING"],
+        "optional": [],
+        "packages": [
+            _PkgSpec("psycopg2-binary"),
+            _PkgSpec("pgvector")
+        ]
     },
     VectorDatabase.ELASTICSEARCH: {
         "required": ["ELASTICSEARCH_URL"],
-        "optional": ["ELASTICSEARCH_API_KEY"]
+        "optional": ["ELASTICSEARCH_API_KEY"],
+        "packages": [_PkgSpec("elasticsearch")]
+    },
+    VectorDatabase.CHROMA: {
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("chromadb")]
+    },
+    VectorDatabase.FAISS: {
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("faiss-cpu")]
     },
     
     # Document Loaders
+    ParserType.UNSTRUCTURED: {
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("unstructured")]
+    },
+    ParserType.PYMUPDF: {
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("pymupdf")]
+    },
+    ParserType.PYPDF: {
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("pypdf")]
+    },
+    ParserType.DOCX: {
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("python-docx", "docx")]
+    },
     ParserType.AZURE_BLOB: {
-        "required": ["AZURE_STORAGE_CONNECTION_STRING"]
+        "required": ["AZURE_STORAGE_CONNECTION_STRING"],
+        "optional": [],
+        "packages": [_PkgSpec("azure-storage-blob")]
     },
     ParserType.S3: {
-        "required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"]
+        "required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"],
+        "optional": [],
+        "packages": [_PkgSpec("boto3")]
     },
+    ParserType.WEB: {
+        "required": [],
+        "optional": [],
+        "packages": [
+            _PkgSpec("beautifulsoup4", "bs4"),
+            _PkgSpec("requests")
+        ]
+    },
+    
+    RetrieverType.BM25: {
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("rank-bm25")]
+    },
+
+    # Rerankers
     RerankerType.COHERE: {
-        "required": ["COHERE_API_KEY"]
+        "required": ["COHERE_API_KEY"],
+        "optional": [],
+        "packages": [_PkgSpec("cohere")]
     },
     RerankerType.JINA: {
-        "required": ["JINA_API_KEY"]
+        "required": ["JINA_API_KEY"],
+        "optional": [],
+        "packages": [_PkgSpec("jina")]
     },
     RerankerType.RANKLLM: {
-        "required": ["OPENAI_API_KEY"]
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("rank-llm")]
+    },
+    RerankerType.MXBAI_LARGE: {
+        "required": [],
+        "optional": [],
+        "packages": [
+            _PkgSpec("torch"),
+            _PkgSpec("transformers")
+        ]
+    },
+    RerankerType.MXBAI_BASE: {
+        "required": [],
+        "optional": [],
+        "packages": [
+            _PkgSpec("torch"),
+            _PkgSpec("transformers")
+        ]
+    },
+    RerankerType.BGE_BASE: {
+        "required": [],
+        "optional": [],
+        "packages": [
+            _PkgSpec("torch"),
+            _PkgSpec("transformers")
+        ]
+    },
+    RerankerType.FLASH_RANK: {
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("flash-rank")]
     }
 }

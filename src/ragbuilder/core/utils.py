@@ -1,8 +1,7 @@
 import logging
 import os
 import re
-from pathlib import Path
-from typing import Optional, List, Union, Any, Dict
+from typing import Optional, List, Union, Any, Dict, Tuple
 from dotenv import load_dotenv
 from langchain_community.document_loaders import (
     DirectoryLoader, 
@@ -14,6 +13,7 @@ from ragbuilder.config.components import COMPONENT_ENV_REQUIREMENTS
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig
 from ragbuilder.config.retriever import RetrievalOptionsConfig
 import json
+import importlib
 
 logger = logging.getLogger(__name__)
 os.environ['USER_AGENT'] = "ragbuilder"
@@ -70,37 +70,68 @@ def load_environment(env_path: Optional[str] = None) -> None:
 
 def validate_environment(config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig]) -> List[str]:
     """Validate environment variables for all components in a config"""
-    missing_vars = []
+    load_environment()
+    missing_env = []
+    missing_packages = []
     
     if hasattr(config, 'document_loaders'):
         for loader in config.document_loaders:
-            if missing := validate_component_environment(loader.type):
-                missing_vars.extend(missing)
+            _missing_env, _missing_packages = validate_component_env(loader.type)
+            missing_env.extend(_missing_env)
+            missing_packages.extend(_missing_packages)
     
     if hasattr(config, 'embedding_models'):
         for model in config.embedding_models:
-            if missing := validate_component_environment(model.type):
-                missing_vars.extend(missing)
+            _missing_env, _missing_packages = validate_component_env(model.type)
+            missing_env.extend(_missing_env)
+            missing_packages.extend(_missing_packages)
     
     if hasattr(config, 'vector_databases'):
         for db in config.vector_databases:
-            if missing := validate_component_environment(db.type):
-                missing_vars.extend(missing)
-    
-    return sorted(set(missing_vars))
+            _missing_env, _missing_packages = validate_component_env(db.type)
+            missing_env.extend(_missing_env)
+            missing_packages.extend(_missing_packages)
 
-def validate_component_environment(component_value: str) -> List[str]:
-    """Validate required environment variables for a component.
+    if hasattr(config, 'retrievers'):
+        for retriever in config.retrievers:
+            _missing_env, _missing_packages = validate_component_env(retriever.type)
+            missing_env.extend(_missing_env)
+            missing_packages.extend(_missing_packages)
+
+    if hasattr(config, 'rerankers'):
+        for reranker in config.rerankers:
+            _missing_env, _missing_packages = validate_component_env(reranker.type)
+            missing_env.extend(_missing_env)
+            missing_packages.extend(_missing_packages)
     
+    if sorted(set(missing_env)):
+        raise ValueError(
+            "Missing required environment variables for selected components:\n" + 
+            "\n".join(f"- {var}" for var in missing_env)
+        )
+    
+    if sorted(set(missing_packages)):
+        raise ValueError(
+            "Missing required packages for selected components:\n" + 
+            "\n".join(f"- {pkg}" for pkg in missing_packages) + 
+            "\n\nPlease install the missing packages and try again."
+        )
+
+def validate_component_env(component_value: str) -> Tuple[List[str], List[str]]:
+    """Validate required environment variables and packages for a component.
     Args:
         component_value: The specific component value (Eg: 'openai', 'chroma', etc.)
         
     Returns:
-        List of missing required environment variables
+        List of missing required environment variables and packages
     """
-    requirements = COMPONENT_ENV_REQUIREMENTS.get(component_value, {"required": [], "optional": []})
-    missing = [var for var in requirements["required"] if not os.getenv(var)]
-    return missing
+    requirements = COMPONENT_ENV_REQUIREMENTS.get(component_value, {"required": [], "optional": [], "packages": []})
+    missing_env = []
+    missing_packages = []
+    missing_env.extend([var for var in requirements["required"] if not os.getenv(var)])
+    missing_packages.extend([pkg_name for pkg in requirements.get("packages", []) 
+                           if (pkg_name := pkg.validate())])
+    return missing_env, missing_packages
 
 def simplify_model_config(obj: Any) -> Dict[str, Any]:
     """Extract essential info from LLM/embeddings model."""

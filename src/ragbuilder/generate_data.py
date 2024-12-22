@@ -21,7 +21,7 @@ import os
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from ragas import RunConfig
 from ragas.testset.generator import TestsetGenerator
 from ragas.testset.evolutions import simple, reasoning, multi_context
@@ -31,23 +31,125 @@ from ragbuilder.config.base import LogConfig, EvalDataGenerationConfig
 from langchain_core.documents import Document
 from ragbuilder.core.utils import load_documents
 from ragbuilder.core.telemetry import telemetry
-
+import sqlite3
+import hashlib
+from urllib.parse import urlparse
 logger = logging.getLogger("ragbuilder.generate_data")
+
+class SQLiteCache:
+    """SQLite-based cache for synthetic test datasets with in-memory lookup"""
+    
+    def __init__(self, db_path: str = "eval.db"):
+        self.db_path = db_path
+        self._cache = {}  # In-memory cache
+        self._init_db()
+        self._load_cache()
+    
+    def _init_db(self) -> None:
+        """Initialize SQLite database and create table if needed"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS synthetic_data_hashmap (
+                    hash TEXT PRIMARY KEY,
+                    test_data_path TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.commit()
+    
+    def _load_cache(self) -> None:
+        """Load entire cache table into memory"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('SELECT hash, test_data_path FROM synthetic_data_hashmap')
+            self._cache = {row[0]: row[1] for row in cursor.fetchall()}
+            logger.debug(f"Loaded {len(self._cache)} entries from cache")
+    
+    def get(self, key: str) -> Optional[str]:
+        """Get test dataset path from cache"""
+        return self._cache.get(key)
+    
+    def set(self, key: str, value: str) -> None:
+        """Set test dataset path in both memory and SQLite"""
+        self._cache[key] = value
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                'INSERT OR REPLACE INTO synthetic_data_hashmap (hash, test_data_path) VALUES (?, ?)',
+                (key, value)
+            )
+            conn.commit()
+
+def get_hash(source_data: str, use_sampling: bool = False) -> str:
+    """Generate hash for source data considering sampling"""    
+    src_type = 'url' if urlparse(source_data).scheme in ['http', 'https'] else (
+            'dir' if os.path.isdir(source_data) else (
+                'file' if os.path.isfile(source_data) else 'unknown'
+            )
+        )
+    prefix = "sampled_" if use_sampling else ""
+    
+    if src_type == "dir":
+        return _get_hash_dir(source_data, prefix)
+    elif src_type == "url":
+        return _get_hash_url(source_data, prefix)
+    elif src_type == "file":
+        return _get_hash_file(source_data, prefix)
+    else:
+        logger.error(f"Invalid input path type {source_data}")
+        return None
+
+def _get_hash_file(source_data: str, prefix: str = "") -> str:
+    """Generate hash for a file"""
+    md5_hash = hashlib.md5(prefix.encode())
+    with open(source_data, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            md5_hash.update(chunk)
+    return md5_hash.hexdigest()
+
+def _get_hash_url(url: str, prefix: str = "") -> str:
+    """Generate hash for a URL's content"""
+    try:
+        import requests
+        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
+        response = requests.get(url, headers=headers, allow_redirects=True)
+        response.raise_for_status()
+        md5_hash = hashlib.md5(prefix.encode())
+        md5_hash.update(response.content)
+        return md5_hash.hexdigest()
+    except Exception as e:
+        logger.error(f"Error fetching URL: {e}")
+        return None
+
+def _get_hash_dir(dir_path: str, prefix: str = "") -> str:
+    """Generate hash for a directory's contents"""
+    if not os.path.isdir(dir_path):
+        logger.error(f"{dir_path} is not a valid directory.")
+        return None
+    md5_hash = hashlib.md5(prefix.encode())
+    try:
+        for root, _, files in os.walk(dir_path):
+            for file_name in sorted(files):
+                file_path = os.path.join(root, file_name)
+                with open(file_path, 'rb') as file:
+                    while chunk := file.read(8192):
+                        md5_hash.update(chunk)
+        return md5_hash.hexdigest()
+    except Exception as e:
+        logger.error(f"Error hashing directory content: {e}")
+        return None
 
 class TestDatasetManager:
     """Manages test dataset generation and caching"""
     
-    def __init__(self, log_config: Optional[LogConfig] = None):
+    def __init__(self, log_config: Optional[LogConfig] = None, db_path: str = "eval.db"):
         self._log_config = log_config
-        self._cached_dataset: Optional[str] = None
-        self._source_data: Optional[str] = None
+        self.cache = SQLiteCache(db_path)
         
     def get_or_generate_eval_dataset(
         self, 
         source_data: str,
         test_dataset: Optional[str] = None,
-        force_regenerate: bool = False,
         eval_data_generation_config: Optional[EvalDataGenerationConfig] = None,
+        sampling_rate: Optional[float] = None,
         **generation_kwargs
     ) -> str:
         """
@@ -56,8 +158,8 @@ class TestDatasetManager:
         Args:
             source_data: Source data path for synthetic generation if needed
             test_dataset: Optional path to existing test dataset
-            force_regenerate: If True, regenerate synthetic data even if cached
             eval_data_generation_config: Eval data generation configuration
+            sampling_rate: Optional sampling rate for source data
             generation_kwargs: Optional kwargs for generate_data function
         
         Returns:
@@ -68,35 +170,44 @@ class TestDatasetManager:
                 raise FileNotFoundError(f"Test dataset not found: {test_dataset}")
             return test_dataset
             
-        if not force_regenerate and self._cached_dataset and self._source_data == source_data:
-            logger.info("Using cached synthetic test dataset")
-            return self._cached_dataset
+        try:
+            # Generate cache key based on source and sampling
+            cache_key = get_hash(source_data, use_sampling=sampling_rate is not None and sampling_rate < 1)
+            if not cache_key:
+                logger.warning("Failed to generate hash, proceeding without caching")
+            else:
+                # Check cache
+                if cached_path := self.cache.get(cache_key):
+                    logger.info(f"Found cached test dataset: {cached_path}")
+                    if os.path.exists(cached_path):
+                        return cached_path
+                    logger.warning(f"Cached path {cached_path} not found, regenerating...")
             
-        logger.info("Generating synthetic test dataset...")
-        
-        # Use default models if not provided
-        generator_model = AzureChatOpenAI(model="gpt-4o", temperature=0.0) if not eval_data_generation_config.generator_model else eval_data_generation_config.generator_model
-        critic_model = AzureChatOpenAI(model="gpt-4o", temperature=0.0) if not eval_data_generation_config.critic_model else eval_data_generation_config.critic_model
-        embedding_model = AzureOpenAIEmbeddings(model="text-embedding-3-large") if not eval_data_generation_config.embedding_model else eval_data_generation_config.embedding_model
-        
-        # Extract model names for telemetry
-        generator_model_name = getattr(generator_model, 'model', None) or getattr(generator_model, 'model_name', '')
-        generator_model_info = f"{generator_model.__class__.__name__}:{generator_model_name}" if generator_model_name else str(generator_model.__class__.__name__)
-        
-        critic_model_name = getattr(critic_model, 'model', None) or getattr(critic_model, 'model_name', '')
-        critic_model_info = f"{critic_model.__class__.__name__}:{critic_model_name}" if critic_model_name else str(critic_model.__class__.__name__)
-        
-        embedding_model_name = getattr(embedding_model, 'model', None) or getattr(embedding_model, 'model_name', '')
-        embedding_model_info = f"{embedding_model.__class__.__name__}:{embedding_model_name}" if embedding_model_name else str(embedding_model.__class__.__name__)
+            # Use default models if not provided
+            generator_model = (eval_data_generation_config.generator_model if eval_data_generation_config 
+                            else AzureChatOpenAI(model="gpt-4o", temperature=0.0))
+            critic_model = (eval_data_generation_config.critic_model if eval_data_generation_config 
+                          else AzureChatOpenAI(model="gpt-4o", temperature=0.0))
+            embedding_model = (eval_data_generation_config.embedding_model if eval_data_generation_config 
+                            else AzureOpenAIEmbeddings(model="text-embedding-3-large"))
+            
+            # Extract model info for telemetry
+            generator_model_name = getattr(generator_model, 'model', None) or getattr(generator_model, 'model_name', '')
+            generator_model_info = f"{generator_model.__class__.__name__}:{generator_model_name}" if generator_model_name else str(generator_model.__class__.__name__)
+            
+            critic_model_name = getattr(critic_model, 'model', None) or getattr(critic_model, 'model_name', '')
+            critic_model_info = f"{critic_model.__class__.__name__}:{critic_model_name}" if critic_model_name else str(critic_model.__class__.__name__)
+            
+            embedding_model_name = getattr(embedding_model, 'model', None) or getattr(embedding_model, 'model_name', '')
+            embedding_model_info = f"{embedding_model.__class__.__name__}:{embedding_model_name}" if embedding_model_name else str(embedding_model.__class__.__name__)
 
-        with telemetry.eval_datagen_span(
-            test_size=eval_data_generation_config.test_size if eval_data_generation_config else 5,
-            distribution=eval_data_generation_config.distribution if eval_data_generation_config else None,
-            generator_model=generator_model_info,
-            critic_model=critic_model_info,
-            embedding_model=embedding_model_info
-        ) as _:
-            try:
+            with telemetry.eval_datagen_span(
+                test_size=eval_data_generation_config.test_size if eval_data_generation_config else 5,
+                distribution=eval_data_generation_config.distribution if eval_data_generation_config else None,
+                generator_model=generator_model_info,
+                critic_model=critic_model_info,
+                embedding_model=embedding_model_info
+            ) as _:
                 dataset_path = generate_data(
                     src_data=source_data,
                     generator_model=generator_model,
@@ -108,15 +219,19 @@ class TestDatasetManager:
                     **generation_kwargs
                 )
                 
-                self._cached_dataset = dataset_path
-                self._source_data = source_data
+                # Cache the result if we have a valid cache key
+                if cache_key and dataset_path:
+                    self.cache.set(cache_key, dataset_path)
+                    logger.info(f"Cached new test dataset: {dataset_path}")
                 
                 return dataset_path
             
-            except Exception as e:
-                logger.error(f"Failed to generate synthetic test dataset: {e}")
-                telemetry.track_error("eval_data_generation", e, context={})
-                raise
+        except Exception as e:
+            logger.error(f"Error in test dataset management: {str(e)}")
+            telemetry.track_error("eval_data_generation", e, context={
+                "sampling_rate": sampling_rate
+            })
+            raise
 
 def load_src(src_data: str) -> List[Document]:
     """Load source documents for test generation"""

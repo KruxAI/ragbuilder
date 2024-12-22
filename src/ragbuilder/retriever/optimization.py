@@ -2,9 +2,8 @@ import optuna
 from typing import List, Dict, Any, Optional
 from importlib import import_module
 import logging
-from optuna import Study, Trial, create_study
+from optuna import Trial, create_study
 import numpy as np
-from langchain.schema import Document
 
 from ragbuilder.config import LogConfig, RetrievalOptionsConfig, RetrievalConfig
 from ragbuilder.core import (
@@ -14,6 +13,7 @@ from ragbuilder.core import (
     setup_rich_logging, 
     console
 )
+from ragbuilder.core.utils import load_environment, validate_environment
 from ragbuilder.core.exceptions import OptimizationError
 from ragbuilder.retriever.pipeline import RetrieverPipeline
 from .evaluation import Evaluator, RetrieverF1ScoreEvaluator
@@ -282,7 +282,7 @@ class RetrieverOptimization:
 def run_retrieval_optimization(
     options_config: RetrievalOptionsConfig, 
     vectorstore: Optional[Any] = None,
-    log_config: Optional[LogConfig] = None
+    log_config: Optional[LogConfig] = LogConfig()
 ) -> Dict[str, Any]:
     # TODO: Add environment validation
     """
@@ -297,10 +297,7 @@ def run_retrieval_optimization(
         Dict containing optimization results including best_config, best_score,
         best_pipeline, and study_statistics
     """
-    setup_rich_logging(
-        log_config.log_level if log_config else logging.INFO,
-        log_config.log_file if log_config else None
-    )
+    setup_rich_logging(log_config.log_level, log_config.log_file)
     
     # Create evaluator based on config
     if options_config.evaluation_config.type == "custom":

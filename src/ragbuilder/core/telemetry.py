@@ -218,11 +218,15 @@ class RAGBuilderTelemetry:
                     
                 except Exception as e:
                     self._safe_set_attribute(span, "optimization_success", False)
-                    raise e
+                    self._safe_set_attribute(span, "error_type", e.__class__.__name__)
+                    self._safe_set_attribute(span, "error_message", str(e))
+                    raise  
         
         except Exception as e:
             logger.debug(f"Error in optimization span: {e}")
-            yield None
+            if span is None:
+                yield None
+            raise 
 
 
     def _set_data_ingest_attributes(self, span, config):

@@ -11,39 +11,62 @@ readme = "README.md"
 license = {text = "Apache-2.0"}
 
 dependencies = [
+    "chromadb",
+    "fastapi>=0.100.0",
+    "jinja2",
     "langchain>=0.1.0",
-    "langchain-community",
+    "langchain-community==0.2.7",
     "langchain-core==0.2.20",
-    "langchain_huggingface",
-    "langchain_openai",
+    "langchain-huggingface==0.0.3",
+    "langchain-openai==0.1.17",
     "opentelemetry-api>=1.23.0",
     "opentelemetry-sdk>=1.23.0",
     "opentelemetry-exporter-otlp>=1.23.0",
     "optuna",
-    "tenacity==8.4.2",
+    "platformdirs",
     "pydantic>=2.0.0",
     "python-dotenv",
     "ragas==0.1.7",
+    "rerankers",
+    "rich>=13.0.0",
     "sentence-transformers",
-    "chromadb",
-    "rerankers"
+    "tenacity==8.4.2",
+    "rank-bm25",
+    "uvicorn>=0.30.0",    
 ]
 
 # Optional dependencies
 [project.optional-dependencies]
 graph = [
-    "neo4j",
-    "langchain-community[neo4j]",
-    "langchain-core",
+    "neo4j>=5.23.0",
+    "langchain-community[neo4j]"
 ]
-ui = [
-    "fastapi>=0.100.0",
-    "uvicorn>=0.30.0",
-    "jinja2",
+
+vectorstores = [
+    "faiss-cpu>=1.7.4",
+    "pinecone-client>=3.0.0",
+    "weaviate-client>=3.25.0",
+    "qdrant-client>=1.7.0",
+    "pymilvus>=2.3.0",
+    "elasticsearch>=8.0.0",
 ]
+
+# Document processing
+document_processors = [
+    "unstructured[all-docs]>=0.11.0",
+    "pymupdf>=1.23.0",
+    "python-docx>=1.0.0",
+    "pikepdf>=8.11.0",
+    "pandoc>=2.3",
+    "pypdf>=3.17.0",
+    "markdown>=3.5.0",
+    "beautifulsoup4>=4.12.0",
+]
+
 all = [
     "ragbuilder[graph]",
-    "ragbuilder[ui]",
+    "ragbuilder[vectorstores]",
+    "ragbuilder[document_processors]",
 ]
 
 [project.scripts]

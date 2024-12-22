@@ -24,7 +24,7 @@ class OptimizationConfig(BaseModel):
     storage: Optional[str] = Field(default="sqlite:///eval.db", description="Storage URL for Optuna (e.g., 'sqlite:///optuna.db')")
     study_name: Optional[str] = Field(default=None, description="Name of the Optuna study")
     load_if_exists: Optional[bool] = Field(default=False, description="Load existing study if it exists")
-    overwrite_study: Optional[bool] = Field(default=False, description="Overwrite existing study if it exists")
+    overwrite_study: Optional[bool] = Field(default=True, description="Overwrite existing study if it exists")
     optimization_direction: Optional[str] = Field(default="maximize", description="Whether to maximize or minimize the optimization metric")
 
     def model_post_init(self, *args, **kwargs):
