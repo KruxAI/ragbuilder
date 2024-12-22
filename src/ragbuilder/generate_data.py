@@ -184,11 +184,11 @@ class TestDatasetManager:
                     logger.warning(f"Cached path {cached_path} not found, regenerating...")
             
             # Use default models if not provided
-            generator_model = (eval_data_generation_config.generator_model if eval_data_generation_config 
+            generator_model = (eval_data_generation_config.generator_model if eval_data_generation_config and eval_data_generation_config.generator_model
                             else AzureChatOpenAI(model="gpt-4o", temperature=0.0))
-            critic_model = (eval_data_generation_config.critic_model if eval_data_generation_config 
+            critic_model = (eval_data_generation_config.critic_model if eval_data_generation_config and eval_data_generation_config.critic_model
                           else AzureChatOpenAI(model="gpt-4o", temperature=0.0))
-            embedding_model = (eval_data_generation_config.embedding_model if eval_data_generation_config 
+            embedding_model = (eval_data_generation_config.embedding_model if eval_data_generation_config and eval_data_generation_config.embedding_model
                             else AzureOpenAIEmbeddings(model="text-embedding-3-large"))
             
             # Extract model info for telemetry

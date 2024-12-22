@@ -10,18 +10,27 @@ from src.ragbuilder.generation.optimization import run_generation_optimization
 from ragbuilder.generate_data import TestDatasetManager
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from ragbuilder.core.telemetry import telemetry
-from ragbuilder.core.utils import validate_environment
+from ragbuilder.core.utils import validate_environment, serialize_config, SimpleConfigEncoder
 from .exceptions import DependencyError
 import yaml
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
 import asyncio
+from pathlib import Path
+import json
+import shutil
+from datetime import datetime, timedelta
 
 DEFAULT_DB_PATH = "eval.db"
 
 # TODO: Return consistent results across optimize methods - ideally create a results object
 class RAGBuilder:
+    SUPPORTED_VECTORSTORES: Dict[str, str] = {
+        "CHROMA": "chroma",
+        "FAISS": "faiss"
+    }
+    
     def __init__(
             self, 
             data_ingest_config: Optional[DataIngestOptionsConfig] = None,
@@ -315,7 +324,8 @@ class RAGBuilder:
                 with console.status("[bold green]Validating data ingestion environment...") as status:
                     validate_environment(self._data_ingest_config)
                     status.update("[bold green]Validating retrieval environment...")
-                    self._retrieval_config = RetrievalOptionsConfig.with_defaults()
+                    if not self._retrieval_config:
+                        self._retrieval_config = RetrievalOptionsConfig.with_defaults()
                     validate_environment(self._retrieval_config)
                 
                 data_ingest_results = self.optimize_data_ingest(validate_env=False)
@@ -347,7 +357,10 @@ class RAGBuilder:
 
     def __del__(self):
         if telemetry:
-            telemetry.shutdown()
+            try:
+                telemetry.shutdown()
+            except Exception as e:
+                self.logger.debug(f"Error shutting down telemetry: {e}")
     
     @property
     def optimization_results(self) -> Dict[str, Dict[str, Any]]:
@@ -410,6 +423,222 @@ class RAGBuilder:
                 
         self.logger.info(f"Starting RAG server on http://{host}:{port}")
         asyncio.run(uvicorn.run(app, host=host, port=port))
+
+    def save(self, path: str, include_vectorstore: bool = True) -> None:
+        """Save complete RAG setup including vectorstore if specified."""
+        print("WARNING: This is an experimental feature and may not work as expected. ⚠️ Use with caution!")
+        save_path = Path(path)
+        save_path.mkdir(parents=True, exist_ok=True)
+        
+        # Create directory structure
+        (save_path / "configs").mkdir(exist_ok=True)
+        (save_path / "metadata").mkdir(exist_ok=True)
+        if include_vectorstore:
+            (save_path / "vectorstore").mkdir(exist_ok=True)
+
+        # Save configurations using existing serialization
+        if self._data_ingest_config:
+            with open(save_path / "configs" / "data_ingest.yaml", "w") as f:
+                yaml.dump(json.loads(serialize_config(self._data_ingest_config)), f)
+        
+        if self._retrieval_config:
+            with open(save_path / "configs" / "retriever.yaml", "w") as f:
+                yaml.dump(json.loads(serialize_config(self._retrieval_config)), f)
+            
+        if self._generation_config:
+            with open(save_path / "configs" / "generator.yaml", "w") as f:
+                yaml.dump(json.loads(serialize_config(self._generation_config)), f)
+
+        # Save optimization results
+        if self._optimization_results:
+            # Define non-serializable types to skip or handle specially
+            non_serializable_types = (
+                'Chroma', 'FAISS',  # Vector stores
+                'RetrieverPipeline', 'DataIngestPipeline',  # Pipelines
+                'Embeddings', 'BaseRetriever'  # Base classes
+            )
+            
+            serialized_results = {}
+            for module, results in self._optimization_results.items():
+                if results:
+                    serialized_results[module] = {}
+                    for key, value in results.items():
+                        # Skip pipeline objects and other non-serializable types
+                        if key not in ["best_score", "best_config"]:
+                            continue
+                        
+                        # Try to serialize if it's a config object
+                        try:
+                            if hasattr(value, 'model_dump'):
+                                serialized_results[module][key] = json.loads(serialize_config(value))
+                            else:
+                                serialized_results[module][key] = value
+                        except (TypeError, ValueError) as e:
+                            self.logger.warning(f"Skipping non-serializable value for {key}: {str(e)}")
+                            continue
+                else:
+                    serialized_results[module] = None
+
+            with open(save_path / "metadata" / "optimization_results.json", "w") as f:
+                json.dump(serialized_results, f, indent=2, cls=SimpleConfigEncoder)
+
+        # Save vectorstore if requested
+        if include_vectorstore and self._optimized_store:
+            vectorstore_type = self._get_vectorstore_type()
+            if vectorstore_type:
+                vectorstore_path = save_path / "vectorstore" / vectorstore_type
+                self._save_vectorstore(vectorstore_path)
+
+        # Create manifest
+        manifest = {
+            "version": "1.0",
+            "created_at": datetime.now().isoformat(),
+            "components": {
+                "data_ingest": bool(self._data_ingest_config),
+                "retriever": bool(self._retrieval_config),
+                "generator": bool(self._generation_config)
+            },
+            "vectorstore": {
+                "included": include_vectorstore,
+                "type": self._get_vectorstore_type() if self._optimized_store else None
+            }
+        }
+        
+        with open(save_path / "manifest.json", "w") as f:
+            json.dump(manifest, f, indent=2)
+
+        self.logger.info(f"Successfully saved RAG setup to {path}")
+
+    @classmethod
+    def load(cls, path: str) -> 'RAGBuilder':
+        """Load complete RAG setup from saved project.
+        
+        Args:
+            path: Directory path containing the saved RAG setup
+            
+        Returns:
+            Initialized RAGBuilder instance
+        """
+        print("WARNING: This is an experimental feature and may not work as expected. ⚠️ Use with caution!")
+        load_path = Path(path)
+        if not load_path.exists():
+            raise ValueError(f"Path does not exist: {path}")
+
+        # Load manifest
+        try:
+            with open(load_path / "manifest.json", "r") as f:
+                manifest = json.load(f)
+        except FileNotFoundError:
+            raise ValueError(f"Invalid project directory: manifest.json not found in {path}")
+
+        # Initialize configs
+        data_ingest_config = None
+        retrieval_config = None
+        generation_config = None
+        
+        # Load configurations if they exist
+        if manifest["components"]["data_ingest"]:
+            with open(load_path / "configs" / "data_ingest.yaml", "r") as f:
+                data_ingest_config = DataIngestOptionsConfig(**yaml.safe_load(f))
+                
+        if manifest["components"]["retriever"]:
+            with open(load_path / "configs" / "retriever.yaml", "r") as f:
+                retrieval_config = RetrievalOptionsConfig(**yaml.safe_load(f))
+                
+        if manifest["components"]["generator"]:
+            with open(load_path / "configs" / "generator.yaml", "r") as f:
+                generation_config = GenerationOptionsConfig(**yaml.safe_load(f))
+
+        # Create builder instance
+        builder = cls(
+            data_ingest_config=data_ingest_config,
+            retrieval_config=retrieval_config,
+            generation_config=generation_config
+        )
+
+        # Load optimization results if they exist
+        if (load_path / "metadata" / "optimization_results.json").exists():
+            with open(load_path / "metadata" / "optimization_results.json", "r") as f:
+                builder._optimization_results = json.load(f)
+
+        # Load vectorstore if it exists
+        if manifest["vectorstore"]["included"] and manifest["vectorstore"]["type"]:
+            vectorstore_path = load_path / "vectorstore" / manifest["vectorstore"]["type"]
+            builder._optimized_store = builder._load_vectorstore(
+                vectorstore_path,
+                manifest["vectorstore"]["type"]
+            )
+
+        return builder
+
+    def _get_vectorstore_type(self) -> Optional[str]:
+        """Determine the type of vectorstore being used."""
+        if not self._optimized_store:
+            return None
+            
+        store_class = self._optimized_store.__class__.__name__.lower()
+        return next(
+            (v for k, v in self.SUPPORTED_VECTORSTORES.items() 
+             if k.lower() in store_class),
+            None
+        )
+
+    def _save_vectorstore(self, path: Path) -> None:
+        """Save vectorstore data to specified path."""
+        vectorstore_type = self._get_vectorstore_type()
+        
+        if vectorstore_type == "chroma":
+            # For Chroma, copy the persist_directory if it exists
+            if hasattr(self._optimized_store, "_client") and hasattr(self._optimized_store._client, "_persist_directory"):
+                persist_dir = Path(self._optimized_store._client._persist_directory)
+                if persist_dir.exists():
+                    shutil.copytree(persist_dir, path, dirs_exist_ok=True)
+                    
+        elif vectorstore_type == "faiss":
+            # For FAISS, save the index file
+            if hasattr(self._optimized_store, "save_local"):
+                self._optimized_store.save_local(str(path))
+                
+        else:
+            self.logger.warning(f"Saving not implemented for vectorstore type: {vectorstore_type}")
+
+    def _load_vectorstore(self, path: Path, vectorstore_type: str) -> Optional[Any]:
+        """Load vectorstore from saved data."""
+        if not path.exists():
+            self.logger.warning(f"Vectorstore path does not exist: {path}")
+            return None
+            
+        try:
+            if vectorstore_type == "chroma":
+                from langchain_community.vectorstores import Chroma
+                return Chroma(
+                    persist_directory=str(path),
+                    embedding_function=self._get_embedding_function()
+                )
+                
+            elif vectorstore_type == "faiss":
+                from langchain_community.vectorstores import FAISS
+                return FAISS.load_local(
+                    str(path),
+                    embeddings=self._get_embedding_function()
+                )
+                
+            else:
+                self.logger.warning(f"Loading not implemented for vectorstore type: {vectorstore_type}")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"Failed to load vectorstore: {str(e)}")
+            return None
+
+    def _get_embedding_function(self) -> Any:
+        """Get the embedding function from the configuration."""
+        if self._data_ingest_config and self._data_ingest_config.embedding_models:
+            embedding_config = self._data_ingest_config.embedding_models[0]
+            # Create and return embedding function based on config
+            # This would need to mirror the logic in your data ingestion pipeline
+            pass
+        return None
 
 class QueryRequest(BaseModel):
     query: str
