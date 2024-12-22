@@ -43,17 +43,16 @@ graph = [
 ]
 
 vectorstores = [
+    "elasticsearch>=8.0.0",
     "faiss-cpu>=1.7.4",
     "pinecone-client>=3.0.0",
-    "weaviate-client>=3.25.0",
-    "qdrant-client>=1.7.0",
     "pymilvus>=2.3.0",
-    "elasticsearch>=8.0.0",
+    "qdrant-client>=1.7.0",
+    "weaviate-client>=3.25.0",    
 ]
 
 # Document processing
 document_processors = [
-    "unstructured[all-docs]>=0.11.0",
     "pymupdf>=1.23.0",
     "python-docx>=1.0.0",
     "pikepdf>=8.11.0",
@@ -61,6 +60,7 @@ document_processors = [
     "pypdf>=3.17.0",
     "markdown>=3.5.0",
     "beautifulsoup4>=4.12.0",
+    "unstructured[all-docs]>=0.11.0",
 ]
 
 all = [

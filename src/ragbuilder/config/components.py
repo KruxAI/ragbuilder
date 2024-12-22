@@ -267,7 +267,7 @@ COMPONENT_ENV_REQUIREMENTS = {
         "optional": [],
         "packages": [
             _PkgSpec("langchain-huggingface"),
-            _PkgSpec("sentence_transformers"),
+            _PkgSpec("sentence-transformers"),
             _PkgSpec("torch")
         ]
     },
