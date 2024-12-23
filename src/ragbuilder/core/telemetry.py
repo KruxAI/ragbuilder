@@ -13,7 +13,7 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
 from opentelemetry.sdk.resources import Resource
-# from ragbuilder._version import __version__
+from ragbuilder._version import __version__
 import logging
 from contextlib import contextmanager
 from datetime import datetime

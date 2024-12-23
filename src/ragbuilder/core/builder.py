@@ -6,7 +6,7 @@ from ragbuilder.config.generator import GenerationOptionsConfig
 from ragbuilder.config.base import LogConfig
 from ragbuilder.data_ingest.optimization import run_data_ingest_optimization
 from ragbuilder.retriever.optimization import run_retrieval_optimization
-from src.ragbuilder.generation.optimization import run_generation_optimization
+from ragbuilder.generation.optimization import run_generation_optimization
 from ragbuilder.generate_data import TestDatasetManager
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from ragbuilder.core.telemetry import telemetry
@@ -337,9 +337,9 @@ class RAGBuilder:
                     "retrieval": retrieval_results,
                     "generation": generation_results
                 }
-                # span.set_attribute("data_ingest_score", data_ingest_results.get("best_score", 0))
-                # span.set_attribute("retrieval_score", retrieval_results.get("best_score", 0))
-                # span.set_attribute("generation_score", generation_results.get("best_score", 0))
+                span.set_attribute("data_ingest_score", data_ingest_results.get("best_score", 0))
+                span.set_attribute("retrieval_score", retrieval_results.get("best_score", 0))
+                span.set_attribute("generation_score", generation_results.get("best_score", 0))
 
                 return self._optimization_results
                 

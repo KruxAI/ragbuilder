@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, validator, ConfigDict
 import pandas as pd
 from ragbuilder.config.components import lazy_load
 from ragbuilder.config.base import ConfigMetadata
+from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata
 import yaml
 # Define Pydantic Model for the Prompt Template
 class PromptTemplate(BaseModel):
@@ -146,6 +147,7 @@ class GenerationConfig(BaseConfig):
     model_name: Optional[str] = None
     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model-specific parameters")
     prompt_template: Optional[str] = None
+    prompt_key: Optional[str] = None
     eval_data_set_path: Optional[str] = None
     local_prompt_template_path: Optional[str] = None
     read_local_only: Optional[bool] = False
@@ -158,6 +160,12 @@ class GenerationOptionsConfig(BaseConfig):
     local_prompt_template_path: Optional[str] = None
     read_local_only: Optional[bool] = False
     retriever: Optional[Any]=None
+    database_logging: Optional[bool] = Field(default=True, description="Whether to log results to the DB")
+    database_path: Optional[str] = Field(default="eval.db", description="Path to the SQLite database file")
+    optimization: Optional[OptimizationConfig] = Field(
+        default_factory=OptimizationConfig,
+        description="Optimization configuration"
+    )
 
     @classmethod
     def with_defaults(cls) -> 'GenerationOptionsConfig':
@@ -174,7 +182,9 @@ class GenerationOptionsConfig(BaseConfig):
                 llms=[
                     LLMConfig(type=LLM.AZURE_OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}),  
                 ],
+                optimization=OptimizationConfig(
+                    n_trials=10,
+                    n_jobs=1,
+                optimization_direction="maximize"),
                 metadata=ConfigMetadata(is_default=True)
-
-
             )

@@ -30,6 +30,8 @@
                         <th>Relevance Scores</th>
                         <th>Weighted Score</th>
                         <th>Error</th>
+                        <th>Latency</th>
+                        <th>Timestamp</th>
                     {% elif module_type == 'retriever' %}
                         <th>Contexts</th>
                         <th>Ground Truth</th>
@@ -37,9 +39,11 @@
                         <th>Context Recall</th>
                         <th>F1 Score</th>
                         <th>Error</th>
+                        <th>Latency</th>
+                        <th>Timestamp</th>
+                    {% elif module_type == 'generation' %}
+                        <th>Answer Correctness</th>
                     {% endif %}
-                    <th>Latency</th>
-                    <th>Timestamp</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -89,6 +93,8 @@
                             </td>
                             <td>{{ "%.2f"|format(detail.weighted_score) if detail.weighted_score is not none else '(null)' }}</td>
                             <td>{{ detail.error if detail.error is not none else '' }}</td>
+                            <td>🕓 {{ "%.2f"|format(detail.latency) if detail.latency is not none else '(null)' }}</td>
+                            <td>{{ detail.eval_timestamp }}</td>
                         {% elif module_type == 'retriever' %}
                             <!-- Retriever specific columns -->
                             <td>
@@ -105,9 +111,12 @@
                             <td>{{ "%.2f"|format(detail.context_recall) if detail.context_recall is not none else '(null)' }}</td>
                             <td>{{ "%.2f"|format(detail.f1_score) if detail.f1_score is not none else '(null)' }}</td>
                             <td>{{ detail.error if detail.error is not none else '' }}</td>
+                            <td>🕓 {{ "%.2f"|format(detail.latency) if detail.latency is not none else '(null)' }}</td>
+                            <td>{{ detail.eval_timestamp }}</td>
+                        {% else %}
+                            <td>{{ "%.2f"|format(detail.answer_correctness) if detail.answer_correctness is not none else '(null)' }}</td>
                         {% endif %}
-                        <td>🕓 {{ "%.2f"|format(detail.latency) if detail.latency is not none else '(null)' }}</td>
-                        <td>{{ detail.eval_timestamp }}</td>
+
                     </tr>
                 {% endfor %}
                 </tbody>
