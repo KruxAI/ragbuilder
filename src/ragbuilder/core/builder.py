@@ -337,9 +337,9 @@ class RAGBuilder:
                     "retrieval": retrieval_results,
                     "generation": generation_results
                 }
-                span.set_attribute("data_ingest_score", data_ingest_results.get("best_score", 0))
-                span.set_attribute("retrieval_score", retrieval_results.get("best_score", 0))
-                span.set_attribute("generation_score", generation_results.get("best_score", 0))
+                # span.set_attribute("data_ingest_score", data_ingest_results.get("best_score", 0))
+                # span.set_attribute("retrieval_score", retrieval_results.get("best_score", 0))
+                # span.set_attribute("generation_score", generation_results.get("best_score", 0))
 
                 return self._optimization_results
                 
