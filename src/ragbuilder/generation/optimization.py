@@ -37,7 +37,6 @@ class SystemPromptGenerator:
         self.callbacks = []  # Initialize callbacks list
 
         # Initialize DBLoggerCallback if database logging is enabled
-        self.logger.info(f"{config.database_logging}=>database_logging")
         if config.database_logging:
             try:
                 self.logger.info(f"{config.optimization.study_name},study_name")
@@ -75,7 +74,6 @@ class SystemPromptGenerator:
         self.logger.debug("Building trial configs")
         for llm_config in self.config.llms:
             for prompt_template in self.prompt_templates:
-                print(prompt_template)
                 trial_config = GenerationConfig(
                     type=llm_config.type,
                     model_kwargs=llm_config.model_kwargs,
@@ -125,14 +123,6 @@ class SystemPromptGenerator:
                     "ground_truth": entry.get("ground_truth", ""),
                     "config": trial_config.model_dump(),
                 })
-            # Log results using callbacks
-            # for callback in self.callbacks:
-            #     print("callback 1")
-            #     try:
-            #         callback(trial_config, results)  # Pass trial config and results to callback
-            #     except Exception as e:
-            #         self.logger.warning(f"Callback error: {e}")
-
         # Convert results to Dataset
         from datasets import Dataset
         results_dataset = Dataset.from_list([item for items in results.values() for item in items])
@@ -153,7 +143,6 @@ class SystemPromptGenerator:
         console.print("[success]Optimization Complete![/success]")
         for callback in self.callbacks:
             try:
-                self.logger.info("invoking callbacks")
                 callback(study=None,trial=None,eval_results=eval_results, final_results=final_results)
             except Exception as e:
                     self.logger.warning(f"Callback error: {e}")

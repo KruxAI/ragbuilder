@@ -84,6 +84,5 @@ def load_prompts(
         if 'name' not in entry or 'template' not in entry:
             raise ValueError(f"Invalid prompt entry found: {entry}")
         all_prompts[entry['name']] = PromptTemplate(name=entry['name'], template=entry['template'])
-    l=list(all_prompts.items())
-    print(l[0])
-    return l
+    return list(all_prompts.items())
+

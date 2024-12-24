@@ -193,7 +193,6 @@ class DBLoggerCallback(Protocol):
 
     def _update_run_status(self, status: str):
         """Update the status of a run."""
-        print("Updating run status")
         if not self.run_id:
             return
         
@@ -215,7 +214,6 @@ class DBLoggerCallback(Protocol):
                 cursor = conn.cursor()
                 cursor.execute("BEGIN")
                 try:
-                    print(self.module_type,'module_type')
                     if self.module_type == "retriever":
                         self._log_retriever_trial(cursor, eval_id, trial, results)
                     elif self.module_type == "data_ingest":
@@ -236,8 +234,6 @@ class DBLoggerCallback(Protocol):
 
     def _log_retriever_trial(self, cursor, eval_id: int, trial: Trial, results: Dict[str, Any]):
         """Log retriever trial results."""
-        # Log Summary
-        logger.info("_log_retriever_trial")
         cursor.execute(
             """
             INSERT INTO retriever_eval_summary (
@@ -290,8 +286,6 @@ class DBLoggerCallback(Protocol):
 
     def _log_data_ingest_trial(self, cursor, eval_id: int, trial: Trial, results: Dict[str, Any]):
         """Log data ingest trial results."""
-        # Existing data ingest logging implementation
-        logger.info("_log_data_ingest_trial")
         cursor.execute(
             """
             INSERT INTO data_ingest_eval_summary (
@@ -338,8 +332,6 @@ class DBLoggerCallback(Protocol):
         )
     def _log_generation_trial(self, cursor, eval_id: int, eval_results: Dataset, final_results: Dataset):
         """Log generation trial results."""
-        logger.info("_log_generation_trial")
-        
         try:
             # Assuming eval_results has fields that match your database schema
             for record in eval_results:
@@ -406,16 +398,12 @@ class DBLoggerCallback(Protocol):
 
     def __call__(self, study: Study, trial: Trial,eval_results=None,final_results=None):
         """Called after each trial completion."""
-        print('module_type',self.module_type)
         if self.module_type in ['retriever','data_ingest']:
             results = study.user_attrs.get(f"trial_{trial.number}_results", {})
             if results:
-                print('trial',type(trial))
-                print('results',type(results))
                 self._log_trial(trial=trial, results=results)
                 logger.debug(f"Logged results for trial {trial.number}")
         else:
-            print("generator logging",self.study_name)
             self._log_trial(eval_results=eval_results,final_results=final_results)
 
     def __del__(self):
