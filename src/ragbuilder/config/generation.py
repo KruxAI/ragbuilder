@@ -4,6 +4,8 @@ import pandas as pd
 from ragbuilder.config.components import lazy_load
 from ragbuilder.config.base import ConfigMetadata
 from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata
+from .components import RetrieverType, RerankerType, EvaluatorType
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 import yaml
 # Define Pydantic Model for the Prompt Template
 class PromptTemplate(BaseModel):
@@ -166,6 +168,16 @@ class GenerationOptionsConfig(BaseConfig):
         default_factory=OptimizationConfig,
         description="Optimization configuration"
     )
+    evaluation_config: Optional[EvaluationConfig] = Field(
+        default_factory=lambda: EvaluationConfig(
+            type=EvaluatorType.RAGAS,
+            evaluator_kwargs={
+                "llm": AzureChatOpenAI(model="gpt-4o-mini", temperature=0.0),
+                "embeddings": AzureOpenAIEmbeddings(model="text-embedding-3-large"),
+            }
+        ),
+        description="Evaluation configuration"
+    )
 
     @classmethod
     def with_defaults(cls) -> 'GenerationOptionsConfig':
@@ -183,7 +195,7 @@ class GenerationOptionsConfig(BaseConfig):
                     LLMConfig(type=LLM.AZURE_OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}),  
                 ],
                 optimization=OptimizationConfig(
-                    n_trials=1,
+                    n_trials=10,
                     n_jobs=1,
                 optimization_direction="maximize"),
                 metadata=ConfigMetadata(is_default=True)

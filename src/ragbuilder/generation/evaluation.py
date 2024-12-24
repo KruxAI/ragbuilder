@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import List
 from ragbuilder.core import console
 import logging
+from ragbuilder.config.base import EvaluationConfig
 
 class Evaluator(ABC):
     @abstractmethod
@@ -33,9 +34,13 @@ class Evaluator(ABC):
         self.logger = logging.getLogger("ragbuilder.evaluator")
 
 class RAGASEvaluator(Evaluator):
-    def __init__(self) -> None:
+    def __init__(self,eval_config: EvaluationConfig) -> None:
         super().__init__()
         self.logger.debug("RAGASEvaluator initiated")
+        self.eval_config = eval_config
+        self.llm = self.eval_config.evaluator_kwargs.get("llm")
+        self.embeddings = self.eval_config.evaluator_kwargs.get("embeddings")
+        self.test_dataset = self.eval_config.test_dataset
 
     def get_eval_dataset(self, eval_dataset_path) -> Dataset:
         """
@@ -73,7 +78,7 @@ class RAGASEvaluator(Evaluator):
         self.eval_dataset = eval_dataset
         return eval_dataset
 
-    def evaluate(self, eval_dataset: Dataset, llm=AzureChatOpenAI(model="gpt-4o-mini"), embeddings=AzureOpenAIEmbeddings(model="text-embedding-3-large")) -> Dataset:
+    def evaluate(self, eval_dataset: Dataset) -> Dataset:
         result = evaluate(
             eval_dataset,
             metrics=[
@@ -84,8 +89,8 @@ class RAGASEvaluator(Evaluator):
                 # context_recall,
             ],
             raise_exceptions=False, 
-            llm=llm,
-            embeddings=embeddings,
+            llm=self.llm,
+            embeddings=self.embeddings,
             is_async=True,
             run_config=RunConfig(timeout=240, max_workers=1, max_wait=180, max_retries=10)
         )

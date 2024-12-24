@@ -35,11 +35,10 @@ class SystemPromptGenerator:
         self.eval_data_set_path = config.eval_data_set_path
         self.verbose = verbose
         self.callbacks = []  # Initialize callbacks list
-
+        self.n_trials = config.optimization.n_trials
         # Initialize DBLoggerCallback if database logging is enabled
         if config.database_logging:
             try:
-                self.logger.info(f"{config.optimization.study_name},study_name")
                 db_callback = DBLoggerCallback(
                     study_name=config.optimization.study_name,
                     config=config,
@@ -72,8 +71,12 @@ class SystemPromptGenerator:
     def _build_trial_config(self) -> List[GenerationConfig]:
         trial_configs = []
         self.logger.debug("Building trial configs")
+        counter=0
         for llm_config in self.config.llms:
-            for prompt_template in self.prompt_templates:
+            for n,prompt_template in enumerate(self.prompt_templates): 
+                if counter>=self.n_trials:
+                    break
+                counter+=1
                 trial_config = GenerationConfig(
                     type=llm_config.type,
                     model_kwargs=llm_config.model_kwargs,
@@ -83,23 +86,25 @@ class SystemPromptGenerator:
                 )
                 trial_configs.append(trial_config)
                 # break #REMOVE
+            if counter>=self.n_trials:
+                break
         return trial_configs
     
     def optimize(self):
         console.rule("[heading]Starting Generation Optimization[/heading]")
         
         trial_configs = self._build_trial_config()
-        n_trials = len(trial_configs)
-        self.logger.info(f"Generated {n_trials} trial configurations")
+        # self.n_trials = len(trial_configs)
+        self.logger.info(f"Generated {self.n_trials} trial configurations")
         
         pipeline = None
         results = {}
-        
-        evaldataset = self.evaluator.get_eval_dataset(self.eval_data_set_path)
+        # self.logger.info(f"eval path {self.eval_data_set_path}")
+        evaldataset = self.evaluator.get_eval_dataset(self.evaluator.test_dataset)
         self.logger.debug(f"Loaded evaluation dataset with {len(evaldataset)} entries")
 
         for i, trial_config in enumerate(trial_configs):
-            console.print(f"[heading]Trial {i}/{n_trials-1}[/heading]")
+            console.print(f"[heading]Trial {i}/{self.n_trials-1}[/heading]")
             if self.verbose:
                 console.print(f"Running trial {i} with prompt template: {trial_config.prompt_template}")
         
@@ -185,7 +190,7 @@ def run_generation_optimization(options_config: GenerationOptionsConfig, retriev
         log_config.log_level if log_config else logging.INFO,
         log_config.log_file if log_config else None
     )
-    evaluator = RAGASEvaluator()
+    evaluator = RAGASEvaluator(options_config.evaluation_config)
     optimizer = SystemPromptGenerator(options_config, evaluator, retriever=retriever, verbose=log_config.verbose)
     return optimizer.optimize()
 

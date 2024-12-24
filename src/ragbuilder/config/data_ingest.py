@@ -140,7 +140,7 @@ class DataIngestOptionsConfig(BaseModel):
             ],
             vector_databases=[VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}})],
             optimization=OptimizationConfig(
-                n_trials=1,
+                n_trials=10,
                 n_jobs=1,
                 optimization_direction="maximize"
             ),

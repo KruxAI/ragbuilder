@@ -115,47 +115,39 @@ class RAGBuilder:
             print("generation_config",GenerationOptionsConfig(**config_dict['generation']))
         return builder
 
+
     def _ensure_eval_dataset(self, config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig, GenerationOptionsConfig]) -> None:
-            """Ensure config has a test dataset, generating one if needed"""
-            if (hasattr(config, 'evaluation_config') and config.evaluation_config.test_dataset) or (hasattr(config, 'eval_data_set_path') and config.eval_data_set_path):
-            # if config.evaluation_config.test_dataset or hasattr(config, 'eval_data_set_path'):
-                # self.logger.info(f"Using provided test dataset: {config.evaluation_config.test_dataset or config.eval_data_set_path}")
-                return
+        """Ensure config has a test dataset, generating one if needed"""
+        if config.evaluation_config.test_dataset:
+            return
+        
+        # Check if we already have a test dataset from data ingestion
+        if (self._data_ingest_config and self._data_ingest_config.evaluation_config.test_dataset):
+            config.evaluation_config.test_dataset = self._data_ingest_config.evaluation_config.test_dataset
+            self.logger.info(f"Reusing test dataset from data ingestion: {config.evaluation_config.test_dataset}")
+            return
+        
+        if (self._retrieval_config and self._retrieval_config.evaluation_config.test_dataset):
+            config.evaluation_config.test_dataset = self._retrieval_config.evaluation_config.test_dataset
+            self.logger.info(f"Reusing test dataset from retrieval: {config.evaluation_config.test_dataset}")
+            return
+        
+        if not hasattr(config, 'input_source'):
+            raise ValueError("input_source is required when test_dataset is not provided")
+        
+        source_data = (getattr(config, 'input_source', None) or 
+                      (self._data_ingest_config.input_source if self._data_ingest_config else None))
+        
+        if not source_data:
+            raise ValueError("input_source is required when test_dataset is not provided")
             
-            # Check if we already have a test dataset from data ingestion
-            if (self._data_ingest_config and self._data_ingest_config.evaluation_config.test_dataset):
-                if hasattr(config, 'evaluation_config'):
-                    config.evaluation_config.test_dataset = self._data_ingest_config.evaluation_config.test_dataset
-                else:
-                    config.eval_data_set_path = self._data_ingest_config.evaluation_config.test_dataset
-                    self.logger.debug(f"Reusing test dataset from data ingestion: {config.eval_data_set_path}")
-                return
-            
-            elif (self._retrieval_config and self._retrieval_config.evaluation_config.test_dataset):
-                config.eval_data_set_path = self._retrieval_config.evaluation_config.test_dataset
-                self.logger.debug(f"Reusing test dataset from retrieval: {config.eval_data_set_path}")
-                return
-            
-            if not hasattr(config, 'input_source'):
-                raise ValueError("input_source is required when test_dataset is not provided")
-            
-            source_data = (getattr(config, 'input_source', None) or 
-                        (self._data_ingest_config.input_source if self._data_ingest_config else None))
-            
-            if not source_data:
-                raise ValueError("input_source is required when test_dataset is not provided")
-                
-            with console.status("Generating eval dataset..."):
-                test_dataset = self._test_dataset_manager.get_or_generate_eval_dataset(
-                    source_data=source_data,
-                    eval_data_generation_config=config.evaluation_config.eval_data_generation_config if hasattr(config, 'evaluation_config') else None,
-                    sampling_rate=config.sampling_rate if hasattr(config, 'sampling_rate') else None
-                )
-            if hasattr(config, 'evaluation_config'):
-                config.evaluation_config.test_dataset = test_dataset
-            else:
-                config.eval_data_set_path = test_dataset
-            self.logger.debug(f"Eval dataset: {test_dataset}")
+        with console.status("Generating eval dataset..."):
+            test_dataset = self._test_dataset_manager.get_or_generate_dataset(
+                source_data=source_data
+            )
+        config.evaluation_config.test_dataset = test_dataset
+        self.logger.info(f"Eval dataset: {test_dataset}")
+
 
 
     def optimize_data_ingest(

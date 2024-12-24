@@ -73,9 +73,7 @@ class RetrieverF1ScoreEvaluator(Evaluator):
 
     def evaluate(
         self, 
-        pipeline: RetrieverPipeline,
-        llm= AzureChatOpenAI(model="gpt-4o-mini"), 
-        embeddings=AzureOpenAIEmbeddings(model="text-embedding-3-large")
+        pipeline: RetrieverPipeline
     ) -> Tuple[float, List[Dict[str, Any]]]:
         """
         Evaluate the retriever pipeline using RAGAS metrics.
