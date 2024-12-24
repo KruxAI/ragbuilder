@@ -86,7 +86,7 @@ class DataIngestOptionsConfig(BaseModel):
     )
     vector_databases: Optional[List[VectorDBConfig]] = Field(
         # default_factory=lambda: [VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={})], 
-        default_factory=lambda: [VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}})],
+        default_factory=lambda: [VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}, 'persist_directory': './chroma'})],
         description="List of vector databases"
     )
     sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")

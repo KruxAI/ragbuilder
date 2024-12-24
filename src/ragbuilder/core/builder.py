@@ -6,7 +6,7 @@ from ragbuilder.config.generator import GenerationOptionsConfig
 from ragbuilder.config.base import LogConfig
 from ragbuilder.data_ingest.optimization import run_data_ingest_optimization
 from ragbuilder.retriever.optimization import run_retrieval_optimization
-from src.ragbuilder.generation.optimization import run_generation_optimization
+from ragbuilder.generation.optimization import run_generation_optimization
 from ragbuilder.generate_data import TestDatasetManager
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from ragbuilder.core.telemetry import telemetry
@@ -589,7 +589,7 @@ class RAGBuilder:
         
         if vectorstore_type == "chroma":
             # For Chroma, copy the persist_directory if it exists
-            if hasattr(self._optimized_store, "_client") and hasattr(self._optimized_store._client, "_persist_directory"):
+            if hasattr(self._optimized_store, "_client") and self._optimized_store._client.get_settings().is_persistent:
                 persist_dir = Path(self._optimized_store._client._persist_directory)
                 if persist_dir.exists():
                     shutil.copytree(persist_dir, path, dirs_exist_ok=True)
