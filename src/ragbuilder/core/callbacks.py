@@ -10,7 +10,7 @@ from optuna.study import Study
 from optuna.trial import Trial
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig
 from ragbuilder.config.retriever import RetrievalOptionsConfig
-from ragbuilder.config.generator import GenerationOptionsConfig
+from ragbuilder.config.generation import GenerationOptionsConfig
 from .utils import serialize_config
 from datasets import Dataset
 logger = logging.getLogger(__name__)

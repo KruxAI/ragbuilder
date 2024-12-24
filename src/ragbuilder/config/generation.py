@@ -183,7 +183,7 @@ class GenerationOptionsConfig(BaseConfig):
                     LLMConfig(type=LLM.AZURE_OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}),  
                 ],
                 optimization=OptimizationConfig(
-                    n_trials=10,
+                    n_trials=1,
                     n_jobs=1,
                 optimization_direction="maximize"),
                 metadata=ConfigMetadata(is_default=True)

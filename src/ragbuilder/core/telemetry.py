@@ -20,7 +20,7 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
-ModuleType = Literal["data_ingest", "retriever", "generator", "ragbuilder"]
+ModuleType = Literal["data_ingest", "retriever", "generation", "ragbuilder"]
 
 class RAGBuilderTelemetry:
     def __init__(self):
@@ -207,7 +207,7 @@ class RAGBuilderTelemetry:
                         self._set_data_ingest_attributes(span, config)
                     elif module == "retriever":
                         self._set_retriever_attributes(span, config)
-                    elif module == "generator":
+                    elif module == "generation":
                         self._set_generator_attributes(span, config)
                 except Exception:
                     logger.debug(f"Failed to set telemetry span attributes for module {module}: {e}")

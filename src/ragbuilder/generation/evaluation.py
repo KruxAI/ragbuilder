@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datasets import Dataset
 import pandas as pd
-from ragbuilder.config.generator import EvalDataset
+from ragbuilder.config.generation import EvalDataset
 from ragas.metrics import (
     answer_relevancy,
     faithfulness,

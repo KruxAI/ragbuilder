@@ -6,8 +6,8 @@ from operator import itemgetter
 from datetime import datetime
 from langchain_core.output_parsers import StrOutputParser
 from ragbuilder.config import LogConfig, GenerationOptionsConfig, GenerationConfig
-from ragbuilder.config.generator import LLM_MAP
-from ragbuilder.config.generator import LLMConfig
+from ragbuilder.config.generation import LLM_MAP
+from ragbuilder.config.generation import LLMConfig
 from ragbuilder.generation.prompt_templates import load_prompts
 # from ragbuilder.generation.sample_retriever import sample_retriever
 from ragbuilder.generation.evaluation import Evaluator, RAGASEvaluator
@@ -28,7 +28,7 @@ class SystemPromptGenerator:
         verbose: bool = False,
         callback=None  # Add callback parameter
     ):
-        self.logger = logging.getLogger("ragbuilder.generation.generator")
+        self.logger = logging.getLogger("ragbuilder.generation.optimization")
         self.llms = []  # List to store instantiated LLMs
         self.config = config
         self.evaluator = evaluator
@@ -82,7 +82,7 @@ class SystemPromptGenerator:
                     prompt_key=prompt_template[0]
                 )
                 trial_configs.append(trial_config)
-                break #REMOVE
+                # break #REMOVE
         return trial_configs
     
     def optimize(self):
