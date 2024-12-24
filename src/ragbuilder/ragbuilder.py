@@ -261,14 +261,23 @@ async def sdk_summary(request: Request, run_id: int, db: sqlite3.Connection = De
             WHERE run_id = ? 
             ORDER BY avg_score desc
         """, (run_id,))
-    else:  # retriever
+    elif module_type == 'retriever' :  # retriever
         cursor.execute("""
             SELECT * FROM retriever_eval_summary 
             WHERE run_id = ? 
             ORDER BY avg_score desc
         """, (run_id,))
-        
+    else:
+        cursor.execute("""
+            SELECT * FROM generation_eval_summary 
+            WHERE run_id = ? 
+            ORDER BY average_correctness desc
+        """, (run_id,))
+
     evals = cursor.fetchall()
+    test_var=[dict(zip([col[0] for col in cursor.description], row)) 
+                     for row in evals]
+    print("results:",test_var)
     db.close()
 
     try:
@@ -296,7 +305,7 @@ async def sdk_summary(request: Request, run_id: int, db: sqlite3.Connection = De
 async def sdk_details(
     request: Request, 
     eval_id: int, 
-    module_type: str = PathParam(..., regex="^(data_ingest|retriever)$"),
+    module_type: str = PathParam(..., regex="^(data_ingest|retriever|generation)$"),
     db: sqlite3.Connection = Depends(get_db)
 ):
     cursor = db.cursor()
@@ -316,7 +325,7 @@ async def sdk_details(
             WHERE eval_id = ?
             ORDER BY question_id
         """, (eval_id,))
-    else:
+    elif module_type == 'retriever' :
         cursor.execute("""
             SELECT 
                 question_id,
@@ -333,7 +342,21 @@ async def sdk_details(
             WHERE eval_id = ?
             ORDER BY question_id
         """, (eval_id,))
-        
+    else:
+        cursor.execute("""
+            SELECT 
+                question_id,
+                question,
+                answer,
+                ground_truth,
+                prompt_key,
+                prompt,
+                answer_correctness
+            FROM generation_eval_details
+            WHERE eval_id = ?
+            ORDER BY question_id
+        """, (eval_id,))
+#TODO datetime(eval_ts/1000.0, 'unixepoch', 'localtime') as eval_timestamp
     details = cursor.fetchall()
     db.close()
     

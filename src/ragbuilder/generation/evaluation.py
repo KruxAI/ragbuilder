@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datasets import Dataset
 import pandas as pd
-from ragbuilder.config.generator import EvalDataset
+from ragbuilder.config.generation import EvalDataset
 from ragas.metrics import (
     answer_relevancy,
     faithfulness,
@@ -93,7 +93,7 @@ class RAGASEvaluator(Evaluator):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_csv_path = 'rag_eval_results_' + timestamp + '.csv'
         # selected_columns = ["prompt_key", "prompt", "question", "answer", "ground_truth", "answer_correctness", "faithfulness", "answer_relevancy", "context_precision", "context_recall", 'config']
-        selected_columns = ["prompt_key", "prompt", "question", "answer", "ground_truth", "answer_correctness", 'config']
+        selected_columns = ["prompt_key", "prompt", "question", "question_id", "answer", "ground_truth", "answer_correctness", 'config']
         result_df[selected_columns].to_csv(output_csv_path, index=False)
         
         self.logger.debug("Prompt evaluation completed")

@@ -42,11 +42,13 @@
                                 <th>Avg Score</th>
                                 <th>Avg Latency</th>
                                 <th>Success Rate</th>
-                            {% else %}
+                            {% elif module_type == 'retriever' %}
                                 <th>Avg Score</th>
                                 <th>Context Precision</th>
                                 <th>Context Recall</th>
                                 <th>Avg Latency</th>
+                            {% else %}
+                                <th>Avg Answer Correctness</th>
                             {% endif %}
                             <th>Details</th>
                         </tr>
@@ -64,11 +66,13 @@
                                 <td>{{ "%.3f"|format(eval.avg_score) }}</td>
                                 <td>{{ "%.2f"|format(eval.avg_latency) }}s</td>
                                 <td>{{ "%.1f"|format(100 * (1 - eval.error_rate)) }}%</td>
-                            {% else %}
+                            {% elif module_type == 'retriever' %}
                                 <td>{{ "%.3f"|format(eval.avg_score) }}</td>
                                 <td>{{ "%.3f"|format(eval.avg_context_precision) }}</td>
                                 <td>{{ "%.3f"|format(eval.avg_context_recall) }}</td>
                                 <td>{{ "%.2f"|format(eval.avg_latency) }}s</td>
+                            {% else %}
+                                <td>{{ "%.3f"|format(eval.average_correctness) }}</td>
                             {% endif %}
                             <td>
                                 <a href="/sdk/details/{{ module_type }}/{{ eval.eval_id }}" 

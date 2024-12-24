@@ -1,4 +1,4 @@
-from ragbuilder.config.generator import PromptTemplate
+from ragbuilder.config.generation import PromptTemplate
 import os
 import logging
 import yaml
@@ -84,5 +84,5 @@ def load_prompts(
         if 'name' not in entry or 'template' not in entry:
             raise ValueError(f"Invalid prompt entry found: {entry}")
         all_prompts[entry['name']] = PromptTemplate(name=entry['name'], template=entry['template'])
+    return list(all_prompts.items())
 
-    return list(all_prompts.values())

@@ -39,6 +39,9 @@ class OptimizationConfig(BaseModel):
                 elif 'retriever' in module_name:
                     caller_module = 'retriever'
                     break
+                elif 'generation' in module_name:
+                    caller_module = 'generation'
+                    break
                 frame = frame.f_back
             else:
                 caller_module = 'unknown'

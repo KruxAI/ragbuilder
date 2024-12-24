@@ -10,8 +10,9 @@ from optuna.study import Study
 from optuna.trial import Trial
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig
 from ragbuilder.config.retriever import RetrievalOptionsConfig
+from ragbuilder.config.generation import GenerationOptionsConfig
 from .utils import serialize_config
-
+from datasets import Dataset
 logger = logging.getLogger(__name__)
 
 
@@ -20,13 +21,13 @@ class DBLoggerCallback(Protocol):
     
     def __init__(self, 
                  study_name: str,
-                 config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig],
+                 config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig, GenerationOptionsConfig],
                  module_type: str):
         """
         Args:
             study_name: Name of the optimization study
             config: Configuration for optimization
-            module_type: Type of module ('data_ingest' or 'retriever')
+            module_type: Type of module ('data_ingest' or 'retriever' or 'generation')
         """
         self.study_name = study_name
         self.config = config
@@ -127,6 +128,28 @@ class DBLoggerCallback(Protocol):
                 error             TEXT,
                 eval_ts           BIGINT
             )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS generation_eval_details (
+                eval_id             BIGINT,
+                question_id         BIGINT,
+                question            TEXT,
+                answer              TEXT,
+                ground_truth        TEXT,
+                prompt_key          TEXT,
+                prompt              TEXT,
+                answer_correctness  FLOAT
+            )
+            """,
+                        """
+            CREATE TABLE IF NOT EXISTS generation_eval_summary (
+                run_id              BIGINT,
+                eval_id             BIGINT,
+                prompt_key          BIGINT,
+                prompt              TEXT,
+                config              TEXT,
+                average_correctness FLOAT
+            )
             """
         ]
         
@@ -183,7 +206,7 @@ class DBLoggerCallback(Protocol):
         except Exception as e:
             logger.error(f"Failed to update run status: {e}")
 
-    def _log_trial(self, trial: Trial, results: Dict[str, Any]) -> Optional[int]:
+    def _log_trial(self, trial: Trial=None, results: Dict[str, Any]=None, eval_results: Dataset=None, final_results: Dataset=None) -> Optional[int]:
         """Log trial results to database."""
         try:
             eval_id = int(time.time()*1000 + random.randint(1, 1000))
@@ -193,8 +216,10 @@ class DBLoggerCallback(Protocol):
                 try:
                     if self.module_type == "retriever":
                         self._log_retriever_trial(cursor, eval_id, trial, results)
-                    else:
+                    elif self.module_type == "data_ingest":
                         self._log_data_ingest_trial(cursor, eval_id, trial, results)
+                    elif self.module_type == "generation":
+                        self._log_generation_trial(cursor,eval_id,eval_results,final_results)
                     
                     conn.commit()
                     return eval_id
@@ -209,7 +234,6 @@ class DBLoggerCallback(Protocol):
 
     def _log_retriever_trial(self, cursor, eval_id: int, trial: Trial, results: Dict[str, Any]):
         """Log retriever trial results."""
-        # Log Summary
         cursor.execute(
             """
             INSERT INTO retriever_eval_summary (
@@ -262,7 +286,6 @@ class DBLoggerCallback(Protocol):
 
     def _log_data_ingest_trial(self, cursor, eval_id: int, trial: Trial, results: Dict[str, Any]):
         """Log data ingest trial results."""
-        # Existing data ingest logging implementation
         cursor.execute(
             """
             INSERT INTO data_ingest_eval_summary (
@@ -307,13 +330,81 @@ class DBLoggerCallback(Protocol):
                 for idx, detail in enumerate(results['question_details'])
             ]
         )
+    def _log_generation_trial(self, cursor, eval_id: int, eval_results: Dataset, final_results: Dataset):
+        """Log generation trial results."""
+        try:
+            # Assuming eval_results has fields that match your database schema
+            for record in eval_results:
+                cursor.execute(
+                    """
+                    INSERT INTO generation_eval_details (
+                        eval_id,
+                        question_id, 
+                        question,
+                        answer, 
+                        ground_truth, 
+                        prompt_key,
+                        prompt, 
+                        answer_correctness
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        eval_id,
+                        record['question_id'],  # Adjust according to your Dataset structure
+                        record['question'],      # Adjust according to your Dataset structure
+                        record['answer'], 
+                        record.get('ground_truth', ''),  # Adjust according to your Dataset structure
+                        record.get('prompt_key', ''),
+                        record.get('prompt', ''),          # Adjust according to your Dataset structure
+                        record.get('answer_correctness', None)  # Optional field
+                        # record.get('error', None),          # Optional field
+                        # record['eval_timestamp']  # Adjust according to your Dataset structure
+                    )
+                )
+            results_df = eval_results.to_pandas()
+            grouped_results = (
+                results_df.groupby('prompt_key')
+                .agg(
+                    prompt=('prompt', 'first'),
+                    config=('config', 'first'),
+                    average_correctness=('answer_correctness', 'mean')
+                )
+                .reset_index())
+            for record in Dataset.from_pandas(grouped_results):
+                cursor.execute(
+                    """
+                    INSERT INTO generation_eval_summary (
+                        run_id,
+                        eval_id,
+                        prompt_key,
+                        prompt,
+                        config,
+                        average_correctness
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        self.run_id,
+                        eval_id,
+                        record.get('prompt_key',''),  # Adjust according to your Dataset structure
+                        record.get('prompt',''),      # Adjust according to your Dataset structure
+                        json.dumps(record.get('config','')), 
+                        record.get('average_correctness', None)  # Adjust according to your Dataset structure
+                    )
+                )
+            logger.debug(f"Logged {len(eval_results)} generation trial results for eval_id {eval_id}")
+        
+        except Exception as e:
+            logger.error(f"Failed to log generation trial results: {e}")
 
-    def __call__(self, study: Study, trial: Trial):
+    def __call__(self, study: Study, trial: Trial,eval_results=None,final_results=None):
         """Called after each trial completion."""
-        results = study.user_attrs.get(f"trial_{trial.number}_results", {})
-        if results:
-            self._log_trial(trial, results)
-            logger.debug(f"Logged results for trial {trial.number}")
+        if self.module_type in ['retriever','data_ingest']:
+            results = study.user_attrs.get(f"trial_{trial.number}_results", {})
+            if results:
+                self._log_trial(trial=trial, results=results)
+                logger.debug(f"Logged results for trial {trial.number}")
+        else:
+            self._log_trial(eval_results=eval_results,final_results=final_results)
 
     def __del__(self):
         """Update run status when optimization completes."""

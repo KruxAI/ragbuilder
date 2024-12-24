@@ -1,6 +1,6 @@
 from .data_ingest import DataIngestConfig, DataIngestOptionsConfig
 from .retriever import RetrievalConfig, RetrievalOptionsConfig, BaseRetrieverConfig, RerankerConfig
-from .generator import GenerationConfig, GenerationOptionsConfig
+from .generation import GenerationConfig, GenerationOptionsConfig
 from .base import LogConfig
 
 __all__ = [

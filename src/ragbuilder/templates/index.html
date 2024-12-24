@@ -91,7 +91,7 @@
                         <td>{{ run.run_ts }}</td>
                         <!-- <td><a href="/summary/{{ run.run_id }}" class="btn btn-outline-primary btn-sm"><span style="font-size:smaller;">View Results</span></a></td> -->
                         <td>
-                            {% if run.module_type in ['data_ingest', 'retriever'] %}
+                            {% if run.module_type in ['data_ingest', 'retriever','generation'] %}
                                 <a href="/sdk/summary/{{ run.run_id }}" class="btn btn-outline-primary btn-sm">
                                     <span style="font-size:smaller;">View Results</span>
                                 </a>

@@ -6,8 +6,8 @@ from operator import itemgetter
 from datetime import datetime
 from langchain_core.output_parsers import StrOutputParser
 from ragbuilder.config import LogConfig, GenerationOptionsConfig, GenerationConfig
-from ragbuilder.config.generator import LLM_MAP
-from ragbuilder.config.generator import LLMConfig
+from ragbuilder.config.generation import LLM_MAP
+from ragbuilder.config.generation import LLMConfig
 from ragbuilder.generation.prompt_templates import load_prompts
 # from ragbuilder.generation.sample_retriever import sample_retriever
 from ragbuilder.generation.evaluation import Evaluator, RAGASEvaluator
@@ -17,6 +17,7 @@ from importlib import import_module
 from ragbuilder.core.exceptions import DependencyError
 from ragbuilder.core import setup_rich_logging, console
 import logging
+from ragbuilder.core.callbacks import DBLoggerCallback  # Import the callback class
 
 class SystemPromptGenerator:
     def __init__(
@@ -24,21 +25,41 @@ class SystemPromptGenerator:
         config: GenerationOptionsConfig, 
         evaluator: Evaluator, 
         retriever: Optional[Any] = None, 
-        verbose: bool = False
+        verbose: bool = False,
+        callback=None  # Add callback parameter
     ):
-        self.logger = logging.getLogger("ragbuilder.generation.generator")
+        self.logger = logging.getLogger("ragbuilder.generation.optimization")
         self.llms = []  # List to store instantiated LLMs
         self.config = config
         self.evaluator = evaluator
         self.eval_data_set_path = config.eval_data_set_path
         self.verbose = verbose
+        self.callbacks = []  # Initialize callbacks list
+
+        # Initialize DBLoggerCallback if database logging is enabled
+        if config.database_logging:
+            try:
+                self.logger.info(f"{config.optimization.study_name},study_name")
+                db_callback = DBLoggerCallback(
+                    study_name=config.optimization.study_name,
+                    config=config,
+                    module_type='generation'
+                )
+                self.callbacks.append(db_callback)
+                self.logger.debug("Database logging enabled")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize database logging: {e}")
+
+        if callback:
+            self.callbacks.append(callback)
+
         self.logger.debug("Loading Prompts")
         self.local_prompt_template_path = config.local_prompt_template_path
         self.read_local_only = config.read_local_only
         
         self.logger.debug(f"Initializing with config: {config}")
         self.logger.debug("Loading Retriever")
-        self.retriever=retriever
+        self.retriever = retriever
         if self.retriever is None:
             raise DependencyError("Retriever Not set")
         self.prompt_templates = load_prompts(
@@ -57,7 +78,8 @@ class SystemPromptGenerator:
                     type=llm_config.type,
                     model_kwargs=llm_config.model_kwargs,
                     eval_data_set_path=self.eval_data_set_path,
-                    prompt_template=prompt_template.template,
+                    prompt_template=prompt_template[1].template,
+                    prompt_key=prompt_template[0]
                 )
                 trial_configs.append(trial_config)
                 # break #REMOVE
@@ -85,20 +107,22 @@ class SystemPromptGenerator:
             pipeline = create_pipeline(trial_config, self.retriever)
             
             self.logger.info(f"Preparing eval dataset for trial {i}")
-            for entry in evaldataset:
+            for i,entry in enumerate(evaldataset):
+                question_id = i
                 question = entry.get("question", "")
                 result = pipeline.invoke(question)
-                results[trial_config.prompt_template] = []
-                results[trial_config.prompt_template].append({
-                    "prompt_key": trial_config.prompt_template,
+                combined_key = f"{trial_config.prompt_key}_{question_id}"  # Combine prompt_key and question_id
+                results[combined_key] = []
+                results[combined_key].append({
+                    "prompt_key": trial_config.prompt_key,
                     "prompt": trial_config.prompt_template,
+                    "question_id": question_id,
                     "question": question,
                     "answer": result.get("answer", "Error"),
                     "context": result.get("context", "Error"),
                     "ground_truth": entry.get("ground_truth", ""),
                     "config": trial_config.model_dump(),
                 })
-                # break #REMOVE
         # Convert results to Dataset
         from datasets import Dataset
         results_dataset = Dataset.from_list([item for items in results.values() for item in items])
@@ -117,8 +141,11 @@ class SystemPromptGenerator:
         final_results = self.calculate_metrics(eval_results)
         
         console.print("[success]Optimization Complete![/success]")
-        # console.print(f"[success]Best Score:[/success] [value]{final_results['best_score']:.4f}[/value]")
-        
+        for callback in self.callbacks:
+            try:
+                callback(study=None,trial=None,eval_results=eval_results, final_results=final_results)
+            except Exception as e:
+                    self.logger.warning(f"Callback error: {e}")
         return final_results
 
     def calculate_metrics(self, result):

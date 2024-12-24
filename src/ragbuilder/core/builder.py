@@ -1,7 +1,7 @@
 from typing import Optional, Any, Dict, Union
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig 
 from ragbuilder.config.retriever import RetrievalOptionsConfig
-from ragbuilder.config.generator import GenerationOptionsConfig
+from ragbuilder.config.generation import GenerationOptionsConfig
 
 from ragbuilder.config.base import LogConfig
 from ragbuilder.data_ingest.optimization import run_data_ingest_optimization
@@ -285,7 +285,7 @@ class RAGBuilder:
         
         self._ensure_eval_dataset(self._generation_config)
         
-        with telemetry.optimization_span("generator", self._generation_config.model_dump()) as span:
+        with telemetry.optimization_span("generation", self._generation_config.model_dump()) as span:
             try:
                 results = run_generation_optimization(
                     self._generation_config, 
@@ -296,12 +296,12 @@ class RAGBuilder:
                 # Store results and update telemetry
                 self._optimization_results["generation"] = results
                 self._optimized_generation = results["best_pipeline"]
-                telemetry.update_optimization_results(span, results, "generator")
+                telemetry.update_optimization_results(span, results, "generation")
                 return results
                 
             except Exception as e:
                 telemetry.track_error(
-                    "generator",
+                    "generation",
                     e,
                     context={
                         "config_type": "default" if not config else "custom",
@@ -446,7 +446,7 @@ class RAGBuilder:
                 yaml.dump(json.loads(serialize_config(self._retrieval_config)), f)
             
         if self._generation_config:
-            with open(save_path / "configs" / "generator.yaml", "w") as f:
+            with open(save_path / "configs" / "generation.yaml", "w") as f:
                 yaml.dump(json.loads(serialize_config(self._generation_config)), f)
 
         # Save optimization results
@@ -496,7 +496,7 @@ class RAGBuilder:
             "components": {
                 "data_ingest": bool(self._data_ingest_config),
                 "retriever": bool(self._retrieval_config),
-                "generator": bool(self._generation_config)
+                "generation": bool(self._generation_config)
             },
             "vectorstore": {
                 "included": include_vectorstore,
@@ -545,8 +545,8 @@ class RAGBuilder:
             with open(load_path / "configs" / "retriever.yaml", "r") as f:
                 retrieval_config = RetrievalOptionsConfig(**yaml.safe_load(f))
                 
-        if manifest["components"]["generator"]:
-            with open(load_path / "configs" / "generator.yaml", "r") as f:
+        if manifest["components"]["generation"]:
+            with open(load_path / "configs" / "generation.yaml", "r") as f:
                 generation_config = GenerationOptionsConfig(**yaml.safe_load(f))
 
         # Create builder instance
