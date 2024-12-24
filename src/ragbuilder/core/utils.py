@@ -70,7 +70,9 @@ def load_environment(env_path: Optional[str] = None) -> None:
 
 def validate_environment(config: Union[DataIngestOptionsConfig, RetrievalOptionsConfig]) -> List[str]:
     """Validate environment variables for all components in a config"""
-    load_environment()
+    cwd = os.getcwd()
+    dotenv_path = os.path.join(cwd, '.env')
+    load_environment(dotenv_path)
     missing_env = []
     missing_packages = []
     
