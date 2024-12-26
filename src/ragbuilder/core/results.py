@@ -88,7 +88,7 @@ class OptimizationResults(BaseModel):
             if result := getattr(self, module):
                 summary[module] = {
                     "score": result.best_score,
-                    "optimization_time": result.optimization_time,
+                    "optimization_time": result.optimization_time.total_seconds(),
                     "config": result.get_config_summary(),
                     "metrics": {
                         "avg_latency": result.avg_latency,
