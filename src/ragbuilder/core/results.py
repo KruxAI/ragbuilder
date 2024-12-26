@@ -97,7 +97,7 @@ class OptimizationResults(BaseModel):
                 }
         return summary
 
-    def query(self, question: str) -> Dict[str, Any]:
+    def invoke(self, question: str) -> Dict[str, Any]:
         """Run complete RAG pipeline with optimized components"""
         if not all([self.retrieval, self.generation]):
             raise ValueError("Both retrieval and generation optimization required for querying")
@@ -115,3 +115,7 @@ class OptimizationResults(BaseModel):
                 "generation_score": self.generation.best_score
             }
         } 
+    
+    def __repr__(self):
+        import json
+        return json.dumps(self.summary(), indent=4)
