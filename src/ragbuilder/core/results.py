@@ -102,7 +102,7 @@ class OptimizationResults(BaseModel):
         if not all([self.retrieval, self.generation]):
             raise ValueError("Both retrieval and generation optimization required for querying")
 
-        retrieved_docs = self.retrieval.retrieve(question)
+        retrieved_docs = self.retrieval.invoke(question)
         result = self.generation.invoke(question)
 
         return {
