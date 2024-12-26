@@ -50,7 +50,7 @@ class DataIngestResults(ModuleResults):
         }
 
 class RetrievalResults(ModuleResults):
-    def retrieve(self, query: str, **kwargs) -> List[Any]:
+    def invoke(self, query: str, **kwargs) -> List[Any]:
         return self.best_pipeline.retriever_chain.invoke(query, **kwargs)
 
     def get_config_summary(self) -> Dict[str, Any]:
@@ -63,11 +63,8 @@ class RetrievalResults(ModuleResults):
 class GenerationResults(ModuleResults):
     best_prompt: str
     
-    def generate(self, question: str, context: List[Any]) -> str:
-        return self.best_pipeline.invoke({
-            "question": question,
-            "context": context
-        })
+    def invoke(self, question: str, **kwargs) -> str:
+        return self.best_pipeline.invoke(question, **kwargs)
 
     def get_config_summary(self) -> Dict[str, Any]:
         return {
@@ -106,11 +103,12 @@ class OptimizationResults(BaseModel):
             raise ValueError("Both retrieval and generation optimization required for querying")
 
         retrieved_docs = self.retrieval.retrieve(question)
-        answer = self.generation.generate(question, retrieved_docs)
+        result = self.generation.invoke(question)
 
         return {
             "question": question,
-            "answer": answer,
+            "answer": result['answer'],
+            "context": result['context'],
             "retrieved_documents": retrieved_docs,
             "metadata": {
                 "retrieval_score": self.retrieval.best_score,

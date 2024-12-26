@@ -5,7 +5,7 @@ from ragbuilder.config.components import lazy_load
 from ragbuilder.config.base import ConfigMetadata
 from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata
 from .components import EvaluatorType
-from langchain_openai import OpenAIEmbeddings, OpenAI
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 import yaml
 # Define Pydantic Model for the Prompt Template
 class PromptTemplate(BaseModel):
@@ -178,7 +178,7 @@ class GenerationOptionsConfig(BaseConfig):
         default_factory=lambda: EvaluationConfig(
             type=EvaluatorType.RAGAS,
             evaluator_kwargs={
-                "llm": OpenAI(model="gpt-4o-mini", temperature=0.0),
+                "llm": ChatOpenAI(model="gpt-4o-mini", temperature=0.0),
                 "embeddings": OpenAIEmbeddings(model="text-embedding-3-large"),
             }
         ),

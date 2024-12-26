@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any, Union
 import yaml
 from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata
 from .components import RetrieverType, RerankerType, EvaluatorType
-from langchain_openai import OpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 class BaseRetrieverConfig(BaseModel):
     """Configuration for a specific retriever instance"""
@@ -50,7 +50,7 @@ class RetrievalOptionsConfig(BaseModel):
                 # "metrics": ["precision", "recall", "f1_score"]
                 # "llm": AzureChatOpenAI(model="gpt-4o-mini", temperature=0.0),
                 # "embeddings": AzureOpenAIEmbeddings(model="text-embedding-3-large"),
-                "llm": OpenAI(model="gpt-4o-mini", temperature=0.0),
+                "llm": ChatOpenAI(model="gpt-4o-mini", temperature=0.0),
                 "embeddings": OpenAIEmbeddings(model="text-embedding-3-large"),
             }
         ),
@@ -92,7 +92,7 @@ class RetrievalOptionsConfig(BaseModel):
             evaluation_config=EvaluationConfig(
                 type=EvaluatorType.RAGAS,
                 evaluator_kwargs={
-                    "llm": OpenAI(model="gpt-4o-mini", temperature=0.0),
+                    "llm": ChatOpenAI(model="gpt-4o-mini", temperature=0.0),
                     "embeddings": OpenAIEmbeddings(model="text-embedding-3-large"),
                     # "llm": AzureChatOpenAI(model="gpt-4o-mini", temperature=0.0),
                     # "embeddings": AzureOpenAIEmbeddings(model="text-embedding-3-large"),

@@ -182,7 +182,7 @@ class DataIngestConfig(BaseModel):
     chunk_overlap: int = Field(default=100, description="Chunk overlap")
     embedding_model: EmbeddingConfig = Field(
         # default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
-        default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.AZURE_OPENAI, model_kwargs={"model_name": "text-embedding-3-large"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
+        default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.OPENAI, model_kwargs={"model_name": "text-embedding-3-large"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
         description="Embedding model configuration"
     )
     vector_database: VectorDBConfig = Field(
