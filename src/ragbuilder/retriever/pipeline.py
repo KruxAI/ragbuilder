@@ -76,7 +76,7 @@ class RetrieverPipeline:
                 #self.logger.debug(f"Creating {retriever_config.type} retriever...")
                 # status.update(f"[status]Creating {retriever_config.type} retriever...[/status]")
 
-                if retriever_config.type == RetrieverType.SIMILARITY:
+                if retriever_config.type == RetrieverType.VECTOR_SIMILARITY:
                     retriever = self.vectorstore.as_retriever(
                         search_type="similarity",
                         search_kwargs={"k": retriever_config.retriever_k[0]},
@@ -84,7 +84,7 @@ class RetrieverPipeline:
                     )
                     # status.update("[status]Created vector similarity search retriever[/status]")
                 
-                elif retriever_config.type == RetrieverType.MMR:
+                elif retriever_config.type == RetrieverType.VECTOR_MMR:
                     retriever = self.vectorstore.as_retriever(
                         search_type="mmr",
                         search_kwargs={

@@ -109,11 +109,7 @@ class OptimizationResults(BaseModel):
             "question": question,
             "answer": result['answer'],
             "context": result['context'],
-            "retrieved_documents": retrieved_docs,
-            "metadata": {
-                "retrieval_score": self.retrieval.best_score,
-                "generation_score": self.generation.best_score
-            }
+            "retrieved_documents": retrieved_docs
         } 
     
     def __repr__(self):

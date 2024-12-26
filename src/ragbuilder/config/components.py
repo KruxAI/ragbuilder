@@ -77,8 +77,8 @@ class VectorDatabase(str, Enum):
     CUSTOM = "custom"
 
 class RetrieverType(str, Enum):
-    SIMILARITY = "similarity"
-    MMR = "mmr"
+    VECTOR_SIMILARITY = "vector_similarity"
+    VECTOR_MMR = "vector_mmr"
     MULTI_QUERY = "multi_query"
     BM25 = "bm25"
     PARENT_DOC_RETRIEVER_FULL = "parent_doc_full"

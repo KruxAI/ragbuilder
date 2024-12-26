@@ -25,7 +25,7 @@ class RerankerConfig(BaseModel):
 class RetrievalOptionsConfig(BaseModel):
     """Configuration for retriever optimization options"""
     retrievers: List[BaseRetrieverConfig] = Field(
-        default_factory=lambda: [BaseRetrieverConfig(type=RetrieverType.SIMILARITY)],
+        default_factory=lambda: [BaseRetrieverConfig(type=RetrieverType.VECTOR_SIMILARITY)],
         description="List of retrievers to try"
     )
     rerankers: Optional[List[RerankerConfig]] = Field(
@@ -72,7 +72,7 @@ class RetrievalOptionsConfig(BaseModel):
         return cls(
             retrievers=[
                 BaseRetrieverConfig(
-                    type=RetrieverType.SIMILARITY,
+                    type=RetrieverType.VECTOR_SIMILARITY,
                     retriever_k=[20],
                     weight=1
                 ),
@@ -103,7 +103,7 @@ class RetrievalOptionsConfig(BaseModel):
 
 class RetrievalConfig(BaseModel):
     retrievers: List[BaseRetrieverConfig] = Field(
-        default_factory=lambda: [BaseRetrieverConfig(type=RetrieverType.SIMILARITY)],
+        default_factory=lambda: [BaseRetrieverConfig(type=RetrieverType.VECTOR_SIMILARITY)],
         description="List of retrievers to try"
     )
     rerankers: Optional[List[RerankerConfig]] = Field(
