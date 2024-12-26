@@ -3,7 +3,7 @@ from typing import List, Dict, Type
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 from operator import itemgetter
-from datetime import datetime
+from datetime import datetime, timedelta
 from langchain_core.output_parsers import StrOutputParser
 from ragbuilder.config import LogConfig, GenerationOptionsConfig, GenerationConfig
 from ragbuilder.config.generation import LLM_MAP
@@ -18,6 +18,7 @@ from ragbuilder.core.exceptions import DependencyError
 from ragbuilder.core import setup_rich_logging, console
 import logging
 from ragbuilder.core.callbacks import DBLoggerCallback  # Import the callback class
+from ragbuilder.core.results import GenerationResults
 
 class SystemPromptGenerator:
     def __init__(
@@ -90,11 +91,18 @@ class SystemPromptGenerator:
                 break
         return trial_configs
     
-    def optimize(self):
+    def optimize(self) -> GenerationResults:
+        """
+        Run optimization process.
+        
+        Returns:
+            GenerationResults containing optimization results and best pipeline
+        """
         console.rule("[heading]Starting Generation Optimization[/heading]")
         
+        start_time = datetime.now()
+        
         trial_configs = self._build_trial_config()
-        # self.n_trials = len(trial_configs)
         self.logger.info(f"Generated {self.n_trials} trial configurations")
         
         pipeline = None
@@ -145,15 +153,42 @@ class SystemPromptGenerator:
         self.logger.info(f"Calculating final prompt testing results")
         final_results = self.calculate_metrics(eval_results)
         
+        # Create structured results object
+        results = GenerationResults(
+            best_config=final_results["best_config"],
+            best_score=final_results["best_score"],
+            best_pipeline=final_results["best_pipeline"],
+            best_prompt=final_results["best_prompt"],
+            n_trials=self.n_trials,
+            completed_trials=len(trial_configs),
+            optimization_time=timedelta(seconds=(datetime.now() - start_time).total_seconds()),
+            # Add performance metrics if available from eval_results
+            avg_latency=None,
+            error_rate=None
+        )
+        
+        # Log results
         console.print("[success]Optimization Complete![/success]")
+        console.print(f"[success]Best Score:[/success] [value]{results.best_score:.4f}[/value]")
+        console.print("[success]Best Configuration:[/success]")
+        console.print(results.get_config_summary(), style="value")
+        
+        # Call callbacks with the new results structure
         for callback in self.callbacks:
             try:
-                callback(study=None,trial=None,eval_results=eval_results, final_results=final_results)
+                callback(
+                    study=None,
+                    trial=None,
+                    eval_results=eval_results,
+                    final_results=results
+                )
             except Exception as e:
-                    self.logger.warning(f"Callback error: {e}")
-        return final_results
+                self.logger.warning(f"Callback error: {e}")
+                
+        return results
 
     def calculate_metrics(self, result):
+        """Calculate metrics from evaluation results."""
         results_df = result.to_pandas()
         grouped_results = (
             results_df.groupby('prompt_key')
@@ -164,34 +199,54 @@ class SystemPromptGenerator:
             )
             .reset_index()
         )
+        
+        # Save results to CSV for reference
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_csv_path = 'rag_average_correctness' + timestamp + '.csv'
-        grouped_results.to_csv('rag_average_correctness.csv', index=False)
-        self.logger.info("Average correctness results saved to 'rag_average_correctness.csv'")
+        output_csv_path = f'rag_average_correctness_{timestamp}.csv'
+        grouped_results.to_csv(output_csv_path, index=False)
+        self.logger.info(f"Average correctness results saved to '{output_csv_path}'")
 
         best_prompt_row = grouped_results.loc[grouped_results['average_correctness'].idxmax()]
-        prompt_key = best_prompt_row['prompt_key']
-        prompt = best_prompt_row['prompt']
-        max_average_correctness = best_prompt_row['average_correctness']
-        config = best_prompt_row['config']
-        best_pipeline = create_pipeline(GenerationConfig(**config), self.retriever)
-        console.print(f"[success]Best Prompt:[/success] {prompt_key[:50]}...\n[success]Best Score:[/success] [value]{max_average_correctness}[/value]")
-
+        
         return {
-            "best_config": GenerationConfig(**config),
-            "best_prompt": prompt,
-            "best_score": max_average_correctness,
-            "best_pipeline": best_pipeline
+            "best_config": GenerationConfig(**best_prompt_row['config']),
+            "best_prompt": best_prompt_row['prompt'],
+            "best_score": best_prompt_row['average_correctness'],
+            "best_pipeline": create_pipeline(GenerationConfig(**best_prompt_row['config']), self.retriever),
+            #TODO: Add latency and error rate
+            # "avg_latency": best_prompt_row.get('avg_latency'),
+            # "error_rate": best_prompt_row.get('error_rate')
         }
 
-def run_generation_optimization(options_config: GenerationOptionsConfig, retriever: Optional[Any] = None, log_config: Optional[LogConfig] = None) -> Dict[str, Any]:
-    """Run Prompt optimization process."""
+def run_generation_optimization(
+    options_config: GenerationOptionsConfig, 
+    retriever: Optional[Any] = None, 
+    log_config: Optional[LogConfig] = None
+) -> GenerationResults:
+    """
+    Run Prompt optimization process.
+    
+    Args:
+        options_config: Generation configuration options
+        retriever: Optional retriever to use for generation
+        log_config: Optional logging configuration
+    
+    Returns:
+        GenerationResults containing optimization results
+    """
     setup_rich_logging(
         log_config.log_level if log_config else logging.INFO,
         log_config.log_file if log_config else None
     )
+    
     evaluator = RAGASEvaluator(options_config.evaluation_config)
-    optimizer = SystemPromptGenerator(options_config, evaluator, retriever=retriever, verbose=log_config.verbose)
+    optimizer = SystemPromptGenerator(
+        options_config, 
+        evaluator, 
+        retriever=retriever, 
+        verbose=log_config.verbose
+    )
+    
     return optimizer.optimize()
 
 def create_pipeline(trial_config: GenerationConfig, retriever: RunnableParallel):

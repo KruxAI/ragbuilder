@@ -123,6 +123,12 @@ def lazy_load(module_path: str, class_name: str) -> Callable:
 LLM_MAP = {
     LLMType.OPENAI: lazy_load("langchain_openai", "ChatOpenAI"),
     LLMType.AZURE_OPENAI: lazy_load("langchain_openai", "AzureChatOpenAI"),
+    LLMType.HUGGINGFACE: lazy_load("langchain_huggingface", "HuggingFaceHub"),
+    LLMType.OLLAMA: lazy_load("langchain_ollama", "OllamaChat"),
+    LLMType.COHERE: lazy_load("langchain_community.llms", "Cohere"),
+    LLMType.VERTEXAI: lazy_load("langchain_google_vertexai", "VertexAI"),
+    LLMType.BEDROCK: lazy_load("langchain_community.llms", "Bedrock"),
+    LLMType.JINA: lazy_load("langchain_community.llms", "Jina"),
 }
 
 LOADER_MAP = {

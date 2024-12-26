@@ -13,9 +13,9 @@ from ragbuilder.core import (
     setup_rich_logging, 
     console
 )
-from ragbuilder.core.utils import load_environment, validate_environment
 from ragbuilder.core.exceptions import OptimizationError
 from ragbuilder.retriever.pipeline import RetrieverPipeline
+from ragbuilder.core.results import RetrievalResults
 from .evaluation import Evaluator, RetrieverF1ScoreEvaluator
 
 STORE = DocumentStore()
@@ -203,8 +203,13 @@ class RetrieverOptimization:
             console.print(f"[red]Trial failed: {str(e)}[/red]")
             raise OptimizationError(f"Trial failed: {str(e)}") from e
 
-    def optimize(self) -> Dict[str, Any]:
-        """Run optimization process."""
+    def optimize(self) -> RetrievalResults:
+        """
+        Run optimization process.
+        
+        Returns:
+            RetrievalResults containing optimization results and best pipeline
+        """
         console.rule("[heading]Starting retriever optimization...[/heading]")
         
         if self.options_config.optimization.overwrite_study and \
@@ -231,30 +236,44 @@ class RetrieverOptimization:
         )
         
         # Translate indices to actual component names
-        readable_params = {}
-        for param, value in self.study.best_params.items():
-            if param.startswith("retriever_") and param.endswith("_index"):
-                retriever_index = int(param.split("_")[1])
-                readable_params[f"retriever_{retriever_index}"] = self.retriever_map[value].type
-            elif param == "reranker_index":
-                readable_params["reranker"] = self.reranker_map[value].type
-            else:
-                readable_params[param] = value
+        # readable_params = {}
+        # for param, value in self.study.best_params.items():
+        #     if param.startswith("retriever_") and param.endswith("_index"):
+        #         retriever_index = int(param.split("_")[1])
+        #         readable_params[f"retriever_{retriever_index}"] = self.retriever_map[value].type
+        #     elif param == "reranker_index":
+        #         readable_params["reranker"] = self.reranker_map[value].type
+        #     else:
+        #         readable_params[param] = value
         
-        console.print(f"[heading]✓ Optimization complete![/heading]")
-        console.print(f"[success]Best Score:[/success] [value]{self.study.best_value:.4f}[/value]")
-        console.print("[success]Best Parameters:[/success]")
-        console.print(readable_params, style="value")
-
+        # Get metrics from the best trial
+        best_trial_key = f"trial_{self.study.best_trial.number}_results"
+        trial_results = self.study.user_attrs.get(best_trial_key, {})
+        metrics = trial_results.get("metrics", {})
+        
         best_config = self._generate_retrieval_config(self.study.best_trial)
         best_pipeline = RetrieverPipeline(config=best_config, vectorstore=self.vectorstore)
         CONFIG_STORE.store_best_retriever_pipeline(best_pipeline)
         
-        return {
-            "best_config": best_config,
-            "best_score": self.study.best_value,
-            "best_pipeline": best_pipeline
-        }
+        # Create structured results object
+        results = RetrievalResults(
+            best_config=best_config,
+            best_score=self.study.best_value,
+            best_pipeline=best_pipeline,
+            n_trials=self.options_config.optimization.n_trials,
+            completed_trials=len(self.study.trials),
+            optimization_time=self.study.trials[-1].datetime_complete - self.study.trials[0].datetime_start,
+            avg_latency=metrics.get("avg_latency"),
+            error_rate=metrics.get("error_rate")
+        )
+        
+        # Log results
+        console.print(f"[heading]✓ Optimization complete![/heading]")
+        console.print(f"[success]Best Score:[/success] [value]{results.best_score:.4f}[/value]")
+        console.print("[success]Best Configuration:[/success]")
+        console.print(results.get_config_summary(), style="value")
+        
+        return results
 
     def _calculate_aggregate_metrics(self, question_details: List[Dict]) -> Dict[str, Any]:
         """Calculate aggregate metrics from detailed results."""
@@ -283,8 +302,7 @@ def run_retrieval_optimization(
     options_config: RetrievalOptionsConfig, 
     vectorstore: Optional[Any] = None,
     log_config: Optional[LogConfig] = LogConfig()
-) -> Dict[str, Any]:
-    # TODO: Add environment validation
+) -> RetrievalResults:
     """
     Run retriever optimization process.
     
@@ -294,8 +312,8 @@ def run_retrieval_optimization(
         log_config: Optional logging configuration
     
     Returns:
-        Dict containing optimization results including best_config, best_score,
-        best_pipeline, and study_statistics
+        RetrievalResults containing optimization results including best_config,
+        best_score, best_pipeline, and study statistics
     """
     setup_rich_logging(log_config.log_level, log_config.log_file)
     
@@ -316,15 +334,4 @@ def run_retrieval_optimization(
         verbose=log_config.verbose
     )
     
-    results = optimizer.optimize()
-    
-    return {
-        "best_config": results["best_config"],
-        "best_score": results["best_score"],
-        "best_pipeline": results["best_pipeline"],
-        "study_statistics": {
-            "n_trials": options_config.optimization.n_trials,
-            "completed_trials": len(optimizer.study.trials),
-            "optimization_time": optimizer.study.trials[-1].datetime_complete - optimizer.study.trials[0].datetime_start
-        }
-    }
+    return optimizer.optimize()

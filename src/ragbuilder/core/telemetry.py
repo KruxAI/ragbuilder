@@ -3,7 +3,7 @@ import uuid
 import platform
 from pathlib import Path
 from platformdirs import user_data_dir
-from typing import Optional, Dict, Any, Literal
+from typing import Union, Dict, Any, Literal
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.metrics import MeterProvider, Counter
@@ -14,6 +14,7 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExport
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
 from opentelemetry.sdk.resources import Resource
 from ragbuilder._version import __version__
+from ragbuilder.core.results import DataIngestResults, RetrievalResults, GenerationResults
 import logging
 from contextlib import contextmanager
 from datetime import datetime
@@ -253,31 +254,39 @@ class RAGBuilderTelemetry:
         """Set generator specific span attributes."""
         self._safe_set_attribute(span, "n_llms", len(config.get("llms", [])))
 
-    def update_optimization_results(self, span, results: Dict[str, Any], module: ModuleType):
+    def update_optimization_results(self, span, results: Union[DataIngestResults, RetrievalResults, GenerationResults], module: ModuleType):
         """Update span with optimization results."""
         if not self.enabled or not span:
             return
 
-        self._safe_set_attribute(span, "best_score", results.get("best_score", 0))
+        self._safe_set_attribute(span, "best_score", results.best_score)
+        if results.avg_latency is not None:
+            self._safe_set_attribute(span, "avg_latency", results.avg_latency)
+        if results.error_rate is not None:
+            self._safe_set_attribute(span, "error_rate", results.error_rate)
         
-        if module == "data_ingest" and "best_config" in results:
-            config = results["best_config"]
-            model_name = config.embedding_model.model_kwargs.get('model') or config.embedding_model.model_kwargs.get('model_name', '')
-            embedding_model = f"{config.embedding_model.type}:{model_name}" if model_name else str(config.embedding_model.type)
-            self._safe_set_attribute(span, "best_parser_type", str(config.document_loader.type))
-            self._safe_set_attribute(span, "best_embedding_model", embedding_model)
-            self._safe_set_attribute(span, "best_chunking_strategy", str(config.chunking_strategy.type))
-            self._safe_set_attribute(span, "best_chunk_size", config.chunk_size)
-            self._safe_set_attribute(span, "best_chunk_overlap", config.chunk_overlap)
-            self._safe_set_attribute(span, "vector_db", str(config.vector_database.type))
-            self._safe_set_attribute(span, "data_source_size", getattr(results["best_pipeline"], "data_source_size", 0))
+        if module == "data_ingest" and isinstance(results, DataIngestResults):
+            config = results.get_config_summary()
             
-        elif module == "retriever" and "best_config" in results:
-            config = results["best_config"]
-            self._safe_set_attribute(span, "best_retriever_types", [str(r.type) for r in config.retrievers])
-            if config.rerankers:
-                self._safe_set_attribute(span, "best_reranker", str(config.rerankers[0].type))
-            self._safe_set_attribute(span, "best_top_k", config.top_k)
+            self._safe_set_attribute(span, "best_parser_type", config["document_loader"])
+            self._safe_set_attribute(span, "best_embedding_model", config["embedding_model"])
+            self._safe_set_attribute(span, "best_chunking_strategy", config["chunking_strategy"])
+            self._safe_set_attribute(span, "best_chunk_size", config["chunk_size"])
+            self._safe_set_attribute(span, "best_chunk_overlap", config["chunk_overlap"])
+            self._safe_set_attribute(span, "vector_db", config["vector_database"])
+            self._safe_set_attribute(span, "data_source_size", getattr(results.best_pipeline, "data_source_size", 0))
+            
+        elif module == "retriever" and isinstance(results, RetrievalResults):
+            config = results.get_config_summary()
+            self._safe_set_attribute(span, "best_retriever_types", config["retrievers"])
+            if config.get("rerankers"):
+                self._safe_set_attribute(span, "best_reranker", config["rerankers"])
+            self._safe_set_attribute(span, "best_top_k", config.get("top_k", ""))
+
+        elif module == "generation" and isinstance(results, GenerationResults):
+            config_summary = results.get_config_summary()
+            self._safe_set_attribute(span, "model", config_summary["model"])
+            self._safe_set_attribute(span, "temperature", config_summary["temperature"])            
 
     def track_error(self, module: ModuleType, error: Exception, context: Dict[str, Any]):
         """Track error occurrence with span and metrics."""

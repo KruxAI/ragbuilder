@@ -25,7 +25,7 @@ from typing import Optional, Dict, Any, List, Union
 from ragas import RunConfig
 from ragas.testset.generator import TestsetGenerator
 from ragas.testset.evolutions import simple, reasoning, multi_context
-from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+from langchain_openai import OpenAIEmbeddings, OpenAI
 # from ragbuilder.langchain_module.common import setup_logging
 from ragbuilder.config.base import LogConfig, EvalDataGenerationConfig
 from langchain_core.documents import Document
@@ -185,11 +185,11 @@ class TestDatasetManager:
             
             # Use default models if not provided
             generator_model = (eval_data_generation_config.generator_model if eval_data_generation_config and eval_data_generation_config.generator_model
-                            else AzureChatOpenAI(model="gpt-4o", temperature=0.0))
+                            else OpenAI(model="gpt-4o", temperature=0.0))
             critic_model = (eval_data_generation_config.critic_model if eval_data_generation_config and eval_data_generation_config.critic_model
-                          else AzureChatOpenAI(model="gpt-4o", temperature=0.0))
+                          else OpenAI(model="gpt-4o", temperature=0.0))
             embedding_model = (eval_data_generation_config.embedding_model if eval_data_generation_config and eval_data_generation_config.embedding_model
-                            else AzureOpenAIEmbeddings(model="text-embedding-3-large"))
+                            else OpenAIEmbeddings(model="text-embedding-3-large"))
             
             # Extract model info for telemetry
             generator_model_name = getattr(generator_model, 'model', None) or getattr(generator_model, 'model_name', '')

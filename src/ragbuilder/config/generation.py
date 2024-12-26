@@ -4,8 +4,8 @@ import pandas as pd
 from ragbuilder.config.components import lazy_load
 from ragbuilder.config.base import ConfigMetadata
 from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata
-from .components import RetrieverType, RerankerType, EvaluatorType
-from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
+from .components import EvaluatorType
+from langchain_openai import OpenAIEmbeddings, OpenAI
 import yaml
 # Define Pydantic Model for the Prompt Template
 class PromptTemplate(BaseModel):
@@ -101,6 +101,12 @@ class LLM(str, Enum):
 LLM_MAP = {
     LLM.OPENAI: lazy_load("langchain_openai", "ChatOpenAI"),
     LLM.AZURE_OPENAI: lazy_load("langchain_openai", "AzureChatOpenAI"),
+    LLM.HUGGINGFACE: lazy_load("langchain_huggingface", "HuggingFaceEndpoint"),
+    LLM.OLLAMA: lazy_load("langchain_ollama", "ChatOllama"),
+    LLM.COHERE: lazy_load("langchain_cohere", "ChatCohere"),
+    LLM.VERTEXAI: lazy_load("langchain_google_vertexai", "ChatVertexAI"),
+    LLM.BEDROCK: lazy_load("langchain_amazon_bedrock", "ChatBedrock"),
+    LLM.JINA: lazy_load("langchain_jinaai", "ChatJina"),
 }
 
 # Step 4: Define the LLM Configuration Model
@@ -172,8 +178,8 @@ class GenerationOptionsConfig(BaseConfig):
         default_factory=lambda: EvaluationConfig(
             type=EvaluatorType.RAGAS,
             evaluator_kwargs={
-                "llm": AzureChatOpenAI(model="gpt-4o-mini", temperature=0.0),
-                "embeddings": AzureOpenAIEmbeddings(model="text-embedding-3-large"),
+                "llm": OpenAI(model="gpt-4o-mini", temperature=0.0),
+                "embeddings": OpenAIEmbeddings(model="text-embedding-3-large"),
             }
         ),
         description="Evaluation configuration"
@@ -192,7 +198,7 @@ class GenerationOptionsConfig(BaseConfig):
             """
             return cls(
                 llms=[
-                    LLMConfig(type=LLM.AZURE_OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}),  
+                    LLMConfig(type=LLM.OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}),  
                 ],
                 optimization=OptimizationConfig(
                     n_trials=10,

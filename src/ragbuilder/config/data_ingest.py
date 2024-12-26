@@ -55,7 +55,13 @@ class GraphConfig(BaseModel):
     chunk_size: Optional[int] = Field(default=3000, description="Chunk size")
     chunk_overlap: Optional[int] = Field(default=100, description="Chunk overlap")
     embedding_model: Optional[EmbeddingConfig] = Field(default=None, description="Embedding model")
-    llm: Optional[LLMConfig] = Field(default_factory=lambda: LLMConfig(type=LLMType.AZURE_OPENAI, model_kwargs={"model": "gpt-4o-mini", "temperature": 0.2}), description="LLM to use for graph construction")
+    llm: Optional[LLMConfig] = Field(
+        default_factory=lambda: LLMConfig(
+            type=LLMType.OPENAI, 
+            model_kwargs={"model": "gpt-4o", "temperature": 0.0},
+        ), 
+        description="LLM to use for graph construction"
+    )
     graph_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Graph specific configuration parameters")
     custom_class: Optional[str] = None
 

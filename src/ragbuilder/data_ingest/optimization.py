@@ -9,7 +9,7 @@ from optuna import Trial
 from ragbuilder.config import DataIngestOptionsConfig, DataIngestConfig, LogConfig
 from ragbuilder.config.components import LLM_MAP
 from ragbuilder.core import DBLoggerCallback, DocumentStore, ConfigStore, setup_rich_logging, console
-from ragbuilder.core.utils import load_environment, validate_environment
+from ragbuilder.core.results import DataIngestResults
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
 from langchain.docstore.document import Document
@@ -227,7 +227,13 @@ class DataIngestOptimizer:
 def run_data_ingest_optimization(
     options_config: DataIngestOptionsConfig, 
     log_config: LogConfig = LogConfig()
-):
+) -> DataIngestResults:
+    """
+    Run data ingestion optimization
+    
+    Returns:
+        DataIngestResults containing optimization results including vectorstore
+    """
     setup_rich_logging(log_config.log_level, log_config.log_file)
 
     # Create evaluator based on config
@@ -247,11 +253,30 @@ def run_data_ingest_optimization(
         show_progress_bar=log_config.show_progress_bar,
         verbose=log_config.verbose
     )
+    
     best_config, best_score = optimizer.optimize()
     
     # Create pipeline with best config to ensure vectorstore is cached
     pipeline = DataIngestPipeline(best_config)
     best_index = pipeline.run()
+    
+    # Get metrics of the best trial
+    best_trial_key = f"trial_{optimizer.study.best_trial.number}_results"
+    trial_results = optimizer.study.user_attrs.get(best_trial_key, {})
+    metrics = trial_results.get("metrics", {})
+    
+    # Create results object with all fields
+    results = DataIngestResults(
+        best_config=best_config,
+        best_score=best_score,
+        best_pipeline=pipeline,
+        best_index=best_index, 
+        n_trials=options_config.optimization.n_trials,
+        completed_trials=len(optimizer.study.trials),
+        optimization_time=optimizer.study.trials[-1].datetime_complete - optimizer.study.trials[0].datetime_start,
+        avg_latency=metrics.get("avg_latency"),
+        error_rate=metrics.get("error_rate")
+    )
     
     # Store the best pipeline in ConfigStore
     optimizer.config_store.store_best_data_ingest_pipeline(pipeline)
@@ -289,20 +314,9 @@ def run_data_ingest_optimization(
         graph = load_graph(chunks, pipeline.embedder, llm)
         optimizer.doc_store.store_graph(graph)
 
-    
     console.print("[success]✓ Successfully optimized and cached best configuration[/success]")
     
-    return {
-        "best_config": best_config,
-        "best_score": best_score,
-        "best_index": best_index,
-        "best_pipeline": pipeline,
-        "study_statistics": {
-            "n_trials": options_config.optimization.n_trials,
-            "completed_trials": len(optimizer.study.trials),
-            "optimization_time": optimizer.study.trials[-1].datetime_complete - optimizer.study.trials[0].datetime_start
-        }
-    }
+    return results
 
 def optimize_data_ingest_from_yaml(options_config_path: str):
     options_config = DataIngestOptionsConfig.from_yaml(options_config_path)
