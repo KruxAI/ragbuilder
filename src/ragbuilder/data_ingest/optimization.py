@@ -7,7 +7,6 @@ from typing import List, Dict, Any, Tuple
 from importlib import import_module
 from optuna import Trial
 from ragbuilder.config import DataIngestOptionsConfig, DataIngestConfig, LogConfig
-from ragbuilder.config.components import LLM_MAP
 from ragbuilder.core import DBLoggerCallback, DocumentStore, ConfigStore, setup_rich_logging, console
 from ragbuilder.core.results import DataIngestResults
 from .pipeline import DataIngestPipeline
@@ -273,7 +272,7 @@ def run_data_ingest_optimization(
         best_index=best_index, 
         n_trials=options_config.optimization.n_trials,
         completed_trials=len(optimizer.study.trials),
-        optimization_time=optimizer.study.trials[-1].datetime_complete - optimizer.study.trials[0].datetime_start,
+        optimization_time=(optimizer.study.trials[-1].datetime_complete - optimizer.study.trials[0].datetime_start).total_seconds(),
         avg_latency=metrics.get("avg_latency"),
         error_rate=metrics.get("error_rate")
     )
@@ -305,12 +304,12 @@ def run_data_ingest_optimization(
         pipeline = DataIngestPipeline(config, verbose=log_config.verbose)
         chunks = pipeline.ingest()
         
+        if not options_config.graph.llm:
+            options_config.graph.llm = ConfigStore().get_default_llm()
+
         llm_config = options_config.graph.llm
-        llm_class = LLM_MAP.get(llm_config.type)()
-        if not llm_class:
-            raise ValueError(f"Unsupported LLM type: {llm_config.type}")
+        llm = llm_config.llm
         
-        llm = llm_class(**(llm_config.model_kwargs or {}))
         graph = load_graph(chunks, pipeline.embedder, llm)
         optimizer.doc_store.store_graph(graph)
 

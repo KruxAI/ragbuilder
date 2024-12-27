@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any, Union
 import yaml
 from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata
 from .components import RetrieverType, RerankerType, EvaluatorType
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from ragbuilder.core.config_store import ConfigStore
 
 class BaseRetrieverConfig(BaseModel):
     """Configuration for a specific retriever instance"""
@@ -44,16 +44,7 @@ class RetrievalOptionsConfig(BaseModel):
         description="Optimization configuration"
     )
     evaluation_config: Optional[EvaluationConfig] = Field(
-        default_factory=lambda: EvaluationConfig(
-            type=EvaluatorType.RAGAS,
-            evaluator_kwargs={
-                # "metrics": ["precision", "recall", "f1_score"]
-                # "llm": AzureChatOpenAI(model="gpt-4o-mini", temperature=0.0),
-                # "embeddings": AzureOpenAIEmbeddings(model="text-embedding-3-large"),
-                "llm": ChatOpenAI(model="gpt-4o-mini", temperature=0.0),
-                "embeddings": OpenAIEmbeddings(model="text-embedding-3-large"),
-            }
-        ),
+        default_factory=lambda: EvaluationConfig(type=EvaluatorType.RAGAS),
         description="Evaluation configuration"
     )
 
@@ -85,19 +76,11 @@ class RetrievalOptionsConfig(BaseModel):
             rerankers=[RerankerConfig(type=RerankerType.BGE_BASE)],
             top_k=[3, 5],
             optimization=OptimizationConfig(
-                n_trials=10,
+                n_trials=ConfigStore().get_default_n_trials(),
                 n_jobs=1,
                 optimization_direction="maximize"
             ),
-            evaluation_config=EvaluationConfig(
-                type=EvaluatorType.RAGAS,
-                evaluator_kwargs={
-                    "llm": ChatOpenAI(model="gpt-4o-mini", temperature=0.0),
-                    "embeddings": OpenAIEmbeddings(model="text-embedding-3-large"),
-                    # "llm": AzureChatOpenAI(model="gpt-4o-mini", temperature=0.0),
-                    # "embeddings": AzureOpenAIEmbeddings(model="text-embedding-3-large"),
-                }
-            ),
+            evaluation_config=EvaluationConfig(type=EvaluatorType.RAGAS),
             metadata=ConfigMetadata(is_default=True)
         )
 

@@ -11,7 +11,7 @@ class ModuleResults(BaseModel):
     # Study statistics
     n_trials: int
     completed_trials: int
-    optimization_time: timedelta
+    optimization_time: float
     
     # Performance metrics
     avg_latency: Optional[float] = None
@@ -38,8 +38,27 @@ class DataIngestResults(ModuleResults):
         return self.best_index
 
     def get_config_summary(self) -> Dict[str, Any]:
-        model_name = self.best_config.embedding_model.model_kwargs.get('model') or self.best_config.embedding_model.model_kwargs.get('model_name', '')
-        embedding_model = f"{self.best_config.embedding_model.type}:{model_name}" if model_name else str(self.best_config.embedding_model.type)
+        # Get embedding type and model info
+        if self.best_config.embedding_model.type:
+            embedding_type = self.best_config.embedding_model.type
+        elif hasattr(self.best_config.embedding_model._initialized_embedding, "__class__"):
+            embedding_type = self.best_config.embedding_model._initialized_embedding.__class__.__name__
+        else:
+            embedding_type = "unknown"
+
+        # Try to get model name from different possible sources
+        model_name = None
+        if self.best_config.embedding_model.model_kwargs:
+            model_name = (self.best_config.embedding_model.model_kwargs.get('model') 
+                        or self.best_config.embedding_model.model_kwargs.get('model_name'))
+        elif hasattr(self.best_config.embedding_model._initialized_embedding, "model_name"):
+            model_name = self.best_config.embedding_model._initialized_embedding.model_name
+        elif hasattr(self.best_config.embedding_model._initialized_embedding, "model"):
+            model_name = self.best_config.embedding_model._initialized_embedding.model
+        
+        embedding_model = f"{embedding_type}:{model_name}" if model_name else str(embedding_type)
+        
+        
         return {
             "document_loader": self.best_config.document_loader.type.value,
             "chunking_strategy": self.best_config.chunking_strategy.type.value,
@@ -67,9 +86,36 @@ class GenerationResults(ModuleResults):
         return self.best_pipeline.invoke(question, **kwargs)
 
     def get_config_summary(self) -> Dict[str, Any]:
+        # Get LLM type and model info
+        if self.best_config.llm.type:
+            model_type = self.best_config.llm.type
+        elif hasattr(self.best_config.llm._initialized_llm, "__class__"):
+            model_type = self.best_config.llm._initialized_llm.__class__.__name__
+        else:
+            model_type = "unknown"
+
+        # Try to get model name and temperature from different possible sources
+        model_name = None
+        temperature = None
+        
+        if self.best_config.llm.model_kwargs:
+            model_name = (self.best_config.llm.model_kwargs.get('model') 
+                         or self.best_config.llm.model_kwargs.get('model_name'))
+            temperature = self.best_config.llm.model_kwargs.get("temperature")
+        elif hasattr(self.best_config.llm._initialized_llm, "model_name"):
+            model_name = self.best_config.llm._initialized_llm.model_name
+            if hasattr(self.best_config.llm._initialized_llm, "temperature"):
+                temperature = self.best_config.llm._initialized_llm.temperature
+        elif hasattr(self.best_config.llm._initialized_llm, "model"):
+            model_name = self.best_config.llm._initialized_llm.model
+            if hasattr(self.best_config.llm._initialized_llm, "temperature"):
+                temperature = self.best_config.llm._initialized_llm.temperature
+
+        model = f"{model_type}:{model_name}" if model_name else str(model_type)
+
         return {
-            "model": self.best_config.type,
-            "temperature": self.best_config.model_kwargs.get("temperature", None),
+            "model": model,
+            "temperature": temperature,
             "prompt_template": self.best_prompt
         }
 
@@ -88,7 +134,7 @@ class OptimizationResults(BaseModel):
             if result := getattr(self, module):
                 summary[module] = {
                     "score": result.best_score,
-                    "optimization_time": result.optimization_time.total_seconds(),
+                    "optimization_time": result.optimization_time,
                     "config": result.get_config_summary(),
                     "metrics": {
                         "avg_latency": result.avg_latency,

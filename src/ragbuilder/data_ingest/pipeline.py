@@ -12,12 +12,13 @@ from langchain.vectorstores.base import VectorStore
 
 from ragbuilder.config.components import (
     LOADER_MAP, CHUNKER_MAP, EMBEDDING_MAP, VECTORDB_MAP,
-    ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase
+    ParserType, ChunkingStrategy, EmbeddingType, VectorDatabase
 )
 from ragbuilder.config.data_ingest import DataIngestConfig
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from ragbuilder.core.exceptions import RAGBuilderError, ConfigurationError, ComponentError, PipelineError
 from ragbuilder.core.document_store import DocumentStore
+from ragbuilder.core.config_store import ConfigStore
 from ragbuilder.sampler import DataSampler
 
 class DataIngestPipeline:
@@ -58,18 +59,29 @@ class DataIngestPipeline:
 
     def _get_config_key(self) -> str:
         """Generate a unique key for the complete configuration"""
+        if self.config.embedding_model.type:
+            embedding_type = self.config.embedding_model.type
+        elif hasattr(self.config.embedding_model._initialized_embedding, "__class__"):
+            embedding_type = self.config.embedding_model._initialized_embedding.__class__.__name__
+        else:
+            embedding_type = "unknown"
+            
         components = [
             f"loader_{self._get_loader_key()}",
             f"chunker_{self.config.chunking_strategy.type}_{self.config.chunk_size}_{self.config.chunk_overlap}",
-            f"embedder_{self.config.embedding_model.type}",
+            f"embedder_{embedding_type}",
             f"vectordb_{self.config.vector_database.type}"
         ]
         
         # Add kwargs hashes using _make_hashable
         if self.config.chunking_strategy.chunker_kwargs:
             components.append(f"chunker_kwargs_{hash(self._make_hashable(self.config.chunking_strategy.chunker_kwargs))}")
+
         if self.config.embedding_model.model_kwargs:
             components.append(f"embedder_kwargs_{hash(self._make_hashable(self.config.embedding_model.model_kwargs))}")
+        elif hasattr(self.config.embedding_model._initialized_embedding, "model_kwargs"):
+            components.append(f"embedder_kwargs_{hash(self._make_hashable(self.config.embedding_model._initialized_embedding.model_kwargs))}")
+
         if self.config.vector_database.vectordb_kwargs:
             components.append(f"vectordb_kwargs_{hash(self._make_hashable(self.config.vector_database.vectordb_kwargs))}")
             
@@ -234,17 +246,10 @@ class DataIngestPipeline:
         )
 
     def _create_embedder(self) -> Embeddings:
-        if self.config.embedding_model.type == EmbeddingModel.CUSTOM:
-            return self._instantiate_custom_class(
-                self.config.embedding_model.custom_class,
-                **(self.config.embedding_model.model_kwargs or {})
-            )
-        
-        embedder_class = EMBEDDING_MAP.get(self.config.embedding_model.type)()
-        if not embedder_class:
-            raise ValueError(f"Unsupported embedding model: {self.config.embedding_model.type}")
-        
-        return embedder_class(**(self.config.embedding_model.model_kwargs or {}))
+        if not self.config.embedding_model:
+            return ConfigStore().get_default_embeddings().embeddings
+            
+        return self.config.embedding_model.embeddings
 
     def _create_indexer(self, chunks: List[Document]) -> VectorStore:
         if self.config.vector_database.type == VectorDatabase.CUSTOM:

@@ -262,7 +262,7 @@ class RetrieverOptimization:
             best_pipeline=best_pipeline,
             n_trials=self.options_config.optimization.n_trials,
             completed_trials=len(self.study.trials),
-            optimization_time=self.study.trials[-1].datetime_complete - self.study.trials[0].datetime_start,
+            optimization_time=(self.study.trials[-1].datetime_complete - self.study.trials[0].datetime_start).total_seconds(),
             avg_latency=metrics.get("avg_latency"),
             error_rate=metrics.get("error_rate")
         )

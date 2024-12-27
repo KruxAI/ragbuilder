@@ -1,21 +1,23 @@
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Union, Dict, Any
 import yaml
-from ragbuilder.config.components import ParserType, ChunkingStrategy, EmbeddingModel, VectorDatabase, EvaluatorType, GraphType, LLMType
-from .base import OptimizationConfig, EvaluationConfig, ConfigMetadata, EvalDataGenerationConfig
-
-# class LLMConfig(BaseModel):
-#     model_config  = ConfigDict(protected_namespaces=())
-#     type: LLMType
-#     model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
-
-
-class LLMConfig(BaseModel):
-    model_config = {"protected_namespaces": ()}
-    
-    type: LLMType  # Enum to specify the LLM
-    model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model-specific parameters like model name/type")
-    custom_class: Optional[str] = None  # Optional: If using a custom class
+from ragbuilder.config.components import (
+    ParserType, 
+    ChunkingStrategy, 
+    EmbeddingType, 
+    VectorDatabase, 
+    EvaluatorType, 
+    GraphType
+)
+from .base import (
+    OptimizationConfig, 
+    EvaluationConfig, 
+    ConfigMetadata, 
+    EvalDataGenerationConfig, 
+    LLMConfig, 
+    EmbeddingConfig
+)
+from ragbuilder.core.config_store import ConfigStore
 
 class LoaderConfig(BaseModel):
     type: ParserType
@@ -41,13 +43,6 @@ class VectorDBConfig(BaseModel):
     vectordb_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Vector database specific configuration parameters")
     custom_class: Optional[str] = None
 
-class EmbeddingConfig(BaseModel):
-    model_config  = ConfigDict(protected_namespaces=())
-    
-    type: EmbeddingModel
-    model_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Model specific parameters including model name/type")
-    custom_class: Optional[str] = None
-
 class GraphConfig(BaseModel):
     type: GraphType #neo4j
     document_loaders: Optional[LoaderConfig] = Field(default=None, description="Loader strategy")
@@ -55,13 +50,7 @@ class GraphConfig(BaseModel):
     chunk_size: Optional[int] = Field(default=3000, description="Chunk size")
     chunk_overlap: Optional[int] = Field(default=100, description="Chunk overlap")
     embedding_model: Optional[EmbeddingConfig] = Field(default=None, description="Embedding model")
-    llm: Optional[LLMConfig] = Field(
-        default_factory=lambda: LLMConfig(
-            type=LLMType.OPENAI, 
-            model_kwargs={"model": "gpt-4o", "temperature": 0.0},
-        ), 
-        description="LLM to use for graph construction"
-    )
+    llm: Optional[LLMConfig] = Field(default=None, description="LLM to use for graph construction")
     graph_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Graph specific configuration parameters")
     custom_class: Optional[str] = None
 
@@ -85,11 +74,7 @@ class DataIngestOptionsConfig(BaseModel):
     )
     chunk_size: Optional[ChunkSizeConfig] = Field(default_factory=ChunkSizeConfig, description="Chunk size configuration")
     chunk_overlap: Optional[List[int]] = Field(default=[100], description="List of chunk overlap values to try")
-    embedding_models: Optional[List[EmbeddingConfig]] = Field(
-        default_factory=lambda: [EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"})], #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"})],
-        # default_factory=lambda: [EmbeddingConfig(type=EmbeddingModel.AZURE_OPENAI, model_kwargs={"model": "text-embedding-3-large"})], #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"})], 
-        description="List of embedding models"
-    )
+    embedding_models: Optional[List[EmbeddingConfig]] = Field(default_factory=list, description="List of embedding models")
     vector_databases: Optional[List[VectorDBConfig]] = Field(
         # default_factory=lambda: [VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={})], 
         default_factory=lambda: [VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}, 'persist_directory': './chroma'})],
@@ -117,6 +102,16 @@ class DataIngestOptionsConfig(BaseModel):
         description="Metadata about the configuration"
     )
 
+    def model_post_init(self, __context: Any) -> None:
+        """Post initialization processing"""
+        if not self.embedding_models:
+            self.embedding_models = [
+                EmbeddingConfig(
+                    type=EmbeddingType.HUGGINGFACE,
+                    model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"}
+                )
+            ]
+
     @classmethod
     def with_defaults(cls, input_source: str, test_dataset: Optional[str] = None) -> 'DataIngestOptionsConfig':
         """Create a DataIngestOptionsConfig with default values
@@ -140,13 +135,13 @@ class DataIngestOptionsConfig(BaseModel):
             chunk_overlap=[100],
             embedding_models=[
                 EmbeddingConfig(
-                    type=EmbeddingModel.HUGGINGFACE,
+                    type=EmbeddingType.HUGGINGFACE,
                     model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"}
                 )
             ],
             vector_databases=[VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}})],
             optimization=OptimizationConfig(
-                n_trials=10,
+                n_trials=ConfigStore().get_default_n_trials(),
                 n_jobs=1,
                 optimization_direction="maximize"
             ),
@@ -182,7 +177,7 @@ class DataIngestConfig(BaseModel):
     chunk_overlap: int = Field(default=100, description="Chunk overlap")
     embedding_model: EmbeddingConfig = Field(
         # default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
-        default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.OPENAI, model_kwargs={"model_name": "text-embedding-3-large"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
+        default_factory=lambda: EmbeddingConfig(type=EmbeddingType.OPENAI, model_kwargs={"model_name": "text-embedding-3-large"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
         description="Embedding model configuration"
     )
     vector_database: VectorDBConfig = Field(

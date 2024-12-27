@@ -54,7 +54,7 @@ class ChunkingStrategy(str, Enum):
     SEMANTIC = "SemanticChunker"
     CUSTOM = "custom"
 
-class EmbeddingModel(str, Enum):
+class EmbeddingType(str, Enum):
     OPENAI = "openai"
     AZURE_OPENAI = "azure_openai"
     HUGGINGFACE = "huggingface"
@@ -152,14 +152,14 @@ CHUNKER_MAP = {
 }
 
 EMBEDDING_MAP = {
-    EmbeddingModel.OPENAI: lazy_load("langchain_openai", "OpenAIEmbeddings"),
-    EmbeddingModel.AZURE_OPENAI: lazy_load("langchain_openai", "AzureOpenAIEmbeddings"),
-    EmbeddingModel.HUGGINGFACE: lazy_load("langchain_huggingface", "HuggingFaceEmbeddings"),
-    EmbeddingModel.OLLAMA: lazy_load("langchain_community.embeddings", "OllamaEmbeddings"),
-    EmbeddingModel.COHERE: lazy_load("langchain_community.embeddings", "CohereEmbeddings"),
-    EmbeddingModel.VERTEXAI: lazy_load("langchain_community.embeddings", "VertexAIEmbeddings"),
-    EmbeddingModel.BEDROCK: lazy_load("langchain_community.embeddings", "BedrockEmbeddings"),
-    EmbeddingModel.JINA: lazy_load("langchain_community.embeddings", "JinaEmbeddings"),
+    EmbeddingType.OPENAI: lazy_load("langchain_openai", "OpenAIEmbeddings"),
+    EmbeddingType.AZURE_OPENAI: lazy_load("langchain_openai", "AzureOpenAIEmbeddings"),
+    EmbeddingType.HUGGINGFACE: lazy_load("langchain_huggingface", "HuggingFaceEmbeddings"),
+    EmbeddingType.OLLAMA: lazy_load("langchain_community.embeddings", "OllamaEmbeddings"),
+    EmbeddingType.COHERE: lazy_load("langchain_community.embeddings", "CohereEmbeddings"),
+    EmbeddingType.VERTEXAI: lazy_load("langchain_community.embeddings", "VertexAIEmbeddings"),
+    EmbeddingType.BEDROCK: lazy_load("langchain_community.embeddings", "BedrockEmbeddings"),
+    EmbeddingType.JINA: lazy_load("langchain_community.embeddings", "JinaEmbeddings"),
 }
 
 VECTORDB_MAP = {
@@ -227,7 +227,7 @@ RERANKER_MAP = {
 # Environment variable requirements for components
 COMPONENT_ENV_REQUIREMENTS = {
     # Embedding Models
-    EmbeddingModel.AZURE_OPENAI: {
+    EmbeddingType.AZURE_OPENAI: {
         "required": ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"],
         "optional": ["AZURE_DEPLOYMENT_NAME"],
         "packages": [
@@ -236,7 +236,7 @@ COMPONENT_ENV_REQUIREMENTS = {
             _PkgSpec("tiktoken")
         ]
     },
-    EmbeddingModel.OPENAI: {
+    EmbeddingType.OPENAI: {
         "required": ["OPENAI_API_KEY"],
         "optional": [],
         "packages": [
@@ -245,12 +245,12 @@ COMPONENT_ENV_REQUIREMENTS = {
             _PkgSpec("tiktoken")
         ]
     },
-    EmbeddingModel.COHERE: {
+    EmbeddingType.COHERE: {
         "required": ["COHERE_API_KEY"],
         "optional": [],
         "packages": [_PkgSpec("cohere")]
     },
-    EmbeddingModel.VERTEXAI: {
+    EmbeddingType.VERTEXAI: {
         "required": ["GOOGLE_APPLICATION_CREDENTIALS"],
         "optional": [],
         "packages": [
@@ -258,17 +258,17 @@ COMPONENT_ENV_REQUIREMENTS = {
             _PkgSpec("google-cloud-aiplatform")
         ]
     },
-    EmbeddingModel.BEDROCK: {
+    EmbeddingType.BEDROCK: {
         "required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"],
         "optional": [],
         "packages": [_PkgSpec("boto3")]
     },
-    EmbeddingModel.JINA: {
+    EmbeddingType.JINA: {
         "required": ["JINA_API_KEY"],
         "optional": [],
         "packages": [_PkgSpec("jina")]
     },
-    EmbeddingModel.HUGGINGFACE: {
+    EmbeddingType.HUGGINGFACE: {
         "required": [],
         "optional": [],
         "packages": [
@@ -277,7 +277,7 @@ COMPONENT_ENV_REQUIREMENTS = {
             _PkgSpec("torch")
         ]
     },
-    EmbeddingModel.OLLAMA: {
+    EmbeddingType.OLLAMA: {
         "required": [],
         "optional": [],
         "packages": [

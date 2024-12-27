@@ -31,6 +31,7 @@ from ragbuilder.config.base import LogConfig, EvalDataGenerationConfig
 from langchain_core.documents import Document
 from ragbuilder.core.utils import load_documents
 from ragbuilder.core.telemetry import telemetry
+from ragbuilder.core.config_store import ConfigStore
 import sqlite3
 import hashlib
 from urllib.parse import urlparse
@@ -185,11 +186,11 @@ class TestDatasetManager:
             
             # Use default models if not provided
             generator_model = (eval_data_generation_config.generator_model if eval_data_generation_config and eval_data_generation_config.generator_model
-                            else ChatOpenAI(model="gpt-4o", temperature=0.0))
+                            else ConfigStore.get_default_llm())
             critic_model = (eval_data_generation_config.critic_model if eval_data_generation_config and eval_data_generation_config.critic_model
-                          else ChatOpenAI(model="gpt-4o", temperature=0.0))
+                          else ConfigStore.get_default_llm())
             embedding_model = (eval_data_generation_config.embedding_model if eval_data_generation_config and eval_data_generation_config.embedding_model
-                            else OpenAIEmbeddings(model="text-embedding-3-large"))
+                            else ConfigStore.get_default_embeddings())
             
             # Extract model info for telemetry
             generator_model_name = getattr(generator_model, 'model', None) or getattr(generator_model, 'model_name', '')

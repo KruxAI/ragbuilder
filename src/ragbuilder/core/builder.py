@@ -2,14 +2,16 @@ from typing import Optional, Any, Dict, Union
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig 
 from ragbuilder.config.retriever import RetrievalOptionsConfig
 from ragbuilder.config.generation import GenerationOptionsConfig
-
-from ragbuilder.config.base import LogConfig
+from langchain_core.language_models import BaseChatModel, BaseLLM
+from langchain_core.embeddings import Embeddings
+from ragbuilder.config.base import LogConfig, LLMConfig, EmbeddingConfig
 from ragbuilder.data_ingest.optimization import run_data_ingest_optimization
 from ragbuilder.retriever.optimization import run_retrieval_optimization
 from ragbuilder.generation.optimization import run_generation_optimization
 from ragbuilder.generate_data import TestDatasetManager
 from ragbuilder.core.logging_utils import setup_rich_logging, console
 from ragbuilder.core.telemetry import telemetry
+from ragbuilder.core.config_store import ConfigStore
 from ragbuilder.core.utils import validate_environment, serialize_config, SimpleConfigEncoder
 from ragbuilder.core.results import DataIngestResults, RetrievalResults, GenerationResults, OptimizationResults
 from .exceptions import DependencyError
@@ -60,13 +62,22 @@ class RAGBuilder:
     def from_source_with_defaults(cls, 
                          input_source: str, 
                          test_dataset: Optional[str] = None,
+                         default_llm: Optional[Union[Dict[str, Any], LLMConfig, BaseChatModel, BaseLLM]] = None,
+                         default_embeddings: Optional[Union[Dict[str, Any], EmbeddingConfig, Embeddings]] = None,
+                         n_trials: Optional[int] = None,
                          log_config: Optional[LogConfig] = None
                          ) -> 'RAGBuilder':
-        config = DataIngestOptionsConfig.with_defaults(
+        """Create RAGBuilder instance with default configuration"""
+        ConfigStore.set_default_llm(default_llm)
+        ConfigStore.set_default_embeddings(default_embeddings)
+        ConfigStore.set_default_n_trials(n_trials)
+        
+        data_ingest_config = DataIngestOptionsConfig.with_defaults(
             input_source=input_source,
             test_dataset=test_dataset
         )
-        return cls(data_ingest_config=config, log_config=log_config)
+        
+        return cls(data_ingest_config=data_ingest_config, log_config=log_config)
     
     @classmethod
     def generation_with_defaults(cls, 
@@ -455,7 +466,14 @@ class RAGBuilder:
                     vectorstore_path = save_path / "vectorstore" / vectorstore_config["type"]
                     self._save_vectorstore(vectorstore_path)
 
-        # Create manifest with vectorstore info from config
+        # Save defaults
+        defaults = {
+            "llm": self._serialize_llm_config(ConfigStore().get_default_llm()),
+            "embeddings": self._serialize_embedding_config(ConfigStore().get_default_embedding()),
+            "n_trials": ConfigStore().get_default_n_trials()
+        }
+        
+        # Create manifest with vectorstore info and defaults
         manifest = {
             "version": "1.0",
             "created_at": datetime.now().isoformat(),
@@ -468,13 +486,32 @@ class RAGBuilder:
                 "included": include_vectorstore,
                 "config": self._get_vectorstore_config(),
                 "embedding": self._get_embedding_config()
-            }
+            },
+            "defaults": defaults
         }
         
         with open(save_path / "manifest.json", "w") as f:
             json.dump(manifest, f, indent=2)
 
         self.logger.info(f"Successfully saved RAG setup to {path}")
+
+    def _serialize_llm_config(self, llm_config: Optional[LLMConfig]) -> Optional[Dict]:
+        """Serialize LLM config for storage"""
+        if not llm_config:
+            return None
+        return {
+            "type": llm_config.type.value if llm_config.type else None,
+            "model_kwargs": llm_config.model_kwargs
+        }
+
+    def _serialize_embedding_config(self, embedding_config: Optional[EmbeddingConfig]) -> Optional[Dict]:
+        """Serialize embedding config for storage"""
+        if not embedding_config:
+            return None
+        return {
+            "type": embedding_config.type.value if embedding_config.type else None,
+            "model_kwargs": embedding_config.model_kwargs
+        }
 
     @classmethod
     def load(cls, path: str) -> 'RAGBuilder':
@@ -498,6 +535,16 @@ class RAGBuilder:
                 manifest = json.load(f)
         except FileNotFoundError:
             raise ValueError(f"Invalid project directory: manifest.json not found in {path}")
+
+        # Restore defaults if they exist
+        if "defaults" in manifest:
+            defaults = manifest["defaults"]
+            if defaults.get("llm"):
+                ConfigStore.set_default_llm(defaults["llm"])
+            if defaults.get("embeddings"):
+                ConfigStore.set_default_embeddings(defaults["embeddings"])
+            if defaults.get("n_trials"):
+                ConfigStore.set_default_n_trials(defaults["n_trials"])
 
         # Initialize configs
         data_ingest_config = None

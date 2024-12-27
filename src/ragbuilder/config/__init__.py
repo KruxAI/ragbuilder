@@ -1,7 +1,7 @@
 from .data_ingest import DataIngestConfig, DataIngestOptionsConfig
 from .retriever import RetrievalConfig, RetrievalOptionsConfig, BaseRetrieverConfig, RerankerConfig
 from .generation import GenerationConfig, GenerationOptionsConfig
-from .base import LogConfig
+from .base import LogConfig, LLMConfig, EmbeddingConfig, EvalDataGenerationConfig, OptimizationConfig
 
 __all__ = [
     'DataIngestConfig', 
@@ -12,5 +12,9 @@ __all__ = [
     'RerankerConfig',
     'LogConfig', 
     'GenerationConfig', 
-    'GenerationOptionsConfig'
+    'GenerationOptionsConfig',
+    'LLMConfig',
+    'EmbeddingConfig',
+    'EvalDataGenerationConfig',
+    'OptimizationConfig'
 ]

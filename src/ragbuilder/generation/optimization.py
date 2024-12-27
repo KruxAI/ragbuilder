@@ -1,25 +1,15 @@
-# Step 5: Load YAML File and Parse Configurations
-from typing import List, Dict, Type
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
+from typing import List, Optional, Any
 from operator import itemgetter
-from datetime import datetime, timedelta
-from langchain_core.output_parsers import StrOutputParser
+from datetime import datetime
 from ragbuilder.config import LogConfig, GenerationOptionsConfig, GenerationConfig
-from ragbuilder.config.generation import LLM_MAP
-from ragbuilder.config.generation import LLMConfig
 from ragbuilder.generation.prompt_templates import load_prompts
-# from ragbuilder.generation.sample_retriever import sample_retriever
 from ragbuilder.generation.evaluation import Evaluator, RAGASEvaluator
-from typing import List, Dict, Any, Optional
-# from ragbuilder.config.components import EvaluatorType
-from importlib import import_module
 from ragbuilder.core.exceptions import DependencyError
 from ragbuilder.core import setup_rich_logging, console
 import logging
-from ragbuilder.core.callbacks import DBLoggerCallback  # Import the callback class
+from ragbuilder.core.callbacks import DBLoggerCallback
 from ragbuilder.core.results import GenerationResults
-
+from ragbuilder.core.config_store import ConfigStore
 class SystemPromptGenerator:
     def __init__(
         self, 
@@ -30,13 +20,13 @@ class SystemPromptGenerator:
         callback=None  # Add callback parameter
     ):
         self.logger = logging.getLogger("ragbuilder.generation.optimization")
-        self.llms = []  # List to store instantiated LLMs
         self.config = config
         self.evaluator = evaluator
         self.eval_data_set_path = config.eval_data_set_path
         self.verbose = verbose
         self.callbacks = []  # Initialize callbacks list
         self.n_trials = config.optimization.n_trials
+        
         # Initialize DBLoggerCallback if database logging is enabled
         if config.database_logging:
             try:
@@ -74,19 +64,16 @@ class SystemPromptGenerator:
         self.logger.debug("Building trial configs")
         counter=0
         for llm_config in self.config.llms:
-            for n,prompt_template in enumerate(self.prompt_templates): 
+            for prompt_template in self.prompt_templates: 
                 if counter>=self.n_trials:
                     break
                 counter+=1
                 trial_config = GenerationConfig(
-                    type=llm_config.type,
-                    model_kwargs=llm_config.model_kwargs,
-                    eval_data_set_path=self.eval_data_set_path,
+                    llm=llm_config,
                     prompt_template=prompt_template[1].template,
                     prompt_key=prompt_template[0]
                 )
                 trial_configs.append(trial_config)
-                # break #REMOVE
             if counter>=self.n_trials:
                 break
         return trial_configs
@@ -120,7 +107,7 @@ class SystemPromptGenerator:
             pipeline = create_pipeline(trial_config, self.retriever)
             
             self.logger.info(f"Preparing eval dataset for trial {i}")
-            for i,entry in enumerate(evaldataset):
+            for i, entry in enumerate(evaldataset):
                 question_id = i
                 question = entry.get("question", "")
                 result = pipeline.invoke(question)
@@ -161,7 +148,7 @@ class SystemPromptGenerator:
             best_prompt=final_results["best_prompt"],
             n_trials=self.n_trials,
             completed_trials=len(trial_configs),
-            optimization_time=timedelta(seconds=(datetime.now() - start_time).total_seconds()),
+            optimization_time=(datetime.now() - start_time).total_seconds(),
             # Add performance metrics if available from eval_results
             avg_latency=None,
             error_rate=None
@@ -208,11 +195,16 @@ class SystemPromptGenerator:
 
         best_prompt_row = grouped_results.loc[grouped_results['average_correctness'].idxmax()]
         
+        best_config = GenerationConfig(**best_prompt_row['config'])
+        if best_config.llm.type is None:
+            # If LLM type is None, it means we need to use the default LLM
+            best_config.llm = ConfigStore().get_default_llm()
+        
         return {
-            "best_config": GenerationConfig(**best_prompt_row['config']),
+            "best_config": best_config,
             "best_prompt": best_prompt_row['prompt'],
             "best_score": best_prompt_row['average_correctness'],
-            "best_pipeline": create_pipeline(GenerationConfig(**best_prompt_row['config']), self.retriever),
+            "best_pipeline": create_pipeline(best_config, self.retriever),
             #TODO: Add latency and error rate
             # "avg_latency": best_prompt_row.get('avg_latency'),
             # "error_rate": best_prompt_row.get('error_rate')
@@ -249,17 +241,21 @@ def run_generation_optimization(
     
     return optimizer.optimize()
 
-def create_pipeline(trial_config: GenerationConfig, retriever: RunnableParallel):
+def create_pipeline(trial_config: GenerationConfig, retriever: Any = None) -> Any:
+    """Create generation pipeline from config"""
     logger = logging.getLogger("ragbuilder.generation.pipeline")
     logger.debug(f"Creating pipeline with config: {trial_config}")
     
     try:
+        from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+        from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
+        from langchain_core.output_parsers import StrOutputParser
+
         def format_docs(docs):
             return "\n".join(doc.page_content for doc in docs)
 
-        llm_class = LLM_MAP[trial_config.type]()
-        model_kwargs = {k: v for k, v in trial_config.model_kwargs.items() if v is not None}
-        llm = llm_class(**model_kwargs)
+        # Get initialized LLM directly from LLMConfig
+        llm = trial_config.llm.llm
         prompt_template = trial_config.prompt_template
 
         prompt = ChatPromptTemplate.from_messages([

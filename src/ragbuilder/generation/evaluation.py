@@ -3,19 +3,13 @@ from datasets import Dataset
 import pandas as pd
 from ragbuilder.config.generation import EvalDataset
 from ragas.metrics import (
-    answer_relevancy,
-    faithfulness,
-    context_recall,
-    context_precision,
     answer_correctness
 )
 from ragas import evaluate, RunConfig
-from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 from datetime import datetime
-from typing import List
-from ragbuilder.core import console
 import logging
 from ragbuilder.config.base import EvaluationConfig
+from ragbuilder.core.config_store import ConfigStore
 
 class Evaluator(ABC):
     @abstractmethod
@@ -38,8 +32,10 @@ class RAGASEvaluator(Evaluator):
         super().__init__()
         self.logger.debug("RAGASEvaluator initiated")
         self.eval_config = eval_config
-        self.llm = self.eval_config.evaluator_kwargs.get("llm")
-        self.embeddings = self.eval_config.evaluator_kwargs.get("embeddings")
+        llm_config = self.eval_config.llm if self.eval_config.llm else ConfigStore().get_default_llm()
+        self.llm = llm_config.llm
+        embedding_config = self.eval_config.embeddings if self.eval_config.embeddings else ConfigStore().get_default_embeddings()
+        self.embeddings = embedding_config.embeddings
         self.test_dataset = self.eval_config.test_dataset
 
     def get_eval_dataset(self, eval_dataset_path) -> Dataset:

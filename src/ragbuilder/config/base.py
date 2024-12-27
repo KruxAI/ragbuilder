@@ -2,14 +2,65 @@ import inspect
 import time
 import random
 import logging
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from pydantic import BaseModel, Field, PrivateAttr
+from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass
-from .components import EvaluatorType
+from .components import EvaluatorType, LLMType, LLM_MAP, EmbeddingType, EMBEDDING_MAP
+from langchain_core.language_models import BaseChatModel, BaseLLM
+from langchain_core.embeddings import Embeddings
+
+class LLMConfig(BaseModel):
+    model_config = {"protected_namespaces": (), "arbitrary_types_allowed": True}
+    
+    type: Optional[LLMType] = None  # Enum to specify the LLM
+    model_kwargs: Optional[Dict[str, Any]] = Field(default=None, description="Model-specific parameters like model name/type")
+    _initialized_llm: Optional[Union[BaseChatModel, BaseLLM]] = PrivateAttr(default=None)
+
+    @property
+    def llm(self) -> Optional[Union[BaseChatModel, BaseLLM]]:
+        """Get initialized LLM instance"""
+        if self._initialized_llm:
+            return self._initialized_llm
+        
+        if not self.type:
+            raise ValueError("Cannot initialize LLM without type")
+            
+        llm_class = LLM_MAP[self.type]()
+        return llm_class(**(self.model_kwargs or {}))
+
+    @classmethod
+    def from_llm(cls, llm: Union[BaseChatModel, BaseLLM]) -> 'LLMConfig':
+        """Create LLMConfig from initialized LLM instance"""
+        return cls.model_construct(_initialized_llm=llm)
+
+class EmbeddingConfig(BaseModel):
+    model_config = {"protected_namespaces": (), "arbitrary_types_allowed": True}
+    
+    type: Optional[EmbeddingType] = None
+    model_kwargs: Optional[Dict[str, Any]] = None
+    custom_class: Optional[str] = None
+    _initialized_embedding: Optional[Embeddings] = PrivateAttr(default=None)
+
+    @property
+    def embeddings(self) -> Optional[Embeddings]:
+        """Get initialized Embedding instance"""
+        if self._initialized_embedding:
+            return self._initialized_embedding
+        
+        if not self.type:
+            raise ValueError("Cannot initialize Embedding without type")
+            
+        embedding_class = EMBEDDING_MAP[self.type]()
+        return embedding_class(**(self.model_kwargs or {}))
+
+    @classmethod
+    def from_embedding(cls, embedding: Embeddings) -> 'EmbeddingConfig':
+        """Create EmbeddingConfig from initialized Embedding instance"""
+        return cls.model_construct(_initialized_embedding=embedding)
 
 class EvalDataGenerationConfig(BaseModel):
-    generator_model: Optional[Any] = Field(default=None, description="Generator model")
-    critic_model: Optional[Any] = Field(default=None, description="Critic model")
+    generator_model: Optional[LLMConfig] = Field(default=None, description="Generator model")
+    critic_model: Optional[LLMConfig] = Field(default=None, description="Critic model")
     embedding_model: Optional[Any] = Field(default=None, description="Embedding model")
     test_size: Optional[int] = Field(default=5, description="Test size")
     distribution: Optional[Dict[str, float]] = Field(default=None, description="Distribution")
@@ -53,8 +104,8 @@ class EvaluationConfig(BaseModel):
     type: EvaluatorType = Field(default=EvaluatorType.SIMILARITY, description="Type of evaluator to use")
     custom_class: Optional[str] = Field(default=None, description="Path to custom evaluator class")
     test_dataset: Optional[str] = Field(default=None, description="Path to test dataset")
-    # llm: Optional[BaseLLM] = Field(default=None, description="LLM configuration")
-    # embeddings: Optional[Embeddings] = Field(default=None, description="Embedding configuration")
+    llm: Optional[LLMConfig] = Field(default=None, description="LLM configuration")
+    embeddings: Optional[Any] = Field(default=None, description="Embedding configuration")
     eval_data_generation_config: Optional[EvalDataGenerationConfig] = Field(default=None, description="Evaluation data generation configuration")
     evaluator_kwargs: Optional[Dict[str, Any]] = Field(
         default = {},

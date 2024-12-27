@@ -13,6 +13,7 @@ import time
 from datetime import datetime
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 from ragbuilder.retriever.pipeline import RetrieverPipeline
+from ragbuilder.core.config_store import ConfigStore
 from ragbuilder.core.exceptions import EvaluationError
 from ragbuilder.core.logging_utils import console
 from ragbuilder.config.base import EvaluationConfig
@@ -47,12 +48,13 @@ class RetrieverF1ScoreEvaluator(Evaluator):
         # TODO: Add metrics to evaluation config
 
         self.eval_config = eval_config
-        # TODO: If test_dataset is not provided, add logic for synthetic data generation
         self.test_data = Dataset.from_pandas(pd.read_csv(self.eval_config.test_dataset))
 
-        # TODO: Add validation to see if llm & embeddings are valid
-        self.llm = self.eval_config.evaluator_kwargs.get("llm")
-        self.embeddings = self.eval_config.evaluator_kwargs.get("embeddings")
+        llm_config = self.eval_config.llm if self.eval_config.llm else ConfigStore().get_default_llm()
+        self.llm = llm_config.llm
+
+        embedding_config = self.eval_config.embeddings if self.eval_config.embeddings else ConfigStore().get_default_embeddings()
+        self.embeddings = embedding_config.embeddings
         
         # Default RAGAS run configuration values
         default_config = {
