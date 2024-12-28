@@ -35,7 +35,7 @@ def load_prompts(
     """
     yaml_content_local = None
     yaml_content_online = None
-    prompt_template_path=os.getenv('RAG_PROMPT_URL',None)
+    prompt_template_path=os.getenv('RAG_PROMPT_URL', 'https://raw.githubusercontent.com/KruxAI/ragbuilder/refs/heads/main/rag_prompts.yml')
     # Handle local-only behavior
     if read_local_only:
         if not local_prompt_template_path:

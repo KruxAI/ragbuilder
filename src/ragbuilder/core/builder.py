@@ -39,12 +39,18 @@ class RAGBuilder:
             data_ingest_config: Optional[DataIngestOptionsConfig] = None,
             retrieval_config: Optional[RetrievalOptionsConfig] = None,
             generation_config: Optional[GenerationOptionsConfig] = None,
+            default_llm: Optional[Union[Dict[str, Any], LLMConfig, BaseChatModel, BaseLLM]] = None,
+            default_embeddings: Optional[Union[Dict[str, Any], EmbeddingConfig, Embeddings]] = None,
+            n_trials: Optional[int] = None,
             log_config: Optional[LogConfig] = None
         ):
+        ConfigStore.set_default_llm(default_llm)
+        ConfigStore.set_default_embeddings(default_embeddings)
+        ConfigStore.set_default_n_trials(n_trials)
         self._log_config = log_config or LogConfig()
-        self._data_ingest_config = data_ingest_config
-        self._retrieval_config = retrieval_config
-        self._generation_config = generation_config
+        self.data_ingest_config = data_ingest_config
+        self.retrieval_config = retrieval_config
+        self.generation_config = generation_config
         self.logger = setup_rich_logging(
             self._log_config.log_level,
             self._log_config.log_file
@@ -55,7 +61,7 @@ class RAGBuilder:
         self._optimization_results = OptimizationResults()
         self._test_dataset_manager = TestDatasetManager(
             self._log_config,
-            db_path=self._data_ingest_config.database_path if self._data_ingest_config else DEFAULT_DB_PATH
+            db_path=self.data_ingest_config.database_path if self.data_ingest_config else DEFAULT_DB_PATH
         )
 
     @classmethod
@@ -112,14 +118,14 @@ class RAGBuilder:
             raise ValueError("YAML must contain at least 'data_ingest', 'retrieval' or 'generation' configuration")
         
         if 'data_ingest' in config_dict:
-            builder._data_ingest_config = DataIngestOptionsConfig(**config_dict['data_ingest'])
+            builder.data_ingest_config = DataIngestOptionsConfig(**config_dict['data_ingest'])
         
         # TODO: Handle vectorstore provided by user instead of using the one from data_ingest
         if 'retrieval' in config_dict:  
-            builder._retrieval_config = RetrievalOptionsConfig(**config_dict['retrieval'])
+            builder.retrieval_config = RetrievalOptionsConfig(**config_dict['retrieval'])
 
         if 'generation' in config_dict:
-            builder._generation_config = GenerationOptionsConfig(**config_dict['generation'])
+            builder.generation_config = GenerationOptionsConfig(**config_dict['generation'])
             print("generation_config",GenerationOptionsConfig(**config_dict['generation']))
         return builder
 
@@ -130,13 +136,13 @@ class RAGBuilder:
             return
         
         # Check if we already have a test dataset from data ingestion
-        if (self._data_ingest_config and self._data_ingest_config.evaluation_config.test_dataset):
-            config.evaluation_config.test_dataset = self._data_ingest_config.evaluation_config.test_dataset
+        if (self.data_ingest_config and self.data_ingest_config.evaluation_config.test_dataset):
+            config.evaluation_config.test_dataset = self.data_ingest_config.evaluation_config.test_dataset
             self.logger.info(f"Reusing test dataset from data ingestion: {config.evaluation_config.test_dataset}")
             return
         
-        if (self._retrieval_config and self._retrieval_config.evaluation_config.test_dataset):
-            config.evaluation_config.test_dataset = self._retrieval_config.evaluation_config.test_dataset
+        if (self.retrieval_config and self.retrieval_config.evaluation_config.test_dataset):
+            config.evaluation_config.test_dataset = self.retrieval_config.evaluation_config.test_dataset
             self.logger.info(f"Reusing test dataset from retrieval: {config.evaluation_config.test_dataset}")
             return
         
@@ -144,7 +150,7 @@ class RAGBuilder:
             raise ValueError("input_source is required when test_dataset is not provided")
         
         source_data = (getattr(config, 'input_source', None) or 
-                      (self._data_ingest_config.input_source if self._data_ingest_config else None))
+                      (self.data_ingest_config.input_source if self.data_ingest_config else None))
         
         if not source_data:
             raise ValueError("input_source is required when test_dataset is not provided")
@@ -171,19 +177,21 @@ class RAGBuilder:
             best_index, best_pipeline, and study_statistics
         """
         if config:
-            self._data_ingest_config = config
-        elif not self._data_ingest_config:
+            self.data_ingest_config = config
+        elif not self.data_ingest_config:
             raise ValueError("No data ingestion configuration provided")
         
-        if validate_env:
-            validate_environment(self._data_ingest_config)
-
-        self._ensure_eval_dataset(self._data_ingest_config)
+        self.data_ingest_config.apply_defaults()
         
-        with telemetry.optimization_span("data_ingest", self._data_ingest_config.model_dump()) as span:
+        if validate_env:
+            validate_environment(self.data_ingest_config)
+
+        self._ensure_eval_dataset(self.data_ingest_config)
+        
+        with telemetry.optimization_span("data_ingest", self.data_ingest_config.model_dump()) as span:
             try:
                 results = run_data_ingest_optimization(
-                    self._data_ingest_config, 
+                    self.data_ingest_config, 
                     log_config=self._log_config
                 )
                 
@@ -227,19 +235,21 @@ class RAGBuilder:
         if not vectorstore:
             raise DependencyError("No vectorstore found. Run data ingestion first or provide existing vectorstore.")
 
-        self._retrieval_config = config or RetrievalOptionsConfig.with_defaults()
-        if not self._retrieval_config:
+        self.retrieval_config = config or RetrievalOptionsConfig.with_defaults()
+        if not self.retrieval_config:
             raise ValueError("No retrieval configuration provided")
 
+        self.retrieval_config.apply_defaults()
+
         if validate_env:
-            validate_environment(self._retrieval_config)
+            validate_environment(self.retrieval_config)
             
-        self._ensure_eval_dataset(self._retrieval_config)
+        self._ensure_eval_dataset(self.retrieval_config)
         
-        with telemetry.optimization_span("retriever", self._retrieval_config.model_dump()) as span:
+        with telemetry.optimization_span("retriever", self.retrieval_config.model_dump()) as span:
             try:
                 results = run_retrieval_optimization(
-                    self._retrieval_config, 
+                    self.retrieval_config, 
                     vectorstore=self._optimized_store,
                     log_config=self._log_config
                 )
@@ -279,16 +289,18 @@ class RAGBuilder:
         if not self._optimized_retriever:
             raise DependencyError("No retriever found. Run retrieval optimization first or provide existing retriever.")
         
-        self._generation_config = config or GenerationOptionsConfig.with_defaults()
-        if not self._generation_config:
+        self.generation_config = config or GenerationOptionsConfig.with_defaults()
+        if not self.generation_config:
             raise ValueError("No generation configuration provided")
         
-        self._ensure_eval_dataset(self._generation_config)
+        self.generation_config.apply_defaults()
+
+        self._ensure_eval_dataset(self.generation_config)
         
-        with telemetry.optimization_span("generation", self._generation_config.model_dump()) as span:
+        with telemetry.optimization_span("generation", self.generation_config.model_dump()) as span:
             try:
                 results = run_generation_optimization(
-                    self._generation_config, 
+                    self.generation_config, 
                     retriever=self._optimized_retriever,
                     log_config=self._log_config
                 )
@@ -322,11 +334,11 @@ class RAGBuilder:
         with telemetry.optimization_span("ragbuilder", {"end_to_end": True}) as span:
             try:
                 with console.status("[bold green]Validating data ingestion environment...") as status:
-                    validate_environment(self._data_ingest_config)
+                    validate_environment(self.data_ingest_config)
                     status.update("[bold green]Validating retrieval environment...")
-                    if not self._retrieval_config:
-                        self._retrieval_config = RetrievalOptionsConfig.with_defaults()
-                    validate_environment(self._retrieval_config)
+                    if not self.retrieval_config:
+                        self.retrieval_config = RetrievalOptionsConfig.with_defaults()
+                    validate_environment(self.retrieval_config)
                 
                 # Run optimizations and store results in structured format
                 self._optimization_results.data_ingest = self.optimize_data_ingest(validate_env=False)
@@ -364,7 +376,7 @@ class RAGBuilder:
                 telemetry.shutdown()
             except Exception as e:
                 self.logger.debug(f"Error shutting down telemetry: {e}")
-    
+
     @property
     def optimization_results(self) -> Dict[str, Dict[str, Any]]:
         """Access the latest optimization results"""
@@ -373,12 +385,12 @@ class RAGBuilder:
     def get_configs(self) -> Dict[str, Any]:
         """Get current configurations"""
         configs = {}
-        if self._data_ingest_config:
-            configs['data_ingest'] = self._data_ingest_config.model_dump()
-        if self._retrieval_config:
-            configs['retrieval'] = self._retrieval_config.model_dump()
-        if self._generation_config:
-            configs['generation'] = self._generation_config.model_dump()
+        if self.data_ingest_config:
+            configs['data_ingest'] = self.data_ingest_config.model_dump()
+        if self.retrieval_config:
+            configs['retrieval'] = self.retrieval_config.model_dump()
+        if self.generation_config:
+            configs['generation'] = self.generation_config.model_dump()
         return configs
 
     def save_configs(self, file_path: str) -> None:
@@ -434,17 +446,17 @@ class RAGBuilder:
             (save_path / "vectorstore").mkdir(exist_ok=True)
 
         # Save configurations using existing serialization
-        if self._data_ingest_config:
+        if self.data_ingest_config:
             with open(save_path / "configs" / "data_ingest.yaml", "w") as f:
-                yaml.dump(json.loads(serialize_config(self._data_ingest_config)), f)
+                yaml.dump(json.loads(serialize_config(self.data_ingest_config)), f)
         
-        if self._retrieval_config:
+        if self.retrieval_config:
             with open(save_path / "configs" / "retriever.yaml", "w") as f:
-                yaml.dump(json.loads(serialize_config(self._retrieval_config)), f)
+                yaml.dump(json.loads(serialize_config(self.retrieval_config)), f)
             
-        if self._generation_config:
+        if self.generation_config:
             with open(save_path / "configs" / "generation.yaml", "w") as f:
-                yaml.dump(json.loads(serialize_config(self._generation_config)), f)
+                yaml.dump(json.loads(serialize_config(self.generation_config)), f)
 
         # Save optimization results
         if self._optimization_results:

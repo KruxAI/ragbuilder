@@ -292,6 +292,7 @@ def run_data_ingest_optimization(
         chunk_size = options_config.graph.chunk_size if options_config.graph.chunk_size else (best_config.chunk_size or 3000)
         chunk_overlap = options_config.graph.chunk_overlap if options_config.graph.chunk_overlap else (best_config.chunk_overlap or 100)
         embedding_model = options_config.graph.embedding_model if options_config.graph.embedding_model else best_config.embedding_model
+        vector_database = best_config.vector_database
         
         config = DataIngestConfig(
             input_source=options_config.input_source,
@@ -299,7 +300,8 @@ def run_data_ingest_optimization(
             chunking_strategy=chunking_strategy,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            embedding_model=embedding_model
+            embedding_model=embedding_model,
+            vector_database=vector_database
         )
         pipeline = DataIngestPipeline(config, verbose=log_config.verbose)
         chunks = pipeline.ingest()

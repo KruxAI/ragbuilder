@@ -24,29 +24,40 @@ class RerankerConfig(BaseModel):
 
 class RetrievalOptionsConfig(BaseModel):
     """Configuration for retriever optimization options"""
-    retrievers: List[BaseRetrieverConfig] = Field(
-        default_factory=lambda: [BaseRetrieverConfig(type=RetrieverType.VECTOR_SIMILARITY)],
-        description="List of retrievers to try"
-    )
-    rerankers: Optional[List[RerankerConfig]] = Field(
-        default_factory=list,
-        description="List of rerankers to try"
-    )
-    top_k: List[int] = Field(
-        default=[3, 5, 10],
-        description="Final number of documents to return after all processing"
-    )
-    # log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
-    database_logging: Optional[bool] = Field(default=True, description="Whether to log results to the DB")
-    database_path: Optional[str] = Field(default="eval.db", description="Path to the SQLite database file")
-    optimization: Optional[OptimizationConfig] = Field(
-        default_factory=OptimizationConfig,
-        description="Optimization configuration"
-    )
-    evaluation_config: Optional[EvaluationConfig] = Field(
-        default_factory=lambda: EvaluationConfig(type=EvaluatorType.RAGAS),
-        description="Evaluation configuration"
-    )
+    retrievers: List[BaseRetrieverConfig] = Field(default=None, description="List of retrievers to try")
+    rerankers: Optional[List[RerankerConfig]] = Field(default=None, description="List of rerankers to try")
+    top_k: List[int] = Field(default=None, description="Final number of documents to return after all processing")
+    database_logging: Optional[bool] = Field(default=None, description="Whether to log results to the DB")
+    database_path: Optional[str] = Field(default=None, description="Path to the SQLite database file")
+    optimization: Optional[OptimizationConfig] = Field(default=None, description="Optimization configuration")
+    evaluation_config: Optional[EvaluationConfig] = Field(default=None, description="Evaluation configuration")
+    metadata: Optional[ConfigMetadata] = None
+
+    def apply_defaults(self) -> None:
+        """Apply default values from ConfigStore and set standard defaults"""
+        if self.optimization is None:
+            self.optimization = OptimizationConfig()
+
+        if self.optimization.n_trials is None:
+            self.optimization.n_trials = ConfigStore().get_default_n_trials()
+
+        if self.retrievers is None:
+            self.retrievers = [
+                BaseRetrieverConfig(type=RetrieverType.VECTOR_SIMILARITY, retriever_k=[20]),
+                BaseRetrieverConfig(type="bm25", retriever_k=[20])
+            ]
+
+        if self.rerankers is None:
+            self.rerankers = [RerankerConfig(type=RerankerType.BGE_BASE)]
+        
+        if self.top_k is None:
+            self.top_k = [3, 5, 10]
+        
+        if self.evaluation_config is None:
+            self.evaluation_config = EvaluationConfig(type=EvaluatorType.RAGAS)
+        
+        if self.metadata is None:
+            self.metadata = ConfigMetadata()
 
     @classmethod
     def with_defaults(cls) -> 'RetrievalOptionsConfig':
@@ -85,15 +96,9 @@ class RetrievalOptionsConfig(BaseModel):
         )
 
 class RetrievalConfig(BaseModel):
-    retrievers: List[BaseRetrieverConfig] = Field(
-        default_factory=lambda: [BaseRetrieverConfig(type=RetrieverType.VECTOR_SIMILARITY)],
-        description="List of retrievers to try"
-    )
-    rerankers: Optional[List[RerankerConfig]] = Field(
-        default_factory=list,
-        description="List of rerankers to try"
-    )
-    top_k: int = Field(default=5, description="Number of top results to consider for similarity scoring")
+    retrievers: List[BaseRetrieverConfig]
+    rerankers: Optional[List[RerankerConfig]] = None
+    top_k: int
 
 def load_config(file_path: str) -> Union[RetrievalOptionsConfig, BaseRetrieverConfig]:
     with open(file_path, 'r') as file:

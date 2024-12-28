@@ -64,53 +64,67 @@ class DataIngestOptionsConfig(BaseModel):
     - etc.
     """
     input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
-    document_loaders: Optional[List[LoaderConfig]] = Field(
-        default_factory=lambda: [LoaderConfig(type=ParserType.UNSTRUCTURED)], 
-        description="Document loader configurations"
-    )
-    chunking_strategies: Optional[List[ChunkingStrategyConfig]] = Field(
-        default_factory=lambda: [ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE)],
-        description="Chunking strategies to try"
-    )
-    chunk_size: Optional[ChunkSizeConfig] = Field(default_factory=ChunkSizeConfig, description="Chunk size configuration")
-    chunk_overlap: Optional[List[int]] = Field(default=[100], description="List of chunk overlap values to try")
-    embedding_models: Optional[List[EmbeddingConfig]] = Field(default_factory=list, description="List of embedding models")
-    vector_databases: Optional[List[VectorDBConfig]] = Field(
-        # default_factory=lambda: [VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={})], 
-        default_factory=lambda: [VectorDBConfig(type=VectorDatabase.CHROMA, vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}, 'persist_directory': './chroma'})],
-        description="List of vector databases"
-    )
+    document_loaders: Optional[List[LoaderConfig]] = Field(default=None, description="Document loader configurations")
+    chunking_strategies: Optional[List[ChunkingStrategyConfig]] = Field(default=None, description="Chunking strategies to try")
+    chunk_size: Optional[ChunkSizeConfig] = Field(default=None, description="Chunk size configuration")
+    chunk_overlap: Optional[List[int]] = Field(default=None, description="List of chunk overlap values to try")
+    embedding_models: Optional[List[EmbeddingConfig]] = Field(default=None, description="List of embedding models")
+    vector_databases: Optional[List[VectorDBConfig]] = Field(default=None, description="List of vector databases")
     sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
-    optimization: Optional[OptimizationConfig] = Field(default_factory=OptimizationConfig, description="Optimization configuration")
-    # log_config: Optional[LogConfig] = Field(default_factory=LogConfig, description="Logging configuration")
-    database_logging: Optional[bool] = Field(default=True, description="Whether to log results to the DB")
-    database_path: Optional[str] = Field(default="eval.db", description="Path to the SQLite database file")
-    evaluation_config: EvaluationConfig = Field(
-        default_factory=lambda: EvaluationConfig(
-            type=EvaluatorType.SIMILARITY,
-            evaluator_kwargs={
-                "top_k": 5,
-                "position_weights": None,
-                "relevance_threshold": 0.75
-            }
-        ),
-        description="Evaluation configuration"
-    )
+    optimization: Optional[OptimizationConfig] = Field(default=None, description="Optimization configuration")
+    database_logging: Optional[bool] = Field(default=None, description="Whether to log results to the DB")
+    database_path: Optional[str] = Field(default=None, description="Path to the SQLite database file")
+    evaluation_config: Optional[EvaluationConfig] = Field(default=None, description="Evaluation configuration")
     graph: Optional[GraphConfig] = Field(default=None, description="Graph configuration")
-    metadata: Optional[ConfigMetadata] = Field(
-        default_factory=ConfigMetadata,
-        description="Metadata about the configuration"
-    )
+    metadata: Optional[ConfigMetadata] = Field(default=None, description="Metadata about the configuration")
 
-    def model_post_init(self, __context: Any) -> None:
-        """Post initialization processing"""
+    def apply_defaults(self) -> None:
+        """Apply default values from ConfigStore and set standard defaults"""
+        if self.optimization is None:
+            self.optimization = OptimizationConfig()
+
+        if self.optimization.n_trials is None:
+            self.optimization.n_trials = ConfigStore().get_default_n_trials()
+
         if not self.embedding_models:
-            self.embedding_models = [
-                EmbeddingConfig(
-                    type=EmbeddingType.HUGGINGFACE,
-                    model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"}
-                )
-            ]
+            self.embedding_models = [ConfigStore().get_default_embeddings()]
+
+        if self.document_loaders is None:
+            self.document_loaders = [LoaderConfig(type=ParserType.UNSTRUCTURED)]
+
+        if self.chunking_strategies is None:
+            self.chunking_strategies = [ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE)]
+
+        if self.chunk_size is None:
+            self.chunk_size = ChunkSizeConfig()
+
+        if self.chunk_overlap is None:
+            self.chunk_overlap = [100]
+
+        if self.vector_databases is None:
+            self.vector_databases = [VectorDBConfig(
+                type=VectorDatabase.CHROMA, 
+                vectordb_kwargs={'collection_metadata': {'hnsw:space': 'cosine'}, 'persist_directory': './chroma'}
+            )]
+
+        if self.database_logging is None:
+            self.database_logging = True
+
+        if self.database_path is None:
+            self.database_path = "eval.db"
+
+        if self.evaluation_config is None:
+            self.evaluation_config = EvaluationConfig(
+                type=EvaluatorType.SIMILARITY,
+                evaluator_kwargs={
+                    "top_k": 5,
+                    "position_weights": None,
+                    "relevance_threshold": 0.75
+                }
+            )
+
+        if self.metadata is None:
+            self.metadata = ConfigMetadata()
 
     @classmethod
     def with_defaults(cls, input_source: str, test_dataset: Optional[str] = None) -> 'DataIngestOptionsConfig':
@@ -168,23 +182,13 @@ class DataIngestConfig(BaseModel):
     - etc.
     """
     input_source: Union[str, List[str]] = Field(..., description="File path, directory path, or URL for input data")
-    document_loader: LoaderConfig = Field(
-        default_factory=lambda: LoaderConfig(type=ParserType.UNSTRUCTURED), 
-        description="Document loader configuration"
-    )
-    chunking_strategy: ChunkingStrategyConfig = Field(default_factory=lambda: ChunkingStrategyConfig(type=ChunkingStrategy.RECURSIVE), description="Chunking strategy")
-    chunk_size: int = Field(default=1000, description="Chunk size")
-    chunk_overlap: int = Field(default=100, description="Chunk overlap")
-    embedding_model: EmbeddingConfig = Field(
-        # default_factory=lambda: EmbeddingConfig(type=EmbeddingModel.HUGGINGFACE, model_kwargs={"model_name": "mixedbread-ai/mxbai-embed-large-v1"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
-        default_factory=lambda: EmbeddingConfig(type=EmbeddingType.OPENAI, model_kwargs={"model_name": "text-embedding-3-large"}), #model_kwargs={"model_name": "sentence-transformers/all-MiniLM-L6-v2"}), 
-        description="Embedding model configuration"
-    )
-    vector_database: VectorDBConfig = Field(
-        default_factory=lambda: VectorDBConfig(type=VectorDatabase.FAISS, vectordb_kwargs={}), 
-        description="Vector store configuration"
-    )
-    sampling_rate: Optional[float] = Field(default=None, description="Sampling rate for documents (0.0 to 1.0). None or 1.0 means no sampling.")
+    document_loader: LoaderConfig
+    chunking_strategy: ChunkingStrategyConfig
+    chunk_size: int
+    chunk_overlap: int
+    embedding_model: EmbeddingConfig
+    vector_database: VectorDBConfig
+    sampling_rate: Optional[float] = None
 
 def load_config(file_path: str) -> Union[DataIngestOptionsConfig, DataIngestConfig]:
     with open(file_path, 'r') as file:

@@ -90,22 +90,50 @@ class GenerationConfig(BaseConfig):
     prompt_key: Optional[str] = None
 
 class GenerationOptionsConfig(BaseConfig):
-    llms: List[LLMConfig]  # List of LLM configurations
+    llms: Optional[List[LLMConfig]] = None
     prompt_template_path: Optional[str] = None
     eval_data_set_path: Optional[str] = None
     local_prompt_template_path: Optional[str] = None
-    read_local_only: Optional[bool] = False
+    read_local_only: Optional[bool] = None
     retriever: Optional[Any]=None
-    database_logging: Optional[bool] = Field(default=True, description="Whether to log results to the DB")
-    database_path: Optional[str] = Field(default="eval.db", description="Path to the SQLite database file")
-    optimization: Optional[OptimizationConfig] = Field(
-        default_factory=OptimizationConfig,
-        description="Optimization configuration"
-    )
-    evaluation_config: Optional[EvaluationConfig] = Field(
-        default_factory=lambda: EvaluationConfig(type=EvaluatorType.RAGAS),
-        description="Evaluation configuration"
-    )
+    database_logging: Optional[bool] = Field(default=None, description="Whether to log results to the DB")
+    database_path: Optional[str] = Field(default=None, description="Path to the SQLite database file")
+    optimization: Optional[OptimizationConfig] = Field(default=None, description="Optimization configuration")
+    evaluation_config: Optional[EvaluationConfig] = Field(default=None, description="Evaluation configuration")
+    metadata: Optional[ConfigMetadata] = Field(default=None, description="Metadata about the configuration")
+
+    def apply_defaults(self) -> None:
+        """Apply default values from ConfigStore and set standard defaults"""
+        if self.optimization is None:
+            self.optimization = OptimizationConfig()
+
+        if self.optimization.n_trials is None:
+            self.optimization.n_trials = ConfigStore().get_default_n_trials()
+        
+        if self.llms is None:
+            self.llms = [ConfigStore().get_default_llm()]
+
+        if self.read_local_only is None:
+            self.read_local_only = False
+
+        if self.database_logging is None:
+            self.database_logging = True
+
+        if self.database_path is None:
+            self.database_path = "eval.db"
+
+        if self.evaluation_config is None:
+            self.evaluation_config = EvaluationConfig(
+                type=EvaluatorType.SIMILARITY,
+                evaluator_kwargs={
+                    "top_k": 5,
+                    "position_weights": None,
+                    "relevance_threshold": 0.75
+                }
+            )
+        
+        if self.metadata is None:
+            self.metadata = ConfigMetadata()
 
     def model_post_init(self, __context: Any) -> None:
         if not self.llms:

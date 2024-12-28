@@ -69,7 +69,7 @@ class EvalDataGenerationConfig(BaseModel):
 class OptimizationConfig(BaseModel):
     """Optimization settings"""
     type: Optional[str] = "Optuna"
-    n_trials: Optional[int] = Field(default=10, description="Number of trials for optimization")
+    n_trials: Optional[int] = Field(default=None, description="Number of trials for optimization")
     n_jobs: Optional[int] = Field(default=1, description="Number of jobs for optimization")
     timeout: Optional[int] = Field(default=None, description="Timeout for optimization")
     storage: Optional[str] = Field(default="sqlite:///eval.db", description="Storage URL for Optuna (e.g., 'sqlite:///optuna.db')")
