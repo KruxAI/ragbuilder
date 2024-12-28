@@ -32,9 +32,7 @@ class ConfigStore:
     @classmethod
     def set_default_llm(cls, llm_config: Optional[Union[Dict[str, Any], LLMConfig, BaseChatModel, BaseLLM]]) -> None:
         """Store default LLM configuration or instance"""
-        if llm_config is None:
-            cls._default_llm = None
-        elif isinstance(llm_config, dict):
+        if isinstance(llm_config, dict):
             cls._default_llm = LLMConfig(
                 type=LLMType.OPENAI,
                 model_kwargs=llm_config
@@ -55,9 +53,7 @@ class ConfigStore:
     @classmethod
     def set_default_embeddings(cls, embedding_config: Optional[Union[Dict[str, Any], EmbeddingConfig, Embeddings]]) -> None:
         """Store default Embedding configuration or instance"""
-        if embedding_config is None:
-            cls._default_embeddings = None
-        elif isinstance(embedding_config, dict):
+        if isinstance(embedding_config, dict):
             cls._default_embeddings = EmbeddingConfig(
                 type=EmbeddingType.OPENAI,
                 model_kwargs=embedding_config

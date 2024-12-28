@@ -44,9 +44,9 @@ class RAGBuilder:
             n_trials: Optional[int] = None,
             log_config: Optional[LogConfig] = None
         ):
-        ConfigStore.set_default_llm(default_llm)
-        ConfigStore.set_default_embeddings(default_embeddings)
-        ConfigStore.set_default_n_trials(n_trials)
+        ConfigStore.set_default_llm(default_llm) if default_llm else None
+        ConfigStore.set_default_embeddings(default_embeddings) if default_embeddings else None
+        ConfigStore.set_default_n_trials(n_trials) if n_trials else None
         self._log_config = log_config or LogConfig()
         self.data_ingest_config = data_ingest_config
         self.retrieval_config = retrieval_config
@@ -61,7 +61,9 @@ class RAGBuilder:
         self._optimization_results = OptimizationResults()
         self._test_dataset_manager = TestDatasetManager(
             self._log_config,
-            db_path=self.data_ingest_config.database_path if self.data_ingest_config else DEFAULT_DB_PATH
+            db_path=(self.data_ingest_config.database_path 
+                     if self.data_ingest_config and self.data_ingest_config.database_path 
+                     else DEFAULT_DB_PATH)
         )
 
     @classmethod
@@ -74,9 +76,9 @@ class RAGBuilder:
                          log_config: Optional[LogConfig] = None
                          ) -> 'RAGBuilder':
         """Create RAGBuilder instance with default configuration"""
-        ConfigStore.set_default_llm(default_llm)
-        ConfigStore.set_default_embeddings(default_embeddings)
-        ConfigStore.set_default_n_trials(n_trials)
+        ConfigStore.set_default_llm(default_llm) if default_llm else None
+        ConfigStore.set_default_embeddings(default_embeddings) if default_embeddings else None
+        ConfigStore.set_default_n_trials(n_trials) if n_trials else None
         
         data_ingest_config = DataIngestOptionsConfig.with_defaults(
             input_source=input_source,
