@@ -150,7 +150,7 @@ class RAGBuilder:
             raise ValueError("input_source is required when test_dataset is not provided")
             
         with console.status("Generating eval dataset..."):
-            test_dataset = self._test_dataset_manager.get_or_generate_dataset(
+            test_dataset = self._test_dataset_manager.get_or_generate_eval_dataset(
                 source_data=source_data
             )
         config.evaluation_config.test_dataset = test_dataset

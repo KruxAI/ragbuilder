@@ -186,11 +186,11 @@ class TestDatasetManager:
             
             # Use default models if not provided
             generator_model = (eval_data_generation_config.generator_model if eval_data_generation_config and eval_data_generation_config.generator_model
-                            else ConfigStore.get_default_llm())
+                            else ConfigStore.get_default_llm().llm)
             critic_model = (eval_data_generation_config.critic_model if eval_data_generation_config and eval_data_generation_config.critic_model
-                          else ConfigStore.get_default_llm())
+                          else ConfigStore.get_default_llm().llm)
             embedding_model = (eval_data_generation_config.embedding_model if eval_data_generation_config and eval_data_generation_config.embedding_model
-                            else ConfigStore.get_default_embeddings())
+                            else ConfigStore.get_default_embeddings().embeddings)
             
             # Extract model info for telemetry
             generator_model_name = getattr(generator_model, 'model', None) or getattr(generator_model, 'model_name', '')
