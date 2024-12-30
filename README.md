@@ -44,7 +44,7 @@ See other installation options here ([link](https://docs.ragbuilder.io/quickstar
 ```python
 from ragbuilder import RAGBuilder
 
-# Initialize and optimize
+# Initialize and optimize with defaults
 builder = RAGBuilder.from_source_with_defaults(input_source='https://lilianweng.github.io/posts/2023-06-23-agent/')
 results = builder.optimize()
 
@@ -54,6 +54,29 @@ response = results.invoke("What is HNSW?")
 # View optimization summary
 print(results.summary())
 ```
+
+### Setting Default Models
+
+You can specify default LLM and embedding models that will be used throughout the pipeline:
+
+`````python
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+
+# Initialize with custom defaults
+builder = RAGBuilder.from_source_with_defaults(
+    input_source='data.pdf',
+    default_llm=AzureChatOpenAI(model="gpt-4o", temperature=0.0),
+    default_embeddings=AzureOpenAIEmbeddings(model="text-embedding-3-large"),
+    n_trials=20  # Set number of optimization trials
+)
+
+# Or when creating a RAGBuilder instance with fine grained custom configuration
+builder = RAGBuilder(
+    data_ingest_config=data_ingest_config, # Custom Data Ingestion parameters
+    default_llm=AzureChatOpenAI(model="gpt-4o", temperature=0.0),
+    default_embeddings=AzureOpenAIEmbeddings(model="text-embedding-3-large")
+)
+`````
 
 ## Configuration Guide
 
@@ -96,7 +119,18 @@ data_ingest_config = DataIngestOptionsConfig(
     }]
 )
 
-# Configure retrieval
+# Initialize with custom configs
+builder = RAGBuilder(
+    data_ingest_config=data_ingest_config,
+    default_llm=AzureChatOpenAI(model="gpt-4o", temperature=0.0),
+    default_embeddings=AzureOpenAIEmbeddings(model="text-embedding-3-large")
+)
+
+# Run individual module level optimization
+builder.optimize_data_ingest()
+
+
+# Configure retrieval options
 retrieval_config = RetrievalOptionsConfig(
     retrievers=[
         {
@@ -116,25 +150,40 @@ retrieval_config = RetrievalOptionsConfig(
     top_k=[3, 5]
 )
 
-# Initialize with custom configs
-builder = RAGBuilder(
-    data_ingest_config=data_ingest_config,
-    retrieval_config=retrieval_config
+
+# Run retrieval optimization with custom config
+builder.optimize_retrieval(retrieval_config)
+
+# Configure Generation related options
+gen_config = GenerationOptionsConfig(
+    llms = [
+        LLMConfig(type="azure_openai", model_kwargs={'model':'gpt-4o-mini', 'temperature':0.2}),
+        LLMConfig(type="azure_openai", model_kwargs={'model':'gpt-4o', 'temperature':0.2}),
+    ],
+    optimization={
+        "n_trials": 10, 
+        "n_jobs": 1,
+        "study_name": "lillog_agents_study",
+        "optimization_direction": "maximize"
+    },
+    evaluation_config={"type": "ragas"},
 )
 
-# Access individual components
-vectorstore = results.data_ingest.get_vectorstore()
-docs = results.retrieval.invoke("What is RAG?")
-answer = results.generation.invoke("What is RAG?")
+# Run generation optimization with custom config
+builder.optimize_generation(gen_config)
+
+results = builder.optimization_results
+response = adv_results.invoke("What is HNSW?")
 ````
 
-## Component Reference
+
+## Component Options Reference
 
 ### Document Loaders
-- `pymupdf`: Optimized for PDFs
 - `unstructured`: General-purpose loader
+- `pymupdf`: Optimized for PDFs
 - `pypdf`: Alternative PDF loader
-- `bs4`: Web page loader
+- `web`: Web page loader
 - Custom loaders via `custom_class`
 
 ### Chunking Strategies
