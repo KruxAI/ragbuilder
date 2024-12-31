@@ -55,9 +55,9 @@ class RAGBuilder:
             self._log_config.log_level,
             self._log_config.log_file
         )
-        self._optimized_store = None
-        self._optimized_retriever = None
-        self._optimized_generation = None
+        self.optimized_store = None
+        self.optimized_retriever = None
+        self.optimized_generation = None
         self._optimization_results = OptimizationResults()
         self._test_dataset_manager = TestDatasetManager(
             self._log_config,
@@ -170,7 +170,7 @@ class RAGBuilder:
         self, 
         config: Optional[DataIngestOptionsConfig] = None,
         validate_env: bool = True
-    ) -> Dict[str, Any]:
+    ) -> DataIngestResults:
         """
         Run data ingestion optimization
         
@@ -186,7 +186,8 @@ class RAGBuilder:
         self.data_ingest_config.apply_defaults()
         
         if validate_env:
-            validate_environment(self.data_ingest_config)
+            with console.status("[status]Validating data ingestion environment...[/status]"):
+                validate_environment(self.data_ingest_config)
 
         self._ensure_eval_dataset(self.data_ingest_config)
         
@@ -199,9 +200,8 @@ class RAGBuilder:
                 
                 # Store results and update telemetry
                 self._optimization_results.data_ingest = results
-                self._optimized_store = results.best_index
+                self.optimized_store = results.best_index
                 telemetry.update_optimization_results(span, results, "data_ingest")           
-                return results
                 
             except Exception as e:
                 telemetry.track_error(
@@ -215,7 +215,7 @@ class RAGBuilder:
             finally:
                 telemetry.flush()
         
-
+        return results
     def optimize_retrieval(
         self, 
         config: Optional[RetrievalOptionsConfig] = None, 
@@ -233,7 +233,7 @@ class RAGBuilder:
         Returns:
             RetrievalResults containing optimization results
         """
-        vectorstore = vectorstore or self._optimized_store
+        vectorstore = vectorstore or self.optimized_store
         if not vectorstore:
             raise DependencyError("No vectorstore found. Run data ingestion first or provide existing vectorstore.")
 
@@ -244,7 +244,8 @@ class RAGBuilder:
         self.retrieval_config.apply_defaults()
 
         if validate_env:
-            validate_environment(self.retrieval_config)
+            with console.status("[status]Validating retrieval environment...[/status]"):
+                validate_environment(self.retrieval_config)
             
         self._ensure_eval_dataset(self.retrieval_config)
         
@@ -252,15 +253,14 @@ class RAGBuilder:
             try:
                 results = run_retrieval_optimization(
                     self.retrieval_config, 
-                    vectorstore=self._optimized_store,
+                    vectorstore=self.optimized_store,
                     log_config=self._log_config
                 )
                 
                 # Store results and update telemetry
                 self._optimization_results.retrieval = results
-                self._optimized_retriever = results.best_pipeline.retriever_chain
+                self.optimized_retriever = results.best_pipeline.retriever_chain
                 telemetry.update_optimization_results(span, results, "retriever")
-                return results
                 
             except Exception as e:
                 telemetry.track_error(
@@ -274,12 +274,14 @@ class RAGBuilder:
                 raise
             finally:
                 telemetry.flush()
+                
+        return results
 
     def optimize_generation(
         self, 
         config: Optional[GenerationOptionsConfig] = None, 
         retriever: Optional[Any] = None
-    ) -> Dict[str, Any]:
+    ) -> GenerationResults:
         """
         Run Generation optimization
         
@@ -287,8 +289,8 @@ class RAGBuilder:
             Dict containing optimization results including best_config, best_score,
             best_pipeline, and study_statistics
         """
-        self._optimized_retriever = retriever or self._optimized_retriever
-        if not self._optimized_retriever:
+        self.optimized_retriever = retriever or self.optimized_retriever
+        if not self.optimized_retriever:
             raise DependencyError("No retriever found. Run retrieval optimization first or provide existing retriever.")
         
         self.generation_config = config or GenerationOptionsConfig.with_defaults()
@@ -303,15 +305,14 @@ class RAGBuilder:
             try:
                 results = run_generation_optimization(
                     self.generation_config, 
-                    retriever=self._optimized_retriever,
+                    retriever=self.optimized_retriever,
                     log_config=self._log_config
                 )
                 
                 # Store results and update telemetry
                 self._optimization_results.generation = results
-                self._optimized_generation = results.best_pipeline
+                self.optimized_generation = results.best_pipeline
                 telemetry.update_optimization_results(span, results, "generation")
-                return results
                 
             except Exception as e:
                 telemetry.track_error(
@@ -325,6 +326,8 @@ class RAGBuilder:
                 raise
             finally:
                 telemetry.flush()
+        
+        return results
 
     def optimize(self) -> OptimizationResults:
         """
@@ -335,9 +338,9 @@ class RAGBuilder:
         """
         with telemetry.optimization_span("ragbuilder", {"end_to_end": True}) as span:
             try:
-                with console.status("[bold green]Validating data ingestion environment...") as status:
+                with console.status("[status]Validating data ingestion environment...[/status]") as status:
                     validate_environment(self.data_ingest_config)
-                    status.update("[bold green]Validating retrieval environment...")
+                    status.update("[status]Validating retrieval environment...[/status]")
                     if not self.retrieval_config:
                         self.retrieval_config = RetrievalOptionsConfig.with_defaults()
                     validate_environment(self.retrieval_config)
@@ -354,8 +357,6 @@ class RAGBuilder:
                     span.set_attribute("retrieval_score", self._optimization_results.retrieval.best_score)
                 if self._optimization_results.generation:
                     span.set_attribute("generation_score", self._optimization_results.generation.best_score)
-
-                return self._optimization_results
                 
             except Exception as e:
                 telemetry.track_error(
@@ -371,6 +372,8 @@ class RAGBuilder:
                 raise
             finally:
                 telemetry.flush()
+
+        return self._optimization_results
 
     def __del__(self):
         if telemetry:
@@ -417,7 +420,7 @@ class RAGBuilder:
         @app.post("/invoke")
         async def invoke(request: QueryRequest) -> Dict[str, Any]:
             try:
-                result = self._optimized_generation.query(
+                result = self.optimized_generation.query(
                     request.get_query()
                 )
                 console.print(f"Question:{request.get_query()}")

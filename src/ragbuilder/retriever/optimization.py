@@ -235,17 +235,6 @@ class RetrieverOptimization:
             show_progress_bar=self.show_progress_bar
         )
         
-        # Translate indices to actual component names
-        # readable_params = {}
-        # for param, value in self.study.best_params.items():
-        #     if param.startswith("retriever_") and param.endswith("_index"):
-        #         retriever_index = int(param.split("_")[1])
-        #         readable_params[f"retriever_{retriever_index}"] = self.retriever_map[value].type
-        #     elif param == "reranker_index":
-        #         readable_params["reranker"] = self.reranker_map[value].type
-        #     else:
-        #         readable_params[param] = value
-        
         # Get metrics from the best trial
         best_trial_key = f"trial_{self.study.best_trial.number}_results"
         trial_results = self.study.user_attrs.get(best_trial_key, {})

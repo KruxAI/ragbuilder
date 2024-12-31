@@ -313,8 +313,11 @@ class RAGBuilderTelemetry:
             logger.debug(f"Error flushing telemetry: {e}")
 
     def shutdown(self):
-        if self.enabled and self.meter_provider:
-            self.meter_provider.force_flush()
-            self.meter_provider.shutdown()
+        try:
+            if self.enabled and self.meter_provider:
+                self.meter_provider.force_flush()
+                self.meter_provider.shutdown()
+        except Exception as e:
+            logger.debug(f"Error shutting down telemetry: {e}")
 
 telemetry = RAGBuilderTelemetry()

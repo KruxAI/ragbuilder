@@ -285,6 +285,66 @@ COMPONENT_ENV_REQUIREMENTS = {
             _PkgSpec("ollama")
         ]
     },
+
+    # LLMs
+    LLMType.AZURE_OPENAI: {
+        "required": ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"],
+        "optional": ["AZURE_DEPLOYMENT_NAME"],
+        "packages": [
+            _PkgSpec("langchain-openai"),
+            _PkgSpec("openai"),
+            _PkgSpec("tiktoken")
+        ]
+    },
+    LLMType.OPENAI: {
+        "required": ["OPENAI_API_KEY"],
+        "optional": [],
+        "packages": [
+            _PkgSpec("langchain-openai"),
+            _PkgSpec("openai"),
+            _PkgSpec("tiktoken")
+        ]
+    },
+    LLMType.HUGGINGFACE: {
+        "required": [],
+        "optional": [],
+        "packages": [
+            _PkgSpec("langchain-huggingface"),
+            _PkgSpec("sentence-transformers"),
+            _PkgSpec("torch")
+        ]
+    },
+    LLMType.OLLAMA: {
+        "required": [],
+        "optional": [],
+        "packages": [
+            _PkgSpec("langchain-ollama"),
+            _PkgSpec("ollama")
+        ]
+    },
+    LLMType.COHERE: {
+        "required": ["COHERE_API_KEY"],
+        "optional": [],
+        "packages": [_PkgSpec("cohere")]
+    },
+    LLMType.VERTEXAI: {
+        "required": ["GOOGLE_APPLICATION_CREDENTIALS"],
+        "optional": [],
+        "packages": [
+            _PkgSpec("langchain-google-vertexai"),
+            _PkgSpec("google-cloud-aiplatform")
+        ]
+    },
+    LLMType.BEDROCK: {
+        "required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"],
+        "optional": [],
+        "packages": [_PkgSpec("boto3")]
+    },
+    LLMType.JINA: {
+        "required": ["JINA_API_KEY"],
+        "optional": [],
+        "packages": [_PkgSpec("jina")]
+    },
     
     # Vector Databases
     VectorDatabase.PINECONE: {

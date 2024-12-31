@@ -1,3 +1,5 @@
+import logging
+import json
 from typing import List, Optional, Any
 from operator import itemgetter
 from datetime import datetime
@@ -6,7 +8,6 @@ from ragbuilder.generation.prompt_templates import load_prompts
 from ragbuilder.generation.evaluation import Evaluator, RAGASEvaluator
 from ragbuilder.core.exceptions import DependencyError
 from ragbuilder.core import setup_rich_logging, console
-import logging
 from ragbuilder.core.callbacks import DBLoggerCallback
 from ragbuilder.core.results import GenerationResults
 from ragbuilder.core.config_store import ConfigStore
@@ -78,6 +79,16 @@ class SystemPromptGenerator:
                 break
         return trial_configs
     
+    def _serialize_context(self, context: Any) -> str:
+        """Safely serialize context data to JSON string."""
+        try:
+            if isinstance(context, str):
+                return json.dumps([context])
+            return json.dumps(context)
+        except Exception as e:
+            print(f"Error serializing context: {e}")
+            return json.dumps(["Error serializing context"])
+    
     def optimize(self) -> GenerationResults:
         """
         Run optimization process.
@@ -119,7 +130,7 @@ class SystemPromptGenerator:
                     "question_id": question_id,
                     "question": question,
                     "answer": result.get("answer", "Error"),
-                    "context": result.get("context", "Error"),
+                    "context": self._serialize_context(result.get("context", "Error")),
                     "ground_truth": entry.get("ground_truth", ""),
                     "config": trial_config.model_dump(),
                 })
@@ -131,7 +142,7 @@ class SystemPromptGenerator:
             results_dataset = results_dataset.map(
                 lambda x: {
                     **x,
-                    "contexts": eval(x["context"]) if isinstance(x["context"], str) and x["context"].startswith("[") else [x["context"]],
+                    "contexts": json.loads(x["context"])
                 }
             )
 

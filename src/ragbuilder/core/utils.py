@@ -14,6 +14,7 @@ from ragbuilder.config.data_ingest import DataIngestOptionsConfig
 from ragbuilder.config.retriever import RetrievalOptionsConfig
 import json
 import importlib
+import requests
 
 logger = logging.getLogger(__name__)
 os.environ['USER_AGENT'] = "ragbuilder"
@@ -76,6 +77,49 @@ def validate_environment(config: Union[DataIngestOptionsConfig, RetrievalOptions
     missing_env = []
     missing_packages = []
     
+    # Validate input_source for DataIngestOptionsConfig
+    if isinstance(config, DataIngestOptionsConfig):
+        input_sources = [config.input_source] if isinstance(config.input_source, str) else config.input_source
+        for source in input_sources:
+            if not _is_valid_input_source(source):
+                raise ValueError(f"Invalid input source: {source}")
+    
+    # Validate test_dataset if provided in evaluation_config
+    if hasattr(config, 'evaluation_config') and config.evaluation_config:
+        if config.evaluation_config.test_dataset:
+            if not os.path.isfile(config.evaluation_config.test_dataset):
+                raise ValueError(f"Invalid test dataset path: {config.evaluation_config.test_dataset}")
+        
+        # Validate LLM and embeddings in evaluation_config
+        if config.evaluation_config.llm and hasattr(config.evaluation_config.llm, 'type'):
+            _missing_env, _missing_packages = validate_component_env(config.evaluation_config.llm.type)
+            missing_env.extend(_missing_env)
+            missing_packages.extend(_missing_packages)
+            
+        if config.evaluation_config.embeddings and hasattr(config.evaluation_config.embeddings, 'type'):
+            _missing_env, _missing_packages = validate_component_env(config.evaluation_config.embeddings.type)
+            missing_env.extend(_missing_env)
+            missing_packages.extend(_missing_packages)
+            
+        # Validate eval data generation config if present
+        if config.evaluation_config.eval_data_generation_config:
+            gen_config = config.evaluation_config.eval_data_generation_config
+            
+            if gen_config.generator_model and hasattr(gen_config.generator_model, 'type'):
+                _missing_env, _missing_packages = validate_component_env(gen_config.generator_model.type)
+                missing_env.extend(_missing_env)
+                missing_packages.extend(_missing_packages)
+                
+            if gen_config.critic_model and hasattr(gen_config.critic_model, 'type'):
+                _missing_env, _missing_packages = validate_component_env(gen_config.critic_model.type)
+                missing_env.extend(_missing_env)
+                missing_packages.extend(_missing_packages)
+                
+            if gen_config.embedding_model and hasattr(gen_config.embedding_model, 'type'):
+                _missing_env, _missing_packages = validate_component_env(gen_config.embedding_model.type)
+                missing_env.extend(_missing_env)
+                missing_packages.extend(_missing_packages)
+
     if hasattr(config, 'document_loaders'):
         for loader in config.document_loaders:
             _missing_env, _missing_packages = validate_component_env(loader.type)
@@ -165,3 +209,24 @@ def serialize_config(config: Any) -> str:
     except Exception as e:
         logger.error(f"Failed to serialize config: {str(e)}")
         return str(config)  # Fallback to string representation
+
+def _is_valid_input_source(input_path: str) -> bool:
+    """
+    Validate if input source is a valid file, directory, or URL.
+    
+    Args:
+        input_path: Path to validate
+        
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    # Check if it's a URL
+    if re.match(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', input_path):
+        try:
+            response = requests.head(input_path)
+            return response.status_code == 200
+        except:
+            return False
+            
+    # Check if it's a file or directory
+    return os.path.isfile(input_path) or os.path.isdir(input_path)

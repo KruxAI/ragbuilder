@@ -169,10 +169,10 @@ class RetrieverPipeline:
                     
                     # status.update("[status]Creating Neo4j graph retriever...[/status]")
                     from ragbuilder.graph_utils.graph_retriever import Neo4jGraphRetriever
-                    retriever = Neo4jGraphRetriever(
+                    retriever = Neo4jGraphRetriever.from_graph(
                         graph=graph,
-                        top_k=retriever_config.retriever_k[0],
                         embeddings=embeddings,
+                        top_k=retriever_config.retriever_k[0],
                         **retriever_config.retriever_kwargs
                     )
                     # status.update("[status]Created Neo4j graph retriever[/status]")

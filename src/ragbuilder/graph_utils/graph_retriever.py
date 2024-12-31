@@ -3,6 +3,7 @@ from langchain.docstore.document import Document
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from ragbuilder.graph_utils import check_graph_dependencies
+from pydantic import Field
 
 
 class Neo4jGraphRetriever(BaseRetriever):
@@ -16,63 +17,83 @@ class Neo4jGraphRetriever(BaseRetriever):
         embeddings: Embedding model to embed queries
         index_name: Name of the vector index
     """
-    def __init__(self, *args, **kwargs):
+
+    graph: Any = Field(None, description="Neo4j graph instance")
+    embeddings: Any = Field(None, description="Embedding model to embed queries")
+    top_k: int = Field(default=3, description="Number of documents to retrieve")
+    max_hops: int = Field(default=2, description="Maximum number of hops in graph traversal")
+    max_related_docs_per_doc: int = Field(default=3, description="Maximum related documents per primary document")
+    graph_weight: float = Field(default=0.3, description="Weight for graph-based scores")
+    index_name: str = Field(default="document_embeddings", description="Name of the vector index")
+
+    @classmethod
+    def from_graph(
+        cls,
+        graph: Any,
+        embeddings: Any,
+        top_k: int = 3,
+        max_hops: int = 2,
+        max_related_docs_per_doc: int = 3,
+        graph_weight: float = 0.3,
+        index_name: str = "document_embeddings",
+        **kwargs
+    ) -> "Neo4jGraphRetriever":
+        """Create a Neo4jGraphRetriever from a graph instance."""
         check_graph_dependencies()
-
-    # Define fields directly as class variables
-    graph: Any
-    top_k: int = 3
-    max_hops: int = 2
-    max_related_docs_per_doc: int = 3
-    graph_weight: float = 0.3
-    embeddings: Any
-    index_name: str = "document_embeddings"
-
-    class Config:
-        """Configuration for this pydantic object."""
-        arbitrary_types_allowed = True
-
-    query_template: str = f"""
-    // First find similar documents using vector index
-    CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
-    YIELD node as doc, score as vector_score
+        return cls(
+            graph=graph,
+            embeddings=embeddings,
+            top_k=top_k,
+            max_hops=max_hops,
+            max_related_docs_per_doc=max_related_docs_per_doc,
+            graph_weight=graph_weight,
+            index_name=index_name,
+            **kwargs
+        )
     
-    // Get entities mentioned in these documents
-    MATCH (doc)-[:MENTIONS]->(entity)
-    
-    // Find other documents through graph traversal (controlled by max_hops)
-    MATCH path = (entity)-[r*1..{max_hops}]-(related)
-    MATCH (other_doc:Document)-[:MENTIONS]->(related)
-    WHERE other_doc <> doc  // Exclude original documents
-    
-    // Calculate graph-based score
-    WITH doc, vector_score, other_doc, entity, related, r, path,
-         // Score based on path length (shorter paths score higher)
-         1.0 / length(path) as distance_score,
-         // Score based on number of shared entities
-         size([(other_doc)-[:MENTIONS]->(e) WHERE e IN nodes(path) | e]) as shared_entities
-    
-    // Return both vector-similar and graph-related documents with scores
-    RETURN 
-        doc.text as primary_text,
-        doc.source as primary_source,
-        vector_score,
-        collect(DISTINCT {{
-            doc_text: other_doc.text,
-            doc_source: other_doc.source,
-            graph_score: (distance_score * 0.6 + shared_entities * 0.4),
-            connection: {{
-                from_entity: entity.name,
-                from_type: labels(entity)[0],
-                path_length: length(path),
-                to_entity: related.name,
-                to_type: labels(related)[0],
-                shared_count: shared_entities
-            }}
-        }}) as related_docs
-    ORDER BY vector_score DESC
-    LIMIT $top_k
-    """
+    @property
+    def query_template(self) -> str:
+        return f"""
+        // First find similar documents using vector index
+        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        YIELD node as doc, score as vector_score
+        
+        // Get entities mentioned in these documents
+        MATCH (doc)-[:MENTIONS]->(entity)
+        
+        // Find other documents through graph traversal (controlled by max_hops)
+        MATCH path = (entity)-[r*1..{self.max_hops}]-(related)
+        MATCH (other_doc:Document)-[:MENTIONS]->(related)
+        WHERE other_doc <> doc  // Exclude original documents
+        
+        // Calculate graph-based score
+        WITH doc, vector_score, other_doc, entity, related, r, path,
+            // Score based on path length (shorter paths score higher)
+            1.0 / length(path) as distance_score,
+            // Score based on number of shared entities
+            size([(other_doc)-[:MENTIONS]->(e) WHERE e IN nodes(path) | e]) as shared_entities
+        
+        // Return both vector-similar and graph-related documents with scores
+        RETURN 
+            doc.text as primary_text,
+            doc.source as primary_source,
+            vector_score,
+            collect(DISTINCT {{
+                doc_text: other_doc.text,
+                doc_source: other_doc.source,
+                graph_score: (distance_score * 0.6 + shared_entities * 0.4),
+                connection: {{
+                    from_entity: entity.name,
+                    from_type: labels(entity)[0],
+                    path_length: length(path),
+                    to_entity: related.name,
+                    to_type: labels(related)[0],
+                    shared_count: shared_entities
+                }}
+            }}) as related_docs
+        ORDER BY vector_score DESC
+        LIMIT $top_k
+        """
 
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun
