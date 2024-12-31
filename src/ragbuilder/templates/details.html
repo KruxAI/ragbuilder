@@ -14,18 +14,36 @@
                 <tr>
                     <th>Question ID</th>
                     <th>Question</th>
-                    <th>Answer</th>
-                    <th>Contexts</th>
-                    <th>Ground Truth</th>
-                    <th>Answer Correctness</th>
-                    <th>Faithfulness</th>
-                    <th>Answer Relevancy</th>
-                    <th>Context Precision</th>
-                    <th>Context Recall</th>
-                    <th>Tokens</th>
-                    <th>Cost / 1K Queries</th>
-                    <th>Latency</th>
-                    <th>Timestamp</th>
+                    {% if module_type == 'ui_workflow' %}
+                        <th>Answer</th>
+                        <th>Contexts</th>
+                        <th>Ground Truth</th>
+                        <th>Answer Correctness</th>
+                        <th>Faithfulness</th>
+                        <th>Answer Relevancy</th>
+                        <th>Context Precision</th>
+                        <th>Context Recall</th>
+                        <th>Tokens</th>
+                        <th>Cost / 1K Queries</th>
+                    {% elif module_type == 'data_ingest' %}
+                        <th>Retrieved Chunks</th>
+                        <th>Relevance Scores</th>
+                        <th>Weighted Score</th>
+                        <th>Error</th>
+                        <th>Latency</th>
+                        <th>Timestamp</th>
+                    {% elif module_type == 'retriever' %}
+                        <th>Contexts</th>
+                        <th>Ground Truth</th>
+                        <th>Context Precision</th>
+                        <th>Context Recall</th>
+                        <th>F1 Score</th>
+                        <th>Error</th>
+                        <th>Latency</th>
+                        <th>Timestamp</th>
+                    {% elif module_type == 'generation' %}
+                        <th>Answer Correctness</th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody>
@@ -37,40 +55,68 @@
                             <div class="full-text" style="display: none;">{{ detail.question }}</div>
                             <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
                         </td>
-                        <td>
-                            <span class="expandable-text">{{ detail.answer[:30] if detail.answer is not none else '(null)' }}<span class="ellipsis">...</span></span>
+                        {% if module_type == 'ui_workflow' %}
+                            <!-- UI Workflow specific columns -->
+                            <td>
+                                <span class="expandable-text">{{ detail.answer[:30] if detail.answer is not none else '(null)' }}<span class="ellipsis">...</span></span>
                             <div class="full-text" style="display: none;">{{ detail.answer }}</div>
                             <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
-                        </td>
-                        <td>
-                            <span class="expandable-text">{{ detail.contexts[:30] if detail.contexts is not none else '(null)' }}<span class="ellipsis">...</span></span>
-                            <div class="full-text" style="display: none;">{{ detail.contexts }}</div>
-                            <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
-                        </td>
-                        <td>
-                            <span class="expandable-text">{{ detail.ground_truth[:30] if detail.ground_truth is not none else '(null)' }}<span class="ellipsis">...</span></span>
-                            <div class="full-text" style="display: none;">{{ detail.ground_truth }}</div>
-                            <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
-                        </td>
-                        <!-- <td>
-                            {% if detail.ground_truth is not none %}
-                                <span class="expandable-text">{{ detail.ground_truth[:30] }}<span class="ellipsis">...</span></span>
-                                <pre class="full-text" style="display: none;">{{ detail.ground_truth }}</pre>
-                            {% else %}
-                                <span class="expandable-text">(null)<span class="ellipsis">...</span></span>
-                                <pre class="full-text" style="display: none;">(null)</pre>
-                            {% endif %}
-                            <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
-                        </td> -->
-                        <td>{{ detail.answer_correctness }}</td>
-                        <td>{{ detail.faithfulness }}</td>
-                        <td>{{ detail.answer_relevancy }}</td>
-                        <td>{{ detail.context_precision }}</td>
-                        <td>{{ detail.context_recall }}</td>
-                        <td>{{ detail.tokens }}</td>
-                        <td>${{ detail.cost }}</td>
-                        <td>🕓 {{ detail.latency }}</td>
-                        <td>{{ detail.eval_timestamp }}</td>
+                            </td>
+                            <td>
+                                <span class="expandable-text">{{ detail.contexts[:30] if detail.contexts is not none else '(null)' }}<span class="ellipsis">...</span></span>
+                                <div class="full-text" style="display: none;">{{ detail.contexts }}</div>
+                                <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
+                            </td>
+                            <td>
+                                <span class="expandable-text">{{ detail.ground_truth[:30] if detail.ground_truth is not none else '(null)' }}<span class="ellipsis">...</span></span>
+                                <div class="full-text" style="display: none;">{{ detail.ground_truth }}</div>
+                                <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
+                            </td>
+                            <td>{{ detail.answer_correctness }}</td>
+                            <td>{{ detail.faithfulness }}</td>
+                            <td>{{ detail.answer_relevancy }}</td>
+                            <td>{{ detail.context_precision }}</td>
+                            <td>{{ detail.context_recall }}</td>
+                            <td>{{ detail.tokens }}</td>
+                            <td>${{ detail.cost }}</td>
+                        {% elif module_type == 'data_ingest' %}
+                            <!-- Data Ingest specific columns -->
+                            <td>
+                                <span class="expandable-text">{{ detail.retrieved_chunks[:30] if detail.retrieved_chunks is not none else '(null)' }}<span class="ellipsis">...</span></span>
+                                <div class="full-text" style="display: none;">{{ detail.retrieved_chunks }}</div>
+                                <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
+                            </td>
+                            <td>
+                                <span class="expandable-text">{{ detail.relevance_scores[:30] if detail.relevance_scores is not none else '(null)' }}<span class="ellipsis">...</span></span>
+                                <div class="full-text" style="display: none;">{{ detail.relevance_scores }}</div>
+                                <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
+                            </td>
+                            <td>{{ "%.2f"|format(detail.weighted_score) if detail.weighted_score is not none else '(null)' }}</td>
+                            <td>{{ detail.error if detail.error is not none else '' }}</td>
+                            <td>🕓 {{ "%.2f"|format(detail.latency) if detail.latency is not none else '(null)' }}</td>
+                            <td>{{ detail.eval_timestamp }}</td>
+                        {% elif module_type == 'retriever' %}
+                            <!-- Retriever specific columns -->
+                            <td>
+                                <span class="expandable-text">{{ detail.contexts[:30] if detail.contexts is not none else '(null)' }}<span class="ellipsis">...</span></span>
+                                <div class="full-text" style="display: none;">{{ detail.contexts }}</div>
+                                <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
+                            </td>
+                            <td>
+                                <span class="expandable-text">{{ detail.ground_truth[:30] if detail.ground_truth is not none else '(null)' }}<span class="ellipsis">...</span></span>
+                                <div class="full-text" style="display: none;">{{ detail.ground_truth }}</div>
+                                <a href="javascript:void(0);" style="text-decoration:none;" class="toggle-text">➕</a>
+                            </td>
+                            <td>{{ "%.2f"|format(detail.context_precision) if detail.context_precision is not none else '(null)' }}</td>
+                            <td>{{ "%.2f"|format(detail.context_recall) if detail.context_recall is not none else '(null)' }}</td>
+                            <td>{{ "%.2f"|format(detail.f1_score) if detail.f1_score is not none else '(null)' }}</td>
+                            <td>{{ detail.error if detail.error is not none else '' }}</td>
+                            <td>🕓 {{ "%.2f"|format(detail.latency) if detail.latency is not none else '(null)' }}</td>
+                            <td>{{ detail.eval_timestamp }}</td>
+                        {% else %}
+                            <td>{{ "%.2f"|format(detail.answer_correctness) if detail.answer_correctness is not none else '(null)' }}</td>
+                        {% endif %}
+
                     </tr>
                 {% endfor %}
                 </tbody>

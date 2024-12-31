@@ -2,19 +2,21 @@ import os
 import random
 import logging
 import shutil
-from typing import Tuple, List
+from typing import Tuple, List, TYPE_CHECKING, Any
 from pathlib import Path
 from multiprocessing import Pool
 from tqdm import tqdm
 import requests
 from urllib.parse import urlparse
-from unstructured.partition.auto import partition
-from unstructured.documents.elements import Element
-from ragbuilder.langchain_module.common import setup_logging
-from ragbuilder.analytics import track_event
+# from ragbuilder.langchain_module.common import setup_logging
+# from ragbuilder.analytics import track_event
 
-setup_logging()
-logger = logging.getLogger("ragbuilder")
+if TYPE_CHECKING:
+    from unstructured.partition.auto import partition
+    from unstructured.documents.elements import Element
+
+# setup_logging()
+logger = logging.getLogger("ragbuilder.sampler")
 SAMPLING_RATIO = float(os.getenv('SAMPLING_RATIO', '0.1'))
 SAMPLING_SIZE_THRESHOLD = int(os.getenv('SAMPLING_SIZE_THRESHOLD', '750_000'))
 SAMPLING_FILE_SIZE_THRESHOLD = int(os.getenv('SAMPLING_FILE_SIZE_THRESHOLD', '500_000'))
@@ -109,6 +111,13 @@ class DataSampler:
                 logger.info(f"File {file_path} is small, no need for content sampling")
                 return file_path
 
+            if not self.enable_sampling:
+                return file_path
+
+            # Only import when sampling is enabled
+            from unstructured.partition.auto import partition
+            from unstructured.documents.elements import Element
+
             logger.info(f"Sampling file: {file_path} (this may take a while)...")
             elements = partition(filename=file_path)
             total_elements = len(elements)
@@ -138,7 +147,7 @@ class DataSampler:
             logger.error(f"Error sampling file {file_path}: {str(e)}")
             raise
 
-    def _sliding_window_sample(self, elements: List[Element], window_size: int, num_windows: int) -> List[Element]:
+    def _sliding_window_sample(self, elements: List[Any], window_size: int, num_windows: int) -> List[Any]:
         total_elements = len(elements)
         max_start_index = total_elements - window_size
 

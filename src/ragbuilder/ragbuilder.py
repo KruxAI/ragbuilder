@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, Path as PathParam
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -81,6 +81,28 @@ def insert_hashmap(hash: str, path: str, db: sqlite3.Connection):
     db.commit()
     logger.info(f"Saved hashmap for synthetic data: {path}")
 
+def ensure_module_type_column():
+    """Add module_type column if it doesn't exist."""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        
+        # Check if column exists
+        cursor.execute("PRAGMA table_info(run_details)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'module_type' not in columns:
+            try:
+                # Add column with default value
+                cursor.execute("""
+                    ALTER TABLE run_details 
+                    ADD COLUMN module_type VARCHAR(100) 
+                    DEFAULT 'ui_workflow'
+                """)
+                conn.commit()
+            except sqlite3.OperationalError as e:
+                if "duplicate column name" not in str(e).lower():
+                    raise
+
 @app.on_event("startup")
 async def startup():
     db = get_db()
@@ -88,6 +110,7 @@ async def startup():
     db.execute(rag_eval_details_dml)
     db.execute(rag_eval_summary_dml)
     db.execute(synthetic_data_hashmap_dml)
+    ensure_module_type_column()
     db.close()
 
 # @app.on_event("shutdown")
@@ -130,6 +153,7 @@ def index(request: Request, db: sqlite3.Connection = Depends(get_db)):
     cur = db.execute("""
         SELECT 
             run_id,
+            module_type,
             status,
             description,
             src_data,
@@ -184,6 +208,7 @@ async def summary(request: Request, run_id: int, db: sqlite3.Connection = Depend
 
 @app.get('/details/{eval_id}', response_class=HTMLResponse)
 async def details(request: Request, eval_id: int, db: sqlite3.Connection = Depends(get_db)):
+    module_type = 'ui_workflow'
     cur = db.execute("""
         SELECT 
             question_id,
@@ -205,8 +230,144 @@ async def details(request: Request, eval_id: int, db: sqlite3.Connection = Depen
     """, (eval_id,))
     details = cur.fetchall()
     db.close()
-    return templates.TemplateResponse(request=request, name='details.html', context={"details": details})
+    return templates.TemplateResponse(
+        request=request, 
+        name='details.html', 
+        context={"details": details, "module_type": module_type}
+    )
 
+@app.get("/sdk/summary/{run_id}")
+async def sdk_summary(request: Request, run_id: int, db: sqlite3.Connection = Depends(get_db)):
+    """Show summary dashboard for SDK-based runs."""
+    cursor = db.cursor()
+        
+    # Get run details
+    cursor.execute("""
+        SELECT module_type, description, src_data, run_config 
+        FROM run_details 
+        WHERE run_id = ?
+    """, (run_id,))
+    run_info = cursor.fetchone()
+    
+    if not run_info:
+        raise HTTPException(status_code=404, detail="Run not found")
+        
+    module_type, description, src_data, run_config = run_info
+    
+    # Get evaluations based on module type
+    if module_type == 'data_ingest':
+        cursor.execute("""
+            SELECT * FROM data_ingest_eval_summary 
+            WHERE run_id = ? 
+            ORDER BY avg_score desc
+        """, (run_id,))
+    elif module_type == 'retriever' :  # retriever
+        cursor.execute("""
+            SELECT * FROM retriever_eval_summary 
+            WHERE run_id = ? 
+            ORDER BY avg_score desc
+        """, (run_id,))
+    else:
+        cursor.execute("""
+            SELECT * FROM generation_eval_summary 
+            WHERE run_id = ? 
+            ORDER BY average_correctness desc
+        """, (run_id,))
+
+    evals = cursor.fetchall()
+    test_var=[dict(zip([col[0] for col in cursor.description], row)) 
+                     for row in evals]
+    print("results:",test_var)
+    db.close()
+
+    try:
+        if isinstance(run_config, str):
+            run_config = json.loads(run_config)
+        formatted_config = json.dumps(run_config, indent=2)
+    except json.JSONDecodeError:
+        formatted_config = run_config  # Fallback to original if parsing fails
+    
+    return templates.TemplateResponse(
+        "sdk_summary.html",
+        {
+            "request": request,
+            "run_id": run_id,
+            "module_type": module_type,
+            "description": description,
+            "src_data": src_data,
+            "run_config": formatted_config,
+            "evals": [dict(zip([col[0] for col in cursor.description], row)) 
+                     for row in evals]
+        }
+    )
+
+@app.get("/sdk/details/{module_type}/{eval_id}")
+async def sdk_details(
+    request: Request, 
+    eval_id: int, 
+    module_type: str = PathParam(..., regex="^(data_ingest|retriever|generation)$"),
+    db: sqlite3.Connection = Depends(get_db)
+):
+    cursor = db.cursor()
+    # Get details based on module type
+    if module_type == 'data_ingest':
+        cursor.execute("""
+            SELECT 
+                question_id,
+                question,
+                retrieved_chunks,
+                relevance_scores,
+                weighted_score,
+                latency,
+                error,
+                datetime(eval_ts/1000.0, 'unixepoch', 'localtime') as eval_timestamp
+            FROM data_ingest_eval_details
+            WHERE eval_id = ?
+            ORDER BY question_id
+        """, (eval_id,))
+    elif module_type == 'retriever' :
+        cursor.execute("""
+            SELECT 
+                question_id,
+                question,
+                contexts,
+                ground_truth,
+                context_precision,
+                context_recall,
+                f1_score,
+                latency,
+                error,
+                datetime(eval_ts/1000.0, 'unixepoch', 'localtime') as eval_timestamp
+            FROM retriever_eval_details
+            WHERE eval_id = ?
+            ORDER BY question_id
+        """, (eval_id,))
+    else:
+        cursor.execute("""
+            SELECT 
+                question_id,
+                question,
+                answer,
+                ground_truth,
+                prompt_key,
+                prompt,
+                answer_correctness
+            FROM generation_eval_details
+            WHERE eval_id = ?
+            ORDER BY question_id
+        """, (eval_id,))
+#TODO datetime(eval_ts/1000.0, 'unixepoch', 'localtime') as eval_timestamp
+    details = cursor.fetchall()
+    db.close()
+    
+    return templates.TemplateResponse(
+        "details.html",
+        {
+            "request": request,
+            "module_type": module_type,
+            "details": details
+        }
+    )
 
 class TrialData(BaseModel):
     number: int
@@ -223,10 +384,35 @@ class StudyData(BaseModel):
     parameter_importance: Dict[str, List[float]]
 
 @app.get("/api/study/{run_id}", response_model=StudyData)
-def get_study_data(run_id: int):
+def get_study_data(run_id: int, db: sqlite3.Connection = Depends(get_db)):
+    logger.debug(f"Fetching module_type and description for run_id: {run_id}")
+    try:
+        cursor = db.cursor()
+        
+        # Get module_type and description (study_name)
+        cursor.execute("""
+            SELECT module_type, description 
+            FROM run_details 
+            WHERE run_id = ?
+        """, (run_id,))
+        result = cursor.fetchone()
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Run not found")
+        
+        module_type, description = result
+
+        study_name = (
+            str(run_id) if module_type == 'legacy' 
+            else description
+        )
+    except Exception as e:
+        logger.error(f"Error fetching module_type and description from DB: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch module_type and description from DB")
+
     try:
         logger.debug(f"Loading study data for run_id: {run_id}")
-        study = optuna.load_study(study_name=str(run_id), storage=f"sqlite:///{DATABASE}")
+        study = optuna.load_study(study_name=study_name, storage=f"sqlite:///{DATABASE}")
         # print(f"Study data loaded: {study}")
         
         logger.debug(f"Setting up trials data...")

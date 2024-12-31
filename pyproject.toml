@@ -1,0 +1,83 @@
+[project]
+name = "ragbuilder"
+dynamic = ["version"] 
+description = "RagBuilder SDK - Create optimal Production-ready RAG pipelines"
+authors = [
+    {name = "Ashwin Aravind", email = "ashwin@krux.ai"},
+    {name = "Aravind Parameswaran", email = "aravind@krux.ai"},
+]
+requires-python = ">=3.7"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+
+dependencies = [
+    "chromadb",
+    "datasets>=2.18.0",
+    "fastapi>=0.100.0",
+    "jinja2",
+    "langchain>=0.1.0",
+    "langchain-community==0.2.7",
+    "langchain-core==0.2.20",
+    "langchain-huggingface==0.0.3",
+    "langchain-openai==0.1.17",
+    "opentelemetry-api>=1.23.0",
+    "opentelemetry-sdk>=1.23.0",
+    "opentelemetry-exporter-otlp>=1.23.0",
+    "optuna",
+    "platformdirs",
+    "pydantic>=2.0.0",
+    "python-dotenv",
+    "ragas==0.1.7",
+    "rerankers",
+    "rich>=13.0.0",
+    "sentence-transformers",
+    "tenacity==8.4.2",
+    "rank-bm25",
+    "uvicorn>=0.30.0",    
+]
+
+# Optional dependencies
+[project.optional-dependencies]
+graph = [
+    "neo4j>=5.23.0",
+    "langchain-community[neo4j]"
+]
+
+vectorstores = [
+    "elasticsearch>=8.0.0",
+    "faiss-cpu>=1.7.4",
+    "pinecone-client>=3.0.0",
+    "pymilvus>=2.3.0",
+    "qdrant-client>=1.7.0",
+    "weaviate-client>=3.25.0",    
+]
+
+# Document processing
+document_processors = [
+    "pymupdf>=1.23.0",
+    "python-docx>=1.0.0",
+    "pikepdf>=8.11.0",
+    "pandoc>=2.3",
+    "pypdf>=3.17.0",
+    "markdown>=3.5.0",
+    "beautifulsoup4>=4.12.0",
+    "unstructured[all-docs]>=0.11.0",
+]
+
+all = [
+    "ragbuilder[graph]",
+    "ragbuilder[vectorstores]",
+    "ragbuilder[document_processors]",
+]
+
+[project.scripts]
+ragbuilder = "ragbuilder.ragbuilder:main"
+
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "src/ragbuilder/_version.py"
+version_scheme = "python-simplified-semver"
+
