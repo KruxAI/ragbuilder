@@ -395,7 +395,7 @@ COMPONENT_ENV_REQUIREMENTS = {
     ParserType.UNSTRUCTURED: {
         "required": [],
         "optional": [],
-        "packages": [_PkgSpec("unstructured")]
+        "packages": [_PkgSpec("unstructured"), _PkgSpec("nltk")]
     },
     ParserType.PYMUPDF: {
         "required": [],
