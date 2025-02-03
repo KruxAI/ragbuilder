@@ -283,23 +283,14 @@ class RAGSyntheticDataGenerator:
 
     def format_exemplar(self, sample: EvaluatedSample) -> str:
         """Format a sample as an exemplar"""
-#         return f"""
-# Example {sample.sample.synthesizer_name}:
-# Question: {sample.question}
-# Answer: {sample.answer}
-# Quality Metrics:
-# - Helpfulness: {sample.scores.get('helpfulness', 'N/A')}
-# - Correctness: {sample.scores.get('correctness', 'N/A')}
-# - Coherence: {sample.scores.get('coherence', 'N/A')}
-# """
         return f"""
-Example {sample}:
-Question: 
-Answer: 
+Example {sample.sample.synthesizer_name}:
+Question: {sample.question}
+Answer: {sample.answer}
 Quality Metrics:
-- Helpfulness: 
-- Correctness: 
-- Coherence: 
+- Helpfulness: {sample.scores.get('helpfulness', 'N/A')}
+- Correctness: {sample.scores.get('correctness', 'N/A')}
+- Coherence: {sample.scores.get('coherence', 'N/A')}
 """
 
     def update_synthesizer_prompts(
