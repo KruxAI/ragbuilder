@@ -9,7 +9,7 @@ from langchain_community.document_loaders import (
     UnstructuredFileLoader
 )
 from langchain_core.documents import Document
-from ragbuilder.config.components import COMPONENT_ENV_REQUIREMENTS
+from ragbuilder.config.components import COMPONENT_ENV_REQUIREMENTS, ParserType
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig
 from ragbuilder.config.retriever import RetrievalOptionsConfig
 import json
@@ -177,6 +177,28 @@ def validate_component_env(component_value: str) -> Tuple[List[str], List[str]]:
     missing_env.extend([var for var in requirements["required"] if not os.getenv(var)])
     missing_packages.extend([pkg_name for pkg in requirements.get("packages", []) 
                            if (pkg_name := pkg.validate())])
+    
+    if component_value == ParserType.UNSTRUCTURED:
+        try:
+            import nltk
+            nltk_resources = ['punkt', 'punkt_tab', 'averaged_perceptron_tagger']
+            for resource in nltk_resources:
+                try:
+                    nltk.data.find(f'tokenizers/{resource}')
+                except LookupError:
+                    try:
+                        logger.info(f"Downloading required NLTK data '{resource}' for unstructured parser...")
+                        nltk.download(resource, quiet=True)
+                    except Exception as e:
+                        logger.warning(f"Failed to download NLTK data '{resource}': {str(e)}")
+                        missing_packages.append(f"nltk[{resource}]")
+
+        except ImportError:
+            missing_packages.append("nltk")
+        except Exception as e:
+            logger.warning(f"Failed to validate/download NLTK data: {str(e)}")
+            missing_packages.extend([f"nltk[{resource}]" for resource in nltk_resources])
+    
     return missing_env, missing_packages
 
 def simplify_model_config(obj: Any) -> Dict[str, Any]:
