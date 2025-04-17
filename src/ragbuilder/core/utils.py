@@ -15,6 +15,7 @@ from ragbuilder.config.retriever import RetrievalOptionsConfig
 import json
 import importlib
 import requests
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 os.environ['USER_AGENT'] = "ragbuilder"
@@ -243,11 +244,18 @@ def _is_valid_input_source(input_path: str) -> bool:
         bool: True if valid, False otherwise
     """
     # Check if it's a URL
-    if re.match(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', input_path):
+    parsed = urlparse(input_path)
+    if parsed.scheme in ['http', 'https'] and parsed.netloc:
         try:
-            response = requests.head(input_path)
+            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
+            response = requests.head(input_path, headers=headers, allow_redirects=True)
+
+            if response.status_code == 405:
+                response = requests.get(input_path, headers=headers, stream=True)
+
             return response.status_code == 200
-        except:
+        except Exception as e:
+            logger.debug(f"Failed to validate URL {input_path}: {str(e)}")
             return False
             
     # Check if it's a file or directory
