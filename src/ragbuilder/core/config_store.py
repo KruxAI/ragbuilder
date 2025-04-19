@@ -20,6 +20,7 @@ class ConfigStore:
     _metadata: Dict[str, ConfigMetadata] = {}
     _best_data_ingest_pipeline = None
     _best_retriever_pipeline = None
+    _best_generator_pipeline = None
     _default_llm: Optional[LLMConfig] = None
     _default_embeddings: Optional[EmbeddingConfig] = None
     _default_n_trials: Optional[int] = None
@@ -137,6 +138,16 @@ class ConfigStore:
         if cls._best_retriever_pipeline:
             return cls._best_retriever_pipeline.retriever_chain
         return None
+
+    @classmethod
+    def store_best_generator_pipeline(cls, pipeline):
+        """Store the best performing generator pipeline"""
+        cls._best_generator_pipeline = pipeline
+    
+    @classmethod
+    def get_best_generator_pipeline(cls):
+        """Get the stored best generator pipeline"""
+        return cls._best_generator_pipeline
 
     @classmethod
     def set_default_n_trials(cls, n_trials: Optional[int]) -> None:

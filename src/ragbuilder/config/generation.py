@@ -17,8 +17,8 @@ class PromptTemplate(BaseModel):
 
 # Define the Execution Model for Each Question
 class QuestionContext(BaseModel):
-    question: str
-    ground_truth: str
+    user_input: str
+    reference: str
 
 
 
@@ -40,23 +40,23 @@ class ExecutionResult(BaseModel):
 
 
 class EvalDatasetItem(BaseModel):
-    question: str
-    ground_truth: str
+    user_input: str
+    reference: str
     contexts: Optional[str] = None  # Optional field
     evolution_type: Optional[str] = None
     metadata: Optional[str] = None
     episode_done: Optional[bool] = None
 
-    @field_validator('question', mode='before')
+    @field_validator('user_input', mode='before')
     def check_question(cls, v):
         if not v.strip():
             raise ValueError('Question is required and cannot be empty.')
         return v
     
-    @field_validator('ground_truth', mode='before')
+    @field_validator('reference', mode='before')
     def check_ground_truth(cls, v):
         if not v.strip():
-            raise ValueError('Ground truth is required and cannot be empty.')
+            raise ValueError('Reference is required and cannot be empty.')
         return v
 
 class EvalDataset(BaseModel):

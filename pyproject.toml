@@ -27,7 +27,7 @@ dependencies = [
     "platformdirs",
     "pydantic>=2.0.0",
     "python-dotenv",
-    "ragas==0.1.7",
+    "ragas==0.2.14",
     "rerankers",
     "rich>=13.0.0",
     "sentence-transformers",
