@@ -5,9 +5,10 @@ from typing import Optional, List, Union, Any, Dict, Tuple
 from dotenv import load_dotenv
 from langchain_community.document_loaders import (
     DirectoryLoader, 
-    WebBaseLoader, 
+    WebBaseLoader,
     UnstructuredFileLoader
 )
+# from langchain_unstructured import UnstructuredLoader
 from langchain_core.documents import Document
 from ragbuilder.config.components import COMPONENT_ENV_REQUIREMENTS, ParserType
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig
@@ -185,7 +186,9 @@ def validate_component_env(component_value: str) -> Tuple[List[str], List[str]]:
             nltk_resources = ['punkt', 'punkt_tab', 'averaged_perceptron_tagger']
             for resource in nltk_resources:
                 try:
-                    nltk.data.find(f'tokenizers/{resource}')
+                    # Determine the correct path prefix based on resource type
+                    path_prefix = "taggers" if resource == "averaged_perceptron_tagger" else "tokenizers"
+                    nltk.data.find(f'{path_prefix}/{resource}')
                 except LookupError:
                     try:
                         logger.info(f"Downloading required NLTK data '{resource}' for unstructured parser...")
@@ -198,7 +201,7 @@ def validate_component_env(component_value: str) -> Tuple[List[str], List[str]]:
             missing_packages.append("nltk")
         except Exception as e:
             logger.warning(f"Failed to validate/download NLTK data: {str(e)}")
-            missing_packages.extend([f"nltk[{resource}]" for resource in nltk_resources])
+            missing_packages.extend([f"nltk[{res}]" for res in nltk_resources])
     
     return missing_env, missing_packages
 

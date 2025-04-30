@@ -35,6 +35,7 @@ class LLMType(str, Enum):
     CUSTOM = "custom"
 
 class ParserType(str, Enum):
+    TEXT = "text"
     UNSTRUCTURED = "unstructured"
     PYMUPDF = "pymupdf"
     PYPDF = "pypdf"
@@ -53,6 +54,13 @@ class ChunkingStrategy(str, Enum):
     HTML = "HTMLHeaderTextSplitter"
     SEMANTIC = "SemanticChunker"
     CUSTOM = "custom"
+
+NO_CHUNK_SIZE_STRATEGIES = [
+    ChunkingStrategy.MARKDOWN,
+    ChunkingStrategy.HTML,
+    ChunkingStrategy.SEMANTIC,
+    ChunkingStrategy.CUSTOM
+]
 
 class EmbeddingType(str, Enum):
     OPENAI = "openai"
@@ -123,7 +131,7 @@ def lazy_load(module_path: str, class_name: str) -> Callable:
 LLM_MAP = {
     LLMType.OPENAI: lazy_load("langchain_openai", "ChatOpenAI"),
     LLMType.AZURE_OPENAI: lazy_load("langchain_openai", "AzureChatOpenAI"),
-    LLMType.HUGGINGFACE: lazy_load("langchain_huggingface", "HuggingFaceHub"),
+    LLMType.HUGGINGFACE: lazy_load("langchain_huggingface", "HuggingFaceEndpoint"),
     LLMType.OLLAMA: lazy_load("langchain_ollama", "OllamaChat"),
     LLMType.COHERE: lazy_load("langchain_community.llms", "Cohere"),
     LLMType.VERTEXAI: lazy_load("langchain_google_vertexai", "VertexAI"),
@@ -132,6 +140,8 @@ LLM_MAP = {
 }
 
 LOADER_MAP = {
+    # ParserType.UNSTRUCTURED: lazy_load("langchain_unstructured", "UnstructuredLoader"),
+    ParserType.TEXT: lazy_load("langchain.document_loaders", "TextLoader"),
     ParserType.UNSTRUCTURED: lazy_load("langchain_community.document_loaders", "UnstructuredFileLoader"),
     ParserType.PYMUPDF: lazy_load("langchain_community.document_loaders", "PyMuPDFLoader"),
     ParserType.PYPDF: lazy_load("langchain_community.document_loaders", "PyPDFLoader"),
@@ -163,18 +173,18 @@ EMBEDDING_MAP = {
 }
 
 VECTORDB_MAP = {
-    VectorDatabase.FAISS: lazy_load("langchain.vectorstores", "FAISS"),
-    VectorDatabase.CHROMA: lazy_load("langchain.vectorstores", "Chroma"),
-    VectorDatabase.PINECONE: lazy_load("langchain.vectorstores", "Pinecone"),
-    VectorDatabase.WEAVIATE: lazy_load("langchain.vectorstores", "Weaviate"),
-    VectorDatabase.QDRANT: lazy_load("langchain.vectorstores", "Qdrant"),
-    VectorDatabase.MILVUS: lazy_load("langchain.vectorstores", "Milvus"),
-    VectorDatabase.PGVECTOR: lazy_load("langchain.vectorstores", "PGVector"),
-    VectorDatabase.ELASTICSEARCH: lazy_load("langchain.vectorstores", "ElasticsearchStore"),
+    VectorDatabase.FAISS: lazy_load("langchain_community.vectorstores", "FAISS"),
+    VectorDatabase.CHROMA: lazy_load("langchain_chroma", "Chroma"),
+    VectorDatabase.PINECONE: lazy_load("langchain_pinecone", "PineconeVectorStore"),
+    VectorDatabase.WEAVIATE: lazy_load("langchain_weaviate.vectorstores", "WeaviateVectorStore"),
+    VectorDatabase.QDRANT: lazy_load("langchain_qdrant", "QdrantVectorStore"),
+    VectorDatabase.MILVUS: lazy_load("langchain_milvus", "Milvus"),
+    VectorDatabase.PGVECTOR: lazy_load("langchain_postgres", "PGVector"),
+    VectorDatabase.ELASTICSEARCH: lazy_load("langchain-elasticsearch", "ElasticsearchStore"),
 }
 
 RETRIEVER_MAP = {
-    RetrieverType.BM25: lazy_load("langchain.retrievers", "BM25Retriever"),
+    RetrieverType.BM25: lazy_load("langchain_community.retrievers", "BM25Retriever"),
 }
 
 RERANKER_MAP = {
@@ -226,6 +236,12 @@ RERANKER_MAP = {
 
 # Environment variable requirements for components
 COMPONENT_ENV_REQUIREMENTS = {
+    # Unstructured
+    ParserType.UNSTRUCTURED: {
+        "required": [],
+        "optional": [],
+        "packages": [_PkgSpec("langchain-unstructured")]
+    },
     # Embedding Models
     EmbeddingType.AZURE_OPENAI: {
         "required": ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"],
@@ -350,27 +366,40 @@ COMPONENT_ENV_REQUIREMENTS = {
     VectorDatabase.PINECONE: {
         "required": ["PINECONE_API_KEY", "PINECONE_ENVIRONMENT"],
         "optional": [],
-        "packages": [_PkgSpec("pinecone-client", "pinecone")]
+        "packages": [
+            _PkgSpec("langchain-pinecone"),
+            _PkgSpec("pinecone-client", "pinecone")
+        ]
     },
     VectorDatabase.WEAVIATE: {
         "required": ["WEAVIATE_URL", "WEAVIATE_API_KEY"],
         "optional": [],
-        "packages": [_PkgSpec("weaviate-client", "weaviate")]
+        "packages": [
+            _PkgSpec("weaviate-client", "weaviate"),
+            _PkgSpec("langchain-weaviate")
+        ]
     },
     VectorDatabase.QDRANT: {
         "required": ["QDRANT_URL"],
         "optional": ["QDRANT_API_KEY"],
-        "packages": [_PkgSpec("qdrant-client", "qdrant")]
+        "packages": [
+            _PkgSpec("qdrant-client", "qdrant"),
+            _PkgSpec("langchain-qdrant")
+        ]
     },
     VectorDatabase.MILVUS: {
         "required": ["MILVUS_HOST", "MILVUS_PORT"],
         "optional": [],
-        "packages": [_PkgSpec("pymilvus")]
+        "packages": [
+            _PkgSpec("pymilvus"),
+            _PkgSpec("langchain-milvus")
+        ]
     },
     VectorDatabase.PGVECTOR: {
         "required": ["PGVECTOR_CONNECTION_STRING"],
         "optional": [],
         "packages": [
+            _PkgSpec("langchain-postgres"),
             _PkgSpec("psycopg2-binary"),
             _PkgSpec("pgvector")
         ]
@@ -378,12 +407,18 @@ COMPONENT_ENV_REQUIREMENTS = {
     VectorDatabase.ELASTICSEARCH: {
         "required": ["ELASTICSEARCH_URL"],
         "optional": ["ELASTICSEARCH_API_KEY"],
-        "packages": [_PkgSpec("elasticsearch")]
+        "packages": [
+            _PkgSpec("elasticsearch"),
+            _PkgSpec("langchain-elasticsearch")
+        ]
     },
     VectorDatabase.CHROMA: {
         "required": [],
         "optional": [],
-        "packages": [_PkgSpec("chromadb")]
+        "packages": [
+            _PkgSpec("langchain-chroma"),
+            _PkgSpec("chromadb")
+        ]
     },
     VectorDatabase.FAISS: {
         "required": [],

@@ -287,6 +287,155 @@ def load_src(src_data: str) -> List[Document]:
         logger.error(f"Error loading docs for synthetic test data generation: {e}")
         raise
 
+def default_transforms(
+    documents: List[Document],
+    llm: Any,
+    embedding_model: Any,
+) -> Any:
+    """
+    Creates and returns a default set of transforms for processing a knowledge graph.
+
+    This function defines a series of transformation steps to be applied to a
+    knowledge graph, including extracting summaries, keyphrases, titles,
+    headlines, and embeddings, as well as building similarity relationships
+    between nodes.
+
+
+
+    Returns
+    -------
+    Transforms
+        A list of transformation steps to be applied to the knowledge graph.
+
+    """
+    from ragas.testset.transforms.extractors import (
+        EmbeddingExtractor,
+        HeadlinesExtractor,
+        SummaryExtractor,
+    )
+    from ragas.testset.transforms.extractors.llm_based import NERExtractor, ThemesExtractor
+    from ragas.testset.transforms.filters import CustomNodeFilter
+    from ragas.testset.transforms.relationship_builders import (
+        CosineSimilarityBuilder,
+        OverlapScoreBuilder,
+    )
+    from ragas.testset.transforms.splitters import HeadlineSplitter
+    from ragas.utils import num_tokens_from_string
+    from ragas.testset.transforms.engine import Parallel
+
+    def count_doc_length_bins(documents, bin_ranges):
+        data = [num_tokens_from_string(doc.page_content) for doc in documents]
+        bins = {f"{start}-{end}": 0 for start, end in bin_ranges}
+
+        for num in data:
+            for start, end in bin_ranges:
+                if start <= num <= end:
+                    bins[f"{start}-{end}"] += 1
+                    break  # Move to the next number once it’s placed in a bin
+
+        return bins
+
+    def filter_doc_with_num_tokens(node, min_num_tokens=500):
+        return (
+            node.type == NodeType.DOCUMENT
+            and num_tokens_from_string(node.properties["page_content"]) > min_num_tokens
+        )
+
+    def filter_docs(node):
+        return node.type == NodeType.DOCUMENT
+
+    def filter_chunks(node):
+        return node.type == NodeType.CHUNK
+
+    bin_ranges = [(0, 100), (101, 500), (501, 10000000)]
+    result = count_doc_length_bins(documents, bin_ranges)
+    result = {k: v / len(documents) for k, v in result.items()}
+
+    transforms = []
+
+    if result["501-10000000"] >= 0.25:
+        headline_extractor = HeadlinesExtractor(
+            llm=llm, filter_nodes=lambda node: filter_doc_with_num_tokens(node)
+        )
+        splitter = HeadlineSplitter(min_tokens=500)
+        summary_extractor = SummaryExtractor(
+            llm=llm, filter_nodes=lambda node: filter_doc_with_num_tokens(node)
+        )
+
+        theme_extractor = ThemesExtractor(
+            llm=llm, filter_nodes=lambda node: filter_chunks(node)
+        )
+        ner_extractor = NERExtractor(
+            llm=llm, filter_nodes=lambda node: filter_chunks(node)
+        )
+
+        summary_emb_extractor = EmbeddingExtractor(
+            embedding_model=embedding_model,
+            property_name="summary_embedding",
+            embed_property_name="summary",
+            filter_nodes=lambda node: filter_doc_with_num_tokens(node),
+        )
+
+        cosine_sim_builder = CosineSimilarityBuilder(
+            property_name="summary_embedding",
+            new_property_name="summary_similarity",
+            threshold=0.7,
+            filter_nodes=lambda node: filter_doc_with_num_tokens(node),
+        )
+
+        ner_overlap_sim = OverlapScoreBuilder(
+            threshold=0.01, filter_nodes=lambda node: filter_chunks(node)
+        )
+
+        node_filter = CustomNodeFilter(
+            llm=llm, filter_nodes=lambda node: filter_chunks(node)
+        )
+        transforms = [
+            headline_extractor,
+            splitter,
+            summary_extractor,
+            node_filter,
+            Parallel(summary_emb_extractor, theme_extractor, ner_extractor),
+            Parallel(cosine_sim_builder, ner_overlap_sim),
+        ]
+    elif result["101-500"] >= 0.25:
+        summary_extractor = SummaryExtractor(
+            llm=llm, filter_nodes=lambda node: filter_doc_with_num_tokens(node, 100)
+        )
+        summary_emb_extractor = EmbeddingExtractor(
+            embedding_model=embedding_model,
+            property_name="summary_embedding",
+            embed_property_name="summary",
+            filter_nodes=lambda node: filter_doc_with_num_tokens(node, 100),
+        )
+
+        cosine_sim_builder = CosineSimilarityBuilder(
+            property_name="summary_embedding",
+            new_property_name="summary_similarity",
+            threshold=0.5,
+            filter_nodes=lambda node: filter_doc_with_num_tokens(node, 100),
+        )
+
+        ner_extractor = NERExtractor(llm=llm)
+        ner_overlap_sim = OverlapScoreBuilder(threshold=0.01)
+        theme_extractor = ThemesExtractor(
+            llm=llm, filter_nodes=lambda node: filter_docs(node)
+        )
+        node_filter = CustomNodeFilter(llm=llm)
+
+        transforms = [
+            summary_extractor,
+            node_filter,
+            Parallel(summary_emb_extractor, theme_extractor, ner_extractor),
+            Parallel(cosine_sim_builder, ner_overlap_sim),
+        ]
+    else:
+        raise ValueError(
+            "Documents appears to be too short (ie 100 tokens or less). Please provide longer documents."
+        )
+
+    return transforms
+
 def create_or_load_knowledge_graph(
     docs: List[Document],
     generator_llm: Any,
@@ -342,56 +491,72 @@ def create_or_load_knowledge_graph(
     # Use modified parameters for transforms to improve relationship building
     # This uses more relaxed thresholds to create more connections between nodes
     try:
-        from ragas.testset.transforms.relationship_builders.traditional import OverlapScoreBuilder
-        from ragas.testset.transforms.relationship_builders.cosine import CosineSimilarityBuilder
-        from ragas.testset.transforms.extractors import EmbeddingExtractor
-        from ragas.testset.transforms.extractors.llm_based import (
-            NERExtractor,
-            SummaryExtractor,
-            ThemesExtractor,
-            KeyphrasesExtractor
-        )
-        from ragas.testset.transforms import Parallel
+        # from ragas.testset.transforms.relationship_builders.traditional import OverlapScoreBuilder
+        # from ragas.testset.transforms.relationship_builders.cosine import CosineSimilarityBuilder
+        # from ragas.testset.transforms.extractors import EmbeddingExtractor
+        # from ragas.testset.transforms.extractors import HeadlinesExtractor
+        # from ragas.testset.transforms.extractors.llm_based import (
+        #     NERExtractor,
+        #     SummaryExtractor,
+        #     ThemesExtractor,
+        #     KeyphrasesExtractor
+        # )
+        # from ragas.testset.transforms.splitters import HeadlineSplitter
+        # from ragas.testset.transforms import Parallel
 
-        # Custom transforms with more relaxed thresholds
-        transforms = [
-            # Extract entities, summaries, and themes
-            Parallel(
-                NERExtractor(llm=generator_llm, max_num_entities=25), 
-                SummaryExtractor(llm=generator_llm),
-                ThemesExtractor(llm=generator_llm),
-                KeyphrasesExtractor(llm=generator_llm, max_num=20) 
-            ),
-            
-            # Generate embeddings for text-based similarity
-            EmbeddingExtractor(
-                embed_property_name="summary", 
-                property_name="summary_embedding", 
-                embedding_model=generator_embeddings
-            ),
-            
-            # Build relationships with lower thresholds
-            Parallel(
-                OverlapScoreBuilder(
-                    property_name="entities",
-                    distance_threshold=0.5, 
-                    threshold=0.01,
-                    filter_nodes=lambda node: bool(node.get_property("entities"))
-                ),
-                OverlapScoreBuilder(
-                    property_name="keywords",
-                    distance_threshold=0.5,
-                    threshold=0.01,
-                    filter_nodes=lambda node: bool(node.get_property("keywords"))
-                ),
-                CosineSimilarityBuilder(
-                    property_name="summary_embedding",
-                    new_property_name="summary_similarity",
-                    threshold=0.1,  # Lower threshold (was 0.2)
-                    filter_nodes=lambda node: bool(node.get_property("summary_embedding"))
-                )
-            )
-        ]
+        # # Define filters for different node types
+        # filter_docs = lambda node: node.type == NodeType.DOCUMENT
+        # filter_chunks = lambda node: node.type == NodeType.CHUNK
+
+        # # Custom transforms with more relaxed thresholds
+        # transforms = [
+        #     # 1. Extract headlines from original documents
+        #     HeadlinesExtractor(llm=generator_llm, filter_nodes=filter_docs),
+        #     # 2. Split documents into chunks based on headlines
+        #     HeadlineSplitter(filter_nodes=filter_docs, min_tokens=300, max_tokens=1000), # Adjust token limits as needed
+
+        #     # Extract entities, summaries, and themes
+        #     # 3. Apply extractors to the *new* CHUNK nodes
+        #     Parallel(
+        #         NERExtractor(llm=generator_llm, max_num_entities=25, filter_nodes=filter_chunks),
+        #         SummaryExtractor(llm=generator_llm, filter_nodes=filter_chunks),
+        #         ThemesExtractor(llm=generator_llm, filter_nodes=filter_chunks),
+        #         KeyphrasesExtractor(llm=generator_llm, max_num=20, filter_nodes=filter_chunks)
+        #     ),
+
+        #     # 4. Generate embeddings for CHUNK node summaries (or page_content if preferred)
+        #     EmbeddingExtractor(
+        #         embed_property_name="summary",
+        #         property_name="summary_embedding",
+        #         embedding_model=generator_embeddings,
+        #         filter_nodes=filter_chunks # Apply to chunks
+        #     ),
+
+        #     # 5. Build relationships between CHUNK nodes
+        #     Parallel(
+        #         OverlapScoreBuilder(
+        #             property_name="entities",
+        #             distance_threshold=0.5,
+        #             threshold=0.01,
+        #             filter_nodes=filter_chunks # Apply to chunks
+        #         ),
+        #         OverlapScoreBuilder(
+        #             property_name="keywords",
+        #             distance_threshold=0.5,
+        #             threshold=0.01,
+        #             filter_nodes=filter_chunks # Apply to chunks
+        #         ),
+        #         CosineSimilarityBuilder(
+        #             property_name="summary_embedding",
+        #             new_property_name="summary_similarity",
+        #             threshold=0.1,  # Lower threshold (was 0.2)
+        #             filter_nodes=filter_chunks # Apply to chunks
+        #         )
+        #     )
+        # ]
+        transforms = default_transforms(
+            documents=docs, llm=generator_llm, embedding_model=generator_embeddings
+        )
         
         apply_transforms(kg, transforms, run_config=run_config)
     except ImportError:
@@ -515,6 +680,7 @@ def generate_data(
 
         # Generate testset
         logger.info(f"Generating {test_size} test cases with mixed query types...")
+        testset = None
         testset = generator.generate(
             testset_size=test_size,
             query_distribution=query_distribution
@@ -524,35 +690,38 @@ def generate_data(
         error_message = str(e)
         logger.warning(f"Error generating questions with mixed types: {error_message}")
         
-        if "No clusters found in the knowledge graph" in error_message:
-            logger.info("Falling back to single-hop questions only...")
-            
-            # Second attempt: Use only single-hop questions
-            query_distribution = [
-                (SingleHopSpecificQuerySynthesizer(llm=generator_llm), 1.0)
-            ]
-            
-            try:
-                testset = generator.generate(
-                    testset_size=test_size,
-                    query_distribution=query_distribution
-                )
-            except Exception as fallback_error:
-                # If even single-hop generation fails, provide a more helpful error message
-                logger.error(f"Error generating single-hop questions: {str(fallback_error)}")
-                raise ValueError(
-                    "Failed to generate test questions with this dataset. The knowledge graph may not have "
-                    "enough meaningful content. Try with a larger or more structured dataset, or consider "
-                    "manually creating test questions."
-                ) from fallback_error
+        # if "No clusters found in the knowledge graph" in error_message:
+        logger.info("Falling back to single-hop questions only...")
+        
+        # Second attempt: Use only single-hop questions
+        query_distribution = [
+            (SingleHopSpecificQuerySynthesizer(llm=generator_llm), 1.0)
+        ]
+        
+        try:
+            testset = generator.generate(
+                testset_size=test_size,
+                query_distribution=query_distribution
+            )
+            logger.info("Test generation complete")
+        except Exception as fallback_error:
+            # If even single-hop generation fails, provide a more helpful error message
+            logger.error(f"Error generating single-hop questions: {str(fallback_error)}")
+            raise ValueError(
+                "Failed to generate test questions with this dataset. The knowledge graph may not have "
+                "enough meaningful content. Try with a larger or more structured dataset, or consider "
+                "manually creating test questions."
+            ) from fallback_error
     
-    logger.info("Test generation complete")
-    ts = datetime.now(timezone.utc).timestamp()
-    f_name = f'rag_test_data_{ts}.csv'
-    
-    logger.info(f"Writing to {f_name}")
-    test_df = testset.to_pandas()
-    test_df.to_csv(f_name)
+    if testset:
+        ts = datetime.now(timezone.utc).timestamp()
+        f_name = f'rag_test_data_{ts}.csv'
+        logger.info(f"Writing to {f_name}")
+        test_df = testset.to_pandas()
+        test_df.to_csv(f_name)
+    else:
+        logger.error("Testset generation failed")
+        raise ValueError("Testset generation failed")
     
     return f_name
 
