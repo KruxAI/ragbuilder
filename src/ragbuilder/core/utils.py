@@ -262,4 +262,11 @@ def _is_valid_input_source(input_path: str) -> bool:
             return False
             
     # Check if it's a file or directory
-    return os.path.isfile(input_path) or os.path.isdir(input_path)
+    if os.path.isfile(input_path):
+        # Check if file is empty
+        return os.path.getsize(input_path) > 0
+    elif os.path.isdir(input_path):
+        # Check if directory is empty
+        return len(os.listdir(input_path)) > 0
+    
+    return False

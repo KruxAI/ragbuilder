@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-05-12T15:32:06.332812",
+  "summary": {
+    "total": 26,
+    "passed": 25,
+    "failed": 1,
+    "errors": 0,
+    "skipped": 0
+  },
+  "modules": {
+    "test_minimal": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [],
+      "error_details": []
+    },
+    "test_ragbuilder": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [],
+      "error_details": []
+    },
+    "test_ragbuilder_advanced": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [],
+      "error_details": []
+    },
+    "test_ragbuilder_edge_cases": {
+      "total": 11,
+      "passed": 10,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [
+        "test_missing_environment_variables (test_ragbuilder_edge_cases.TestRAGBuilderEdgeCases.test_missing_environment_variables): Traceback (most recent call last):\n  File \"/Users/aravind/KruxAI/ragbuilder_v2/tests/test_ragbuilder_edge_cases.py\", line 326, in test_missing_environment_variables\n    with self.assertRaises(Exception) as context:\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^\nAssertionError: Exception not raised\n"
+      ],
+      "error_details": []
+    }
+  },
+  "runtime_seconds": 3194.94
+}

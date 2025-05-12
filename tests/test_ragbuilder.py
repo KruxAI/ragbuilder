@@ -26,13 +26,13 @@ class TestRAGBuilderBasic(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         
         # Check if LangChain documentation directory exists
-        self.docs_dir_path = Path("SampleInputFiles/md")
+        self.docs_dir_path = Path("../SampleInputFiles/md")
         
         if self.docs_dir_path.exists() and any(self.docs_dir_path.iterdir()):
             # Use LangChain documentation directory
             self.test_file_path = str(self.docs_dir_path)
             # Look for test dataset specific to LangChain docs
-            self.langchain_dataset_path = Path("SampleInputFiles/rag_test_data_gpt4o_shortlisted_small.csv")
+            self.langchain_dataset_path = Path("../SampleInputFiles/rag_test_data_gpt4o_shortlisted_small.csv")
             if self.langchain_dataset_path.exists():
                 self.langchain_test_dataset = str(self.langchain_dataset_path)
             else:
@@ -85,14 +85,14 @@ class TestRAGBuilderBasic(unittest.TestCase):
 """)
         
         # Check for 10K PDF report
-        self.pdf_file_path = Path("SampleInputFiles/pdf/uber_10k.pdf")
+        self.pdf_file_path = Path("../SampleInputFiles/pdf/uber_10k.pdf")
         if not self.pdf_file_path.exists():
             # Note: We don't create a fallback PDF since that would be complex
             self.pdf_available = False
         else:
             self.pdf_available = True
             # Look for test dataset specific to 10K report
-            self.pdf_dataset_path = Path("SampleInputFiles/pdf/uber10k_shortlist.csv")
+            self.pdf_dataset_path = Path("../SampleInputFiles/pdf/uber10k_shortlist.csv")
             if self.pdf_dataset_path.exists():
                 self.pdf_test_dataset = str(self.pdf_dataset_path)
             else:
