@@ -10,7 +10,7 @@ from langchain_community.graphs.graph_document import (
     GraphDocument,
 )
 from langchain.schema import Document
-from langchain.pydantic_v1 import Field, BaseModel
+from pydantic import Field, BaseModel
 from langchain.docstore.document import Document
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticToolsParser

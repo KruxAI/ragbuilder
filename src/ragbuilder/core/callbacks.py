@@ -219,7 +219,7 @@ class DBLoggerCallback(Protocol):
                     elif self.module_type == "data_ingest":
                         self._log_data_ingest_trial(cursor, eval_id, trial, results)
                     elif self.module_type == "generation":
-                        self._log_generation_trial(cursor,eval_id,eval_results,final_results)
+                        self._log_generation_trial(cursor, eval_id, trial, results)
                     
                     conn.commit()
                     return eval_id
@@ -330,12 +330,41 @@ class DBLoggerCallback(Protocol):
                 for idx, detail in enumerate(results['question_details'])
             ]
         )
-    def _log_generation_trial(self, cursor, eval_id: int, eval_results: Dataset, final_results: Dataset):
+
+    def _log_generation_trial(self, cursor, eval_id: int, trial: Trial, results: Dict[str, Any]):
         """Log generation trial results."""
         try:
-            # Assuming eval_results has fields that match your database schema
-            for record in eval_results:
-                cursor.execute(
+            # Extract prompt_key and prompt based on summary type
+            summary = results.get('summary', {})
+            prompt_key = summary.get('prompt_key', '')
+            prompt = summary.get('prompt', '')
+            
+            # Log summary metrics
+            cursor.execute(
+                """
+                INSERT INTO generation_eval_summary (
+                    run_id,
+                    eval_id,
+                    prompt_key,
+                    prompt,
+                    config,
+                    average_correctness
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    self.run_id,
+                    eval_id,
+                    prompt_key,
+                    prompt,
+                    json.dumps(results.get('config', {})),
+                    results.get('score', 0.0)
+                )
+            )
+            
+            # Log detailed results if available
+            detailed_results = results.get('detailed_results', [])
+            if detailed_results:
+                cursor.executemany(
                     """
                     INSERT INTO generation_eval_details (
                         eval_id,
@@ -348,63 +377,54 @@ class DBLoggerCallback(Protocol):
                         answer_correctness
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (
-                        eval_id,
-                        record['question_id'],  # Adjust according to your Dataset structure
-                        record['question'],      # Adjust according to your Dataset structure
-                        record['answer'], 
-                        record.get('ground_truth', ''),  # Adjust according to your Dataset structure
-                        record.get('prompt_key', ''),
-                        record.get('prompt', ''),          # Adjust according to your Dataset structure
-                        record.get('answer_correctness', None)  # Optional field
-                        # record.get('error', None),          # Optional field
-                        # record['eval_timestamp']  # Adjust according to your Dataset structure
-                    )
+                    [
+                        (
+                            eval_id,
+                            idx,
+                            detail.get('user_input', ''),
+                            detail.get('response', ''),
+                            detail.get('reference', ''),
+                            prompt_key,
+                            prompt,
+                            detail.get('answer_correctness', 0.0)
+                        )
+                        for idx, detail in enumerate(detailed_results)
+                    ]
                 )
-            results_df = eval_results.to_pandas()
-            grouped_results = (
-                results_df.groupby('prompt_key')
-                .agg(
-                    prompt=('prompt', 'first'),
-                    config=('config', 'first'),
-                    average_correctness=('answer_correctness', 'mean')
-                )
-                .reset_index())
-            for record in Dataset.from_pandas(grouped_results):
-                cursor.execute(
-                    """
-                    INSERT INTO generation_eval_summary (
-                        run_id,
-                        eval_id,
-                        prompt_key,
-                        prompt,
-                        config,
-                        average_correctness
-                    ) VALUES (?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        self.run_id,
-                        eval_id,
-                        record.get('prompt_key',''),  # Adjust according to your Dataset structure
-                        record.get('prompt',''),      # Adjust according to your Dataset structure
-                        json.dumps(record.get('config','')), 
-                        record.get('average_correctness', None)  # Adjust according to your Dataset structure
-                    )
-                )
-            logger.debug(f"Logged {len(eval_results)} generation trial results for eval_id {eval_id}")
+            
+            logger.debug(f"Logged generation trial results for eval_id {eval_id}, trial {trial.number if trial else 'unknown'}")
         
         except Exception as e:
             logger.error(f"Failed to log generation trial results: {e}")
+            raise
 
-    def __call__(self, study: Study, trial: Trial,eval_results=None,final_results=None):
+    def __call__(self, study: Study, trial: Trial, eval_results=None, final_results=None):
         """Called after each trial completion."""
-        if self.module_type in ['retriever','data_ingest']:
+        if study is not None and trial is not None:
+            # Standard Optuna trial
             results = study.user_attrs.get(f"trial_{trial.number}_results", {})
+            # logger.info(f"Results: {results}\n Type: {type(results)}")
             if results:
                 self._log_trial(trial=trial, results=results)
                 logger.debug(f"Logged results for trial {trial.number}")
+        elif eval_results is not None or final_results is not None:
+            # Legacy support for non-Optuna generation callbacks
+            # Convert final_results to expected format if available
+            if hasattr(final_results, 'model_dump'):
+                results = {
+                    'score': final_results.best_score,
+                    'config': final_results.best_config.model_dump() if hasattr(final_results.best_config, 'model_dump') else {},
+                    'summary': {
+                        'prompt_key': getattr(final_results.best_config, 'prompt_key', ''),
+                        'prompt': final_results.best_prompt
+                    }
+                }
+                self._log_trial(results=results)
+                logger.debug("Logged results for generation evaluation")
+            else:
+                logger.warning("No valid results format for generation logging")
         else:
-            self._log_trial(eval_results=eval_results,final_results=final_results)
+            logger.warning("No valid study or trial data for logging")
 
     def __del__(self):
         """Update run status when optimization completes."""

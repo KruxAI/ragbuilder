@@ -1,39 +1,84 @@
+"""
+Optimization module for generation components in RAGBuilder.
+Uses Optuna for efficient hyperparameter tuning of generation pipelines.
+"""
 import logging
-import json
-from typing import List, Optional, Any
-from operator import itemgetter
+import optuna
+from typing import Dict, Any, Optional, List
 from datetime import datetime
+
+from optuna import Trial, create_study
+import numpy as np
+
 from ragbuilder.config import LogConfig, GenerationOptionsConfig, GenerationConfig
-from ragbuilder.generation.prompt_templates import load_prompts
-from ragbuilder.generation.evaluation import Evaluator, RAGASEvaluator
-from ragbuilder.core.exceptions import DependencyError
-from ragbuilder.core import setup_rich_logging, console
-from ragbuilder.core.callbacks import DBLoggerCallback
+from ragbuilder.core import ConfigStore, DBLoggerCallback, setup_rich_logging, console
+from ragbuilder.core.exceptions import OptimizationError, DependencyError
 from ragbuilder.core.results import GenerationResults
-from ragbuilder.core.config_store import ConfigStore
-class SystemPromptGenerator:
+from ragbuilder.generation.evaluation import GenerationEvaluator
+from ragbuilder.generation.pipeline import GenerationPipeline
+from ragbuilder.generation.prompt_templates import load_prompts
+
+CONFIG_STORE = ConfigStore()
+
+class GenerationOptimizer:
+    """
+    Optimizer for generation components that uses Optuna for hyperparameter tuning.
+    """
+    
     def __init__(
-        self, 
-        config: GenerationOptionsConfig, 
-        evaluator: Evaluator, 
-        retriever: Optional[Any] = None, 
+        self,
+        options_config: GenerationOptionsConfig,
+        evaluator: GenerationEvaluator,
+        retriever: Optional[Any] = None,
         verbose: bool = False,
-        callback=None  # Add callback parameter
+        show_progress_bar: bool = True,
+        callback=None
     ):
-        self.logger = logging.getLogger("ragbuilder.generation.optimization")
-        self.config = config
-        self.evaluator = evaluator
-        self.eval_data_set_path = config.eval_data_set_path
-        self.verbose = verbose
-        self.callbacks = []  # Initialize callbacks list
-        self.n_trials = config.optimization.n_trials
+        """
+        Initialize the optimizer with configuration options.
         
-        # Initialize DBLoggerCallback if database logging is enabled
-        if config.database_logging:
+        Args:
+            options_config: Configuration options for generation optimization
+            evaluator: Evaluator for generation pipelines
+            retriever: Retriever component to use with generation pipelines
+            verbose: Whether to log detailed information
+            show_progress_bar: Whether to show progress bar during optimization
+            callback: Optional callback for custom logging
+        """
+        self.logger = logging.getLogger("ragbuilder.generation.optimization")
+        self.options_config = options_config
+        self.evaluator = evaluator
+        self.show_progress_bar = show_progress_bar
+        self.verbose = verbose
+        
+        # Load retriever
+        self.retriever = retriever
+        if self.retriever is None:
+            self.logger.warning("No retriever provided, will attempt to get from CONFIG_STORE")
+            retriever_pipeline = CONFIG_STORE.get_best_retriever_pipeline()
+            if retriever_pipeline is None:
+                raise DependencyError("No retriever pipeline found. Run retrieval optimization first.")
+            self.retriever = retriever_pipeline
+        
+        # Load prompt templates
+        self.prompt_templates = load_prompts(
+            options_config.prompt_template_path, 
+            options_config.local_prompt_template_path, 
+            options_config.read_local_only
+        )
+        self.logger.debug(f"Loaded {len(self.prompt_templates)} prompt templates")
+        
+        # Map LLM configurations and prompt templates for easier access in trials
+        self.llm_map = {i: llm for i, llm in enumerate(options_config.llms)}
+        self.prompt_map = {i: (key, template) for i, (key, template) in enumerate(self.prompt_templates)}
+        
+        # Setup DB logging callback if enabled
+        self.callbacks = []
+        if options_config.database_logging:
             try:
                 db_callback = DBLoggerCallback(
-                    study_name=config.optimization.study_name,
-                    config=config,
+                    study_name=options_config.optimization.study_name,
+                    config=options_config,
                     module_type='generation'
                 )
                 self.callbacks.append(db_callback)
@@ -41,53 +86,99 @@ class SystemPromptGenerator:
             except Exception as e:
                 self.logger.warning(f"Failed to initialize database logging: {e}")
 
+        # Add any additional callbacks
         if callback:
             self.callbacks.append(callback)
-
-        self.logger.debug("Loading Prompts")
-        self.local_prompt_template_path = config.local_prompt_template_path
-        self.read_local_only = config.read_local_only
-        
-        self.logger.debug(f"Initializing with config: {config}")
-        self.logger.debug("Loading Retriever")
-        self.retriever = retriever
-        if self.retriever is None:
-            raise DependencyError("Retriever Not set")
-        self.prompt_templates = load_prompts(
-            config.prompt_template_path, 
-            config.local_prompt_template_path, 
-            config.read_local_only
-        )
-        self.logger.debug(f"Loaded prompt templates: {len(self.prompt_templates)}")
-        
-    def _build_trial_config(self) -> List[GenerationConfig]:
-        trial_configs = []
-        self.logger.debug("Building trial configs")
-        counter=0
-        for llm_config in self.config.llms:
-            for prompt_template in self.prompt_templates: 
-                if counter>=self.n_trials:
-                    break
-                counter+=1
-                trial_config = GenerationConfig(
-                    llm=llm_config,
-                    prompt_template=prompt_template[1].template,
-                    prompt_key=prompt_template[0]
-                )
-                trial_configs.append(trial_config)
-            if counter>=self.n_trials:
-                break
-        return trial_configs
     
-    def _serialize_context(self, context: Any) -> str:
-        """Safely serialize context data to JSON string."""
+    def _generate_generation_config(self, trial: Trial) -> GenerationConfig:
+        """
+        Generate a generation configuration from trial parameters.
+        
+        Args:
+            trial: Optuna trial object
+            
+        Returns:
+            GenerationConfig for this trial
+        """
+        # Select LLM
+        llm_index = trial.suggest_categorical("llm_index", list(self.llm_map.keys()))
+        llm_config = self.llm_map[llm_index]
+        
+        # Select prompt template
+        prompt_index = trial.suggest_categorical("prompt_index", list(self.prompt_map.keys()))
+        prompt_key, prompt_template = self.prompt_map[prompt_index]
+        
+        # Create configuration
+        params = {
+            "llm": llm_config,
+            "prompt_template": prompt_template.template,
+            "prompt_key": prompt_key
+        }
+        
+        return GenerationConfig(**params)
+    
+    def _objective(self, trial: Trial) -> float:
+        """
+        Optimization objective function.
+        
+        Args:
+            trial: Optuna trial object
+            
+        Returns:
+            Evaluation score for this trial
+        """
+        console.print(f"[heading]Generation Trial {trial.number}/{self.options_config.optimization.n_trials - 1}[/heading]")
+        
         try:
-            if isinstance(context, str):
-                return json.dumps([context])
-            return json.dumps(context)
+            # Generate config for this trial
+            config = self._generate_generation_config(trial)
+            
+            # Check if we've already evaluated this exact config
+            trials_to_consider = trial.study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,))
+            for t in reversed(trials_to_consider):
+                if trial.params == t.params:
+                    self.logger.info(f"Configuration already evaluated with score: {t.value}")
+                    return t.value
+            
+            # Create generation pipeline for this config
+            pipeline = GenerationPipeline(config, self.retriever, verbose=self.verbose).pipeline
+            
+            # Evaluate the pipeline
+            config_key = f"{config.prompt_key}_{trial.number}"
+            results = self.evaluator.evaluate_generation(pipeline, config_key)
+            
+            # Extract score
+            score = results['score']
+            
+            # Store results in study's user attributes
+            trial.study.set_user_attr(
+                f"trial_{trial.number}_results",
+                {
+                    'score': score,
+                    'metrics': results['metrics'],
+                    'config': config.model_dump(),
+                    'summary': {
+                        'prompt_key': config.prompt_key,
+                        'prompt': config.prompt_template
+                    },
+                    'detailed_results': results.get('detailed_results', [])
+                }
+            )
+            
+            # Call callbacks
+            for callback in self.callbacks:
+                try:
+                    callback(trial.study, trial)
+                except Exception as e:
+                    self.logger.warning(f"Callback error: {e}")
+            
+            self.logger.debug(f"Trial {trial.number} score: {score:.4f}")
+            return score
+            
         except Exception as e:
-            print(f"Error serializing context: {e}")
-            return json.dumps(["Error serializing context"])
+            console.print(f"[red]Trial failed: {str(e)}[/red]")
+            self.logger.exception("Trial error")
+            return float('nan')
     
     def optimize(self) -> GenerationResults:
         """
@@ -97,137 +188,76 @@ class SystemPromptGenerator:
             GenerationResults containing optimization results and best pipeline
         """
         console.rule("[heading]Starting Generation Optimization[/heading]")
-        
         start_time = datetime.now()
         
-        trial_configs = self._build_trial_config()
-        self.logger.info(f"Generated {self.n_trials} trial configurations")
+        if self.options_config.optimization.overwrite_study and \
+            self.options_config.optimization.study_name in optuna.study.get_all_study_names(storage=self.options_config.optimization.storage):
+            self.logger.info(f"Overwriting existing study: {self.options_config.optimization.study_name}")
+            optuna.delete_study(study_name=self.options_config.optimization.study_name, storage=self.options_config.optimization.storage)
+
+        # Create study with appropriate settings
+        study = create_study(
+            storage=self.options_config.optimization.storage,
+            study_name=self.options_config.optimization.study_name,
+            load_if_exists=self.options_config.optimization.load_if_exists,
+            direction=self.options_config.optimization.optimization_direction,
+            sampler=optuna.samplers.TPESampler(),
+            pruner=optuna.pruners.MedianPruner()
+        )
         
-        pipeline = None
-        results = {}
-        # self.logger.info(f"eval path {self.eval_data_set_path}")
-        evaldataset = self.evaluator.get_eval_dataset(self.evaluator.test_dataset)
-        self.logger.debug(f"Loaded evaluation dataset with {len(evaldataset)} entries")
-
-        for i, trial_config in enumerate(trial_configs):
-            console.print(f"[heading]Trial {i}/{self.n_trials-1}[/heading]")
-            if self.verbose:
-                console.print(f"Running trial {i} with prompt template: {trial_config.prompt_template}")
+        study.optimize(
+            self._objective,
+            n_trials=self.options_config.optimization.n_trials,
+            n_jobs=self.options_config.optimization.n_jobs,
+            timeout=self.options_config.optimization.timeout,
+            show_progress_bar=self.show_progress_bar
+        )
         
-            self.logger.info(f"Creating pipeline for trial {i}")
-            pipeline = create_pipeline(trial_config, self.retriever)
-            
-            self.logger.info(f"Preparing eval dataset for trial {i}")
-            for i, entry in enumerate(evaldataset):
-                question_id = i
-                question = entry.get("question", "")
-                result = pipeline.invoke(question)
-                combined_key = f"{trial_config.prompt_key}_{question_id}"  # Combine prompt_key and question_id
-                results[combined_key] = []
-                results[combined_key].append({
-                    "prompt_key": trial_config.prompt_key,
-                    "prompt": trial_config.prompt_template,
-                    "question_id": question_id,
-                    "question": question,
-                    "answer": result.get("answer", "Error"),
-                    "context": self._serialize_context(result.get("context", "Error")),
-                    "ground_truth": entry.get("ground_truth", ""),
-                    "config": trial_config.model_dump(),
-                })
-        # Convert results to Dataset
-        from datasets import Dataset
-        results_dataset = Dataset.from_list([item for items in results.values() for item in items])
-
-        if "context" in results_dataset.column_names:
-            results_dataset = results_dataset.map(
-                lambda x: {
-                    **x,
-                    "contexts": json.loads(x["context"])
-                }
-            )
-
-        self.logger.info(f"Evaluating prompt results")
-        eval_results = self.evaluator.evaluate(results_dataset)
-        self.logger.info(f"Calculating final prompt testing results")
-        final_results = self.calculate_metrics(eval_results)
+        # Get best configuration
+        if study.best_trial is None:
+            raise OptimizationError("No successful trials completed")
+        
+        # Get metrics from the best trial
+        best_trial_key = f"trial_{study.best_trial.number}_results"
+        trial_results = study.user_attrs.get(best_trial_key, {})
+        metrics = trial_results.get("metrics", {})
+        
+        # Create best configuration and pipeline
+        best_config = self._generate_generation_config(study.best_trial)
+        best_pipeline = GenerationPipeline(best_config, self.retriever, verbose=self.verbose).pipeline
+        
+        # Store best pipeline in config store for other modules to use
+        CONFIG_STORE.store_best_generator_pipeline(best_pipeline)
         
         # Create structured results object
         results = GenerationResults(
-            best_config=final_results["best_config"],
-            best_score=final_results["best_score"],
-            best_pipeline=final_results["best_pipeline"],
-            best_prompt=final_results["best_prompt"],
-            n_trials=self.n_trials,
-            completed_trials=len(trial_configs),
+            best_config=best_config,
+            best_score=study.best_value,
+            best_pipeline=best_pipeline,
+            best_prompt=best_config.prompt_template,
+            n_trials=self.options_config.optimization.n_trials,
+            completed_trials=len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]),
             optimization_time=(datetime.now() - start_time).total_seconds(),
-            # Add performance metrics if available from eval_results
-            avg_latency=None,
-            error_rate=None
+            avg_latency=metrics.get("avg_latency"),
+            error_rate=metrics.get("error_rate")
         )
         
         # Log results
-        console.print("[success]Optimization Complete![/success]")
+        console.print("[success]Generation Optimization Complete![/success]")
         console.print(f"[success]Best Score:[/success] [value]{results.best_score:.4f}[/value]")
         console.print("[success]Best Configuration:[/success]")
         console.print(results.get_config_summary(), style="value")
         
-        # Call callbacks with the new results structure
-        for callback in self.callbacks:
-            try:
-                callback(
-                    study=None,
-                    trial=None,
-                    eval_results=eval_results,
-                    final_results=results
-                )
-            except Exception as e:
-                self.logger.warning(f"Callback error: {e}")
-                
         return results
 
-    def calculate_metrics(self, result):
-        """Calculate metrics from evaluation results."""
-        results_df = result.to_pandas()
-        grouped_results = (
-            results_df.groupby('prompt_key')
-            .agg(
-                prompt=('prompt', 'first'),
-                config=('config', 'first'),
-                average_correctness=('answer_correctness', 'mean')
-            )
-            .reset_index()
-        )
-        
-        # Save results to CSV for reference
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_csv_path = f'rag_average_correctness_{timestamp}.csv'
-        grouped_results.to_csv(output_csv_path, index=False)
-        self.logger.info(f"Average correctness results saved to '{output_csv_path}'")
-
-        best_prompt_row = grouped_results.loc[grouped_results['average_correctness'].idxmax()]
-        
-        best_config = GenerationConfig(**best_prompt_row['config'])
-        if best_config.llm.type is None:
-            # If LLM type is None, it means we need to use the default LLM
-            best_config.llm = ConfigStore().get_default_llm()
-        
-        return {
-            "best_config": best_config,
-            "best_prompt": best_prompt_row['prompt'],
-            "best_score": best_prompt_row['average_correctness'],
-            "best_pipeline": create_pipeline(best_config, self.retriever),
-            #TODO: Add latency and error rate
-            # "avg_latency": best_prompt_row.get('avg_latency'),
-            # "error_rate": best_prompt_row.get('error_rate')
-        }
 
 def run_generation_optimization(
-    options_config: GenerationOptionsConfig, 
-    retriever: Optional[Any] = None, 
+    options_config: GenerationOptionsConfig,
+    retriever: Optional[Any] = None,
     log_config: Optional[LogConfig] = None
 ) -> GenerationResults:
     """
-    Run Prompt optimization process.
+    Run generation optimization process.
     
     Args:
         options_config: Generation configuration options
@@ -235,55 +265,23 @@ def run_generation_optimization(
         log_config: Optional logging configuration
     
     Returns:
-        GenerationResults containing optimization results
+        GenerationResults containing optimization results and best generator pipeline
     """
-    setup_rich_logging(
-        log_config.log_level if log_config else logging.INFO,
-        log_config.log_file if log_config else None
+    # Setup logging
+    if log_config:
+        setup_rich_logging(log_config.log_level, log_config.log_file)
+    
+    # Create evaluator
+    evaluator = GenerationEvaluator(options_config.evaluation_config)
+    
+    # Create optimizer
+    optimizer = GenerationOptimizer(
+        options_config,
+        evaluator,
+        retriever=retriever,
+        verbose=log_config.verbose if log_config else False,
+        show_progress_bar=log_config.show_progress_bar if log_config else True
     )
     
-    evaluator = RAGASEvaluator(options_config.evaluation_config)
-    optimizer = SystemPromptGenerator(
-        options_config, 
-        evaluator, 
-        retriever=retriever, 
-        verbose=log_config.verbose
-    )
-    
+    # Run optimization
     return optimizer.optimize()
-
-def create_pipeline(trial_config: GenerationConfig, retriever: Any = None) -> Any:
-    """Create generation pipeline from config"""
-    logger = logging.getLogger("ragbuilder.generation.pipeline")
-    logger.debug(f"Creating pipeline with config: {trial_config}")
-    
-    try:
-        from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-        from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-        from langchain_core.output_parsers import StrOutputParser
-
-        def format_docs(docs):
-            return "\n".join(doc.page_content for doc in docs)
-
-        # Get initialized LLM directly from LLMConfig
-        llm = trial_config.llm.llm
-        prompt_template = trial_config.prompt_template
-
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", prompt_template),
-            ("user", "{question}"),
-            MessagesPlaceholder(variable_name="chat_history", optional=True),
-        ])
-
-        rag_chain = (
-            RunnableParallel(context=retriever, question=RunnablePassthrough())
-            .assign(context=itemgetter("context") | RunnableLambda(format_docs))
-            .assign(answer=prompt | llm | StrOutputParser())
-            .pick(["answer", "context"])
-        )
-        return rag_chain
-    except Exception as e:
-        import traceback
-        logger.error(f"Pipeline creation failed: {e}")
-        traceback.print_exc()
-        return None

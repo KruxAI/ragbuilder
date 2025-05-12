@@ -4,11 +4,12 @@ import pandas as pd
 import numpy as np
 from datasets import Dataset
 from ragas.metrics import (
-    context_precision,
-    context_recall
+    LLMContextPrecisionWithReference,
+    ContextRecall
 )
-from ragas import evaluate
-from ragas import RunConfig
+from ragas import evaluate, EvaluationDataset, RunConfig
+from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
 import time
 from datetime import datetime
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
@@ -56,6 +57,15 @@ class RetrieverF1ScoreEvaluator(Evaluator):
         embedding_config = self.eval_config.embeddings if self.eval_config.embeddings else ConfigStore().get_default_embeddings()
         self.embeddings = embedding_config.embeddings
         
+        # Wrap models if needed for RAGAS compatibility
+        if not hasattr(self.llm, '_ragasllm'):
+            # Wrap LangChain models with RAGAS wrappers
+            self.llm = LangchainLLMWrapper(self.llm)
+            
+        if not hasattr(self.embeddings, '_ragasembeddings'):
+            # Wrap LangChain models with RAGAS wrappers
+            self.embeddings = LangchainEmbeddingsWrapper(self.embeddings)
+        
         # Default RAGAS run configuration values
         default_config = {
             "timeout": 240,
@@ -95,50 +105,54 @@ class RetrieverF1ScoreEvaluator(Evaluator):
                 start_time = datetime.now()
                 
                 # Get retrieval results
-                retrieved_docs = pipeline.retrieve(row["question"])
+                retrieved_docs = pipeline.retrieve(row["user_input"])
                 
                 # Calculate latency in milliseconds
                 latency = (datetime.now() - start_time).total_seconds() * 1000
                 
                 eval_data.append({
-                    "question": row["question"],
-                    "ground_truth": row["ground_truth"],
-                    "contexts": [doc.page_content for doc in retrieved_docs],
+                    "user_input": row["user_input"],
+                    "reference": row["reference"],
+                    "retrieved_contexts": [doc.page_content for doc in retrieved_docs],
                     "latency": latency,
                     "eval_timestamp": eval_timestamp
                 })
             except Exception as e:
-                console.print(f"[red]Error retrieving for query '{row['question'][:50]}...': {str(e)}[/red]")
+                console.print(f"[red]Error retrieving for query '{row['user_input'][:50]}...': {str(e)}[/red]")
                 eval_data.append({
-                    "question": row["question"],
+                    "user_input": row["user_input"],
+                    "reference": row["reference"],
                     "error": str(e),
                     "eval_timestamp": eval_timestamp
                 })
                 continue
         
-        # Convert to Dataset format
-        eval_dataset = Dataset.from_list(eval_data)
+        # Convert to EvaluationDataset format
+        eval_dataset = EvaluationDataset.from_list(eval_data)
         
         # Run RAGAS evaluation
         try:
+            # Initialize the metrics with the required models
+            context_precision = LLMContextPrecisionWithReference(llm=self.llm)
+            context_recall = ContextRecall(llm=self.llm)
+            
+            # Run evaluation with the new API
             results = evaluate(
-                eval_dataset,
-                metrics=[
-                    context_precision,
-                    context_recall
-                ],
+                dataset=eval_dataset,
+                metrics=[context_precision, context_recall],
                 llm=self.llm,
                 embeddings=self.embeddings,
-                is_async=True,
                 run_config=self.run_config
             )
             
             # Convert results to detailed format
             result_df = results.to_pandas()
+            # print(f"Saving Result DataFrame to result_df.csv")
+            # result_df.to_csv("result_df.csv", index=False)
             
             # Calculate average score (using context precision and recall)
             # Calculate F1 score properly using harmonic mean
-            precision = np.nanmean(result_df['context_precision'])
+            precision = np.nanmean(result_df['llm_context_precision_with_reference'])
             recall = np.nanmean(result_df['context_recall'])
             
             # Handle edge cases where precision + recall might be 0
@@ -151,25 +165,25 @@ class RetrieverF1ScoreEvaluator(Evaluator):
             question_details = []
             for idx, row in result_df.iterrows():
                 # Calculate F1 score, handling case where precision + recall = 0
-                precision = row['context_precision']
+                precision = row['llm_context_precision_with_reference']
                 recall = row['context_recall']
                 f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
                 
                 detail = {
-                    "question": eval_data[idx]["question"],
+                    "question": eval_data[idx]["user_input"],
                     "metrics": {
                         "context_precision": precision,
                         "context_recall": recall,
                         "f1_score": f1_score
                     },
-                    "contexts": eval_data[idx]["contexts"],
-                    "ground_truth": eval_data[idx]["ground_truth"],
+                    "contexts": eval_data[idx]["retrieved_contexts"],
+                    "ground_truth": eval_data[idx]["reference"],
                     "latency": eval_data[idx]["latency"],
                     "eval_timestamp": eval_data[idx]["eval_timestamp"]
                 }
                 question_details.append(detail)
             
-            console.print(f"\n[green]Average Score: {avg_score:.3f}[/green]\nContext Precision: {np.nanmean(result_df['context_precision']):.3f}\nContext Recall: {np.nanmean(result_df['context_recall']):.3f}")
+            console.print(f"\n[green]Average Score: {avg_score:.3f}[/green]\nContext Precision: {np.nanmean(result_df['llm_context_precision_with_reference']):.3f}\nContext Recall: {np.nanmean(result_df['context_recall']):.3f}")
             
             return avg_score, question_details
             

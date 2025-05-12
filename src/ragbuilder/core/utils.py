@@ -5,9 +5,10 @@ from typing import Optional, List, Union, Any, Dict, Tuple
 from dotenv import load_dotenv
 from langchain_community.document_loaders import (
     DirectoryLoader, 
-    WebBaseLoader, 
+    WebBaseLoader,
     UnstructuredFileLoader
 )
+# from langchain_unstructured import UnstructuredLoader
 from langchain_core.documents import Document
 from ragbuilder.config.components import COMPONENT_ENV_REQUIREMENTS, ParserType
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig
@@ -15,6 +16,7 @@ from ragbuilder.config.retriever import RetrievalOptionsConfig
 import json
 import importlib
 import requests
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 os.environ['USER_AGENT'] = "ragbuilder"
@@ -184,7 +186,9 @@ def validate_component_env(component_value: str) -> Tuple[List[str], List[str]]:
             nltk_resources = ['punkt', 'punkt_tab', 'averaged_perceptron_tagger']
             for resource in nltk_resources:
                 try:
-                    nltk.data.find(f'tokenizers/{resource}')
+                    # Determine the correct path prefix based on resource type
+                    path_prefix = "taggers" if resource == "averaged_perceptron_tagger" else "tokenizers"
+                    nltk.data.find(f'{path_prefix}/{resource}')
                 except LookupError:
                     try:
                         logger.info(f"Downloading required NLTK data '{resource}' for unstructured parser...")
@@ -197,7 +201,7 @@ def validate_component_env(component_value: str) -> Tuple[List[str], List[str]]:
             missing_packages.append("nltk")
         except Exception as e:
             logger.warning(f"Failed to validate/download NLTK data: {str(e)}")
-            missing_packages.extend([f"nltk[{resource}]" for resource in nltk_resources])
+            missing_packages.extend([f"nltk[{res}]" for res in nltk_resources])
     
     return missing_env, missing_packages
 
@@ -243,12 +247,26 @@ def _is_valid_input_source(input_path: str) -> bool:
         bool: True if valid, False otherwise
     """
     # Check if it's a URL
-    if re.match(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', input_path):
+    parsed = urlparse(input_path)
+    if parsed.scheme in ['http', 'https'] and parsed.netloc:
         try:
-            response = requests.head(input_path)
+            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
+            response = requests.head(input_path, headers=headers, allow_redirects=True)
+
+            if response.status_code == 405:
+                response = requests.get(input_path, headers=headers, stream=True)
+
             return response.status_code == 200
-        except:
+        except Exception as e:
+            logger.debug(f"Failed to validate URL {input_path}: {str(e)}")
             return False
             
     # Check if it's a file or directory
-    return os.path.isfile(input_path) or os.path.isdir(input_path)
+    if os.path.isfile(input_path):
+        # Check if file is empty
+        return os.path.getsize(input_path) > 0
+    elif os.path.isdir(input_path):
+        # Check if directory is empty
+        return len(os.listdir(input_path)) > 0
+    
+    return False

@@ -11,7 +11,7 @@ from langchain.embeddings.base import Embeddings
 from langchain.vectorstores.base import VectorStore
 
 from ragbuilder.config.components import (
-    LOADER_MAP, CHUNKER_MAP, EMBEDDING_MAP, VECTORDB_MAP,
+    LOADER_MAP, CHUNKER_MAP, EMBEDDING_MAP, VECTORDB_MAP, NO_CHUNK_SIZE_STRATEGIES,
     ParserType, ChunkingStrategy, EmbeddingType, VectorDatabase
 )
 from ragbuilder.config.data_ingest import DataIngestConfig
@@ -239,6 +239,11 @@ class DataIngestPipeline:
         if not chunker_class:
             raise ValueError(f"Unsupported chunking strategy: {self.config.chunking_strategy.type}")
         
+        if self.config.chunking_strategy.type in NO_CHUNK_SIZE_STRATEGIES:
+            return chunker_class(
+                **(self.config.chunking_strategy.chunker_kwargs or {})
+            )
+        
         return chunker_class(
             chunk_size=self.config.chunk_size,
             chunk_overlap=self.config.chunk_overlap,
@@ -302,35 +307,49 @@ class DataIngestPipeline:
         custom_class = getattr(module, class_name)
         return custom_class(*args, **kwargs)
 
+    def _chunk_documents(self, status=None) -> List[Document]:
+        """Common method to handle document chunking based on chunker type."""
+        if self.verbose and status:
+            status.update("[status]Chunking documents...[/status]")
+        
+        if self.config.chunking_strategy.type in [ChunkingStrategy.MARKDOWN, ChunkingStrategy.HTML]:
+            chunks = []
+            for doc in self._documents:
+                split_chunks = self.chunker.split_text(doc.page_content)
+                
+                for chunk in split_chunks:
+                    if isinstance(chunk, Document):
+                        chunk_metadata = chunk.metadata.copy() if chunk.metadata else {}
+                        chunk_metadata.update(doc.metadata)
+                        chunks.append(Document(page_content=chunk.page_content, metadata=chunk_metadata))
+                    else:
+                        chunks.append(Document(page_content=chunk, metadata=doc.metadata))
+        else:
+            # For other chunkers with split_documents
+            chunks = self.chunker.split_documents(self._documents)
+        
+        if not chunks:
+            raise ValueError("No chunks were generated from the documents")
+        
+        self.logger.debug(f"Chunking done: {len(chunks)} chunks created")
+        return chunks
 
     def ingest(self, status=None):
         try:
+            if self._documents is None:
+                raise PipelineError("No documents were loaded from the input source")
+                
             if status is None:
                 with console.status("[status]Running pipeline...[/status]") as status:
-                    return self._ingest(status)
+                    return self._chunk_documents(status)
             else:
-                return self._ingest(status)
+                return self._chunk_documents(status)
             
         except RAGBuilderError as e:
             console.print(f"[error]Pipeline execution failed:[/error] {str(e)}")
             console.print_exception()
             raise
 
-    def _ingest(self, status):
-        if self._documents is None:
-            raise PipelineError("No documents were loaded from the input source")
-        
-        if self.verbose:
-            status.update("[status]Chunking documents...[/status]")
-        chunks = self.chunker.split_documents(self._documents)
-        if not chunks:
-            raise ValueError("No chunks were generated from the documents")
-        
-        self.logger.debug("Chunking done", len(chunks))
-        # console.print("[success]✓ Pipeline execution complete![/success]")
-        return chunks
-
-    
     def run(self):
         try:
             with console.status("[status]Running pipeline...[/status]") as status:
@@ -340,12 +359,7 @@ class DataIngestPipeline:
                     self.indexer = vectorstore
                     return vectorstore
                 
-                if self.verbose:
-                    status.update("[status]Chunking documents...[/status]")
-                
-                chunks = self.chunker.split_documents(self._documents)
-                if not chunks:
-                    raise ValueError("No chunks were generated from the documents")
+                chunks = self._chunk_documents(status)
                 
                 if self.verbose:
                     status.update("[status]Creating vector index...[/status]")
