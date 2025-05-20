@@ -56,7 +56,7 @@ vectorstores = [
     "langchain-qdrant",
     "langchain-milvus",
     "langchain-postgres",
-    "langchain-elasticsearch
+    "langchain-elasticsearch"
 ]
 
 # Document processing
