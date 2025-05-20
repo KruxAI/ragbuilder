@@ -16,6 +16,7 @@ dependencies = [
     "fastapi>=0.100.0",
     "jinja2",
     "langchain>=0.3.24",
+    "langchain_chroma==0.2.3",
     "langchain-community==0.3.22",
     "langchain-core==0.3.55",
     "langchain-huggingface==0.1.2",
@@ -49,7 +50,13 @@ vectorstores = [
     "pinecone-client>=3.0.0",
     "pymilvus>=2.3.0",
     "qdrant-client>=1.7.0",
-    "weaviate-client>=3.25.0",    
+    "weaviate-client>=3.25.0",
+    "langchain-pinecone",
+    "langchain-weaviate",
+    "langchain-qdrant",
+    "langchain-milvus",
+    "langchain-postgres",
+    "langchain-elasticsearch"
 ]
 
 # Document processing
