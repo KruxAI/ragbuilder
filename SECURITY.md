@@ -10,7 +10,7 @@ Python 3.10 or newer is required. Use `requirements.lock` for the tested depende
 
 ## Remaining upstream advisories
 
-As of October 1, 2026, the dependency audit still reports the advisories below with no published fixed version. They are not claimed to be fixed by this patch. CI records these specific exceptions and fails on other findings.
+As of October 1, 2026, the dependency audit still reports the advisories below with no published fixed version. They are not claimed to be fixed by this patch. The audit script records these specific exceptions and fails on other findings.
 
 | Dependency | Advisory | Exposure and mitigation |
 | --- | --- | --- |
@@ -32,3 +32,5 @@ As of October 1, 2026, the dependency audit still reports the advisories below w
 ## Verification
 
 Run `python -m pytest -c tests/security/pytest.ini tests/security` and `npm test --prefix telemetry-collector`. The tests use synthetic data and do not call paid model APIs or send real telemetry. Run `python scripts/audit_dependencies.py` after installing `pip-audit`; its explicit exceptions are the unresolved advisories above.
+
+The GitHub Actions workflow is prepared at `scripts/security-workflow.yml`. To activate it, move it to `.github/workflows/security.yml` and push using GitHub credentials with the `workflow` permission. The current automation login lacks that permission, so CI has not been activated by this patch.
