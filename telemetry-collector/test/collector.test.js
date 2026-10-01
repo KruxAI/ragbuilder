@@ -50,7 +50,7 @@ test("secrets and client IP are never included in forwarded data or responses", 
   assert.equal(response.status, 204);
   assert.equal(await response.text(), "");
   assert.equal(sent.url, "https://api.honeycomb.io/1/events/ragbuilder-usage");
-  assert.equal(sent.options.headers["X-Honeycomb-Team"], "test-only-token");
+  assert.equal(new Headers(sent.options.headers).get("X-Honeycomb-Team"), "test-only-token");
   assert.deepEqual(JSON.parse(sent.options.body), {...event, "service.name": "ragbuilder"});
 });
 
@@ -109,4 +109,17 @@ test("daily counters reset at the next UTC day", async () => {
   const result = await budget.fetch(new Request("https://budget/", {method: "POST", body: JSON.stringify(event)}));
   assert.equal(result.status, 204);
   assert.equal((await db.get("budget")).total, 1);
+});
+
+test("upstream redirects are rejected without forwarding the secret", async t => {
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    calls++;
+    assert.equal(options.redirect, "manual");
+    return new Response(null, {status: 302, headers: {Location: "https://untrusted.example/"}});
+  });
+  const response = await worker.fetch(request(), environment());
+  assert.equal(response.status, 502);
+  assert.equal(await response.text(), "");
+  assert.equal(calls, 1);
 });

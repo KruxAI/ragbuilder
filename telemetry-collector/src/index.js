@@ -78,7 +78,8 @@ export default {
       if (allowance.status !== 204) return new Response(null, {status: 429});
       // Consume the budget before forwarding. Failures do not retry or refund it.
       const upstream = await fetch(`https://api.honeycomb.io/1/events/${encodeURIComponent(env.HONEYCOMB_DATASET)}`, {
-        method: "POST", redirect: "error", signal: AbortSignal.timeout(3000),
+        // Workers supports manual redirects; never forward the key to a redirect target.
+        method: "POST", redirect: "manual", signal: AbortSignal.timeout(3000),
         headers: {"Content-Type": "application/json", "X-Honeycomb-Team": env.HONEYCOMB_API_KEY},
         body: JSON.stringify({...event, "service.name": "ragbuilder"}),
       });
