@@ -1,24 +1,20 @@
 code="""from langchain_community.llms import Ollama
 from langchain_community.document_loaders import *
 from langchain_community.embeddings import OllamaEmbeddings
-from langchain_community.document_loaders import WebBaseLoader
+from ragbuilder.network import PublicWebLoader as WebBaseLoader
 from langchain_openai import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
-from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 from operator import itemgetter
-from langchain import hub
+from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-from langchain.retrievers import MergerRetriever
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
-from langchain.prompts import ChatPromptTemplate
-from langchain.load import dumps, loads
-from langchain_ollama import ChatOllama
-from langchain_groq import ChatGroq
+from langchain_classic.retrievers import MergerRetriever
+from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
+from langchain_classic.prompts import ChatPromptTemplate
+from langchain_classic.load import dumps, loads
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
-from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
 def rag_pipeline():

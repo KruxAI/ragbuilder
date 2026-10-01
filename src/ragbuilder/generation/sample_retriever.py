@@ -1,13 +1,13 @@
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
-from langchain_community.document_loaders import WebBaseLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from ragbuilder.network import PublicWebLoader as WebBaseLoader
+from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 import chromadb
 
 from operator import itemgetter
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-from langchain.retrievers import EnsembleRetriever
+from langchain_classic.retrievers import EnsembleRetriever
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from ragbuilder.generation.evaluation import RAGASEvaluator
 from langchain_community.vectorstores import FAISS

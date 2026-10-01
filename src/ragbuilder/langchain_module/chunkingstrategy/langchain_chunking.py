@@ -1,7 +1,7 @@
-# from langchain.text_splitter import RecursiveCharacterTextSplitter
-# from langchain.text_splitter import CharacterTextSplitter
+# from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
+# from langchain_classic.text_splitter import CharacterTextSplitter
 # from langchain_experimental.text_splitter import SemanticChunker
-# from langchain.text_splitter import MarkdownHeaderTextSplitter
+# from langchain_classic.text_splitter import MarkdownHeaderTextSplitter
 # from langchain_text_splitters import HTMLHeaderTextSplitter
 from ragbuilder.langchain_module.common import setup_logging,codeGen
 import logging
@@ -37,10 +37,12 @@ def getLangchainRecursiveCharacterTextSplitter(**kwargs):
     try:
         logger.info("RecursiveCharacterTextSplitter Invoked")
         splitter_name=kwargs.get('splitter_name','splitter')
+        if splitter_name not in {'splitter', 'parent_splitter'}:
+            raise ValueError('Invalid splitter name')
         code_string = f"""
-{splitter_name} = RecursiveCharacterTextSplitter(chunk_size={kwargs['chunk_size']}, chunk_overlap={kwargs['chunk_overlap']})
+{splitter_name} = RecursiveCharacterTextSplitter(chunk_size={int(kwargs['chunk_size'])}, chunk_overlap={int(kwargs['chunk_overlap'])})
 splits={splitter_name}.split_documents(docs)"""
-        import_string = f"""from langchain.text_splitter import RecursiveCharacterTextSplitter"""
+        import_string = f"""from langchain_classic.text_splitter import RecursiveCharacterTextSplitter"""
         return {'code_string':code_string,'import_string':import_string}
     except KeyError as e:
         logger.error(f"Missing key in kwargs for RecursiveCharacterTextSplitter: {e}")
@@ -50,10 +52,12 @@ def getLangchainCharacterTextSplitter(**kwargs):
     try:
         logger.info("CharacterTextSplitter Invoked")
         splitter_name=kwargs.get('splitter_name','splitter')
+        if splitter_name not in {'splitter', 'parent_splitter'}:
+            raise ValueError('Invalid splitter name')
         code_string = f"""
-{splitter_name} = CharacterTextSplitter(chunk_size={kwargs['chunk_size']}, chunk_overlap={kwargs['chunk_overlap']})
+{splitter_name} = CharacterTextSplitter(chunk_size={int(kwargs['chunk_size'])}, chunk_overlap={int(kwargs['chunk_overlap'])})
 splits={splitter_name}.split_documents(docs)"""
-        import_string = f"""from langchain.text_splitter import CharacterTextSplitter"""
+        import_string = f"""from langchain_classic.text_splitter import CharacterTextSplitter"""
         return {'code_string':code_string,'import_string':import_string}
     except KeyError as e:
         logger.error(f"Missing key in kwargs for CharacterTextSplitter: {e}")
@@ -63,8 +67,10 @@ def getLangchainSemanticChunker(**kwargs):
     try:
         logger.info("SemanticChunker Invoked")
         splitter_name=kwargs.get('splitter_name','splitter')
+        if splitter_name not in {'splitter', 'parent_splitter'}:
+            raise ValueError('Invalid splitter name')
         code_string = f"""
-{splitter_name} = SemanticChunker(embedding, breakpoint_threshold_type='{kwargs.get('chunking_kwargs').get('breakpoint_threshold_type','percentile')}')
+{splitter_name} = SemanticChunker(embedding, breakpoint_threshold_type={kwargs.get('chunking_kwargs').get('breakpoint_threshold_type','percentile')!r})
 splits={splitter_name}.create_documents(docs[0].page_content)
 """
         import_string = f"""from langchain_experimental.text_splitter import SemanticChunker"""
@@ -76,6 +82,8 @@ splits={splitter_name}.create_documents(docs[0].page_content)
 def getMarkdownHeaderTextSplitter(**kwargs):
     try:
         splitter_name=kwargs.get('splitter_name','splitter')
+        if splitter_name not in {'splitter', 'parent_splitter'}:
+            raise ValueError('Invalid splitter name')
         logger.info("MarkdownHeaderTextSplitter Invoked")
         code_string = f"""
 headers_to_split_on = [
@@ -87,7 +95,7 @@ splits = []
 for doc in docs:
     splits.extend({splitter_name}.split_text(doc.page_content))
 """
-        import_string = f"""from langchain.text_splitter import MarkdownHeaderTextSplitter"""
+        import_string = f"""from langchain_classic.text_splitter import MarkdownHeaderTextSplitter"""
         return {'code_string':code_string,'import_string':import_string}
     except KeyError as e:
         logger.error(f"Missing key in kwargs for MarkdownHeaderTextSplitter: {e}")
@@ -96,6 +104,8 @@ def getHTMLHeaderTextSplitter(**kwargs):
     try:
         logger.info("HTMLHeaderTextSplitter Invoked")
         splitter_name=kwargs.get('splitter_name','splitter')
+        if splitter_name not in {'splitter', 'parent_splitter'}:
+            raise ValueError('Invalid splitter name')
         code_string = f"""
 headers_to_split_on = [
     ("h1", "Header 1"),

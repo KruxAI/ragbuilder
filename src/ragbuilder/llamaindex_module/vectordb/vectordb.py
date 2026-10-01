@@ -8,7 +8,7 @@ from llamaindex_module.embedding_model.embedding_model import *
 from llama_index.vector_stores.faiss import FaissVectorStore
 import faiss    
 from llama_index.embeddings.mistralai import MistralAIEmbedding
-from langchain.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain_classic.embeddings.huggingface import HuggingFaceEmbeddings
 from llama_index.core import (
     SimpleDirectoryReader,
     load_index_from_storage,

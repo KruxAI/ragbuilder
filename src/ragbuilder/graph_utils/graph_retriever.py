@@ -1,5 +1,5 @@
 from typing import List, Any
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from ragbuilder.graph_utils import check_graph_dependencies

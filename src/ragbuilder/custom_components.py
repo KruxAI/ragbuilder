@@ -1,10 +1,10 @@
 from typing import List, Any
-from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.prompts import ChatPromptTemplate
+from langchain_classic.schema import Document
+from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
+from langchain_classic.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
-from langchain.schema.output_parser import StrOutputParser
+from langchain_classic.schema.output_parser import StrOutputParser
 from langchain_text_splitters import TextSplitter
 
 class ContextualChunker(TextSplitter):

@@ -4,16 +4,16 @@ from ragbuilder.langchain_module.llms.llmConfig import *
 from ragbuilder.langchain_module.embedding_model.embedding import *
 from ragbuilder.langchain_module.chunkingstrategy.langchain_chunking import *
 from langchain_community.document_transformers import *
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline, LLMChainExtractor
-from langchain.retrievers.document_compressors import CrossEncoderReranker
+from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline, LLMChainExtractor
+from langchain_classic.retrievers.document_compressors import CrossEncoderReranker
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 
-from langchain.retrievers.multi_query import MultiQueryRetriever
-from langchain.retrievers import ContextualCompressionRetriever, ParentDocumentRetriever
+from langchain_classic.retrievers.multi_query import MultiQueryRetriever
+from langchain_classic.retrievers import ContextualCompressionRetriever, ParentDocumentRetriever
 from langchain_community.retrievers import BM25Retriever
 
-from langchain.storage import InMemoryStore
-from langchain.retrievers.document_compressors import *
+from langchain_classic.storage import InMemoryStore
+from langchain_classic.retrievers.document_compressors import *
 import time
 import random
 setup_logging()
@@ -55,12 +55,12 @@ def getRetriever(**kwargs):
         document_compressor_pipeline=kwargs['retriever_kwargs'].get('document_compressor_pipeline',None)
         if document_compressor_pipeline is not None:
             if any(reranker in document_compressor_pipeline for reranker in rerankers_to_check):
-                code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': 100}})"""
+                code_string = f"""retriever=c.as_retriever(search_type={kwargs['search_type']!r}, search_kwargs={{'k': 100}})"""
             else:
                 logger.info('No Rerankers')
-                code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
+                code_string = f"""retriever=c.as_retriever(search_type={kwargs['search_type']!r}, search_kwargs={{'k': {int(kwargs['search_kwargs'])}}})"""
         else:
-            code_string = f"""retriever=c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}})"""
+            code_string = f"""retriever=c.as_retriever(search_type={kwargs['search_type']!r}, search_kwargs={{'k': {int(kwargs['search_kwargs'])}}})"""
         import_string = f""
 
         return {'code_string':code_string,'import_string':import_string}
@@ -68,8 +68,8 @@ def getRetriever(**kwargs):
 
     elif retriever_type == "multiQuery":
         logger.info("Multi Query Retriever Invoked")
-        code_string= f"""retriever=MultiQueryRetriever.from_llm(c.as_retriever(search_type='{kwargs['search_type']}', search_kwargs={{'k': {kwargs['search_kwargs']}}}),llm=llm)"""
-        import_string = f"""from langchain.retrievers.multi_query import MultiQueryRetriever"""
+        code_string= f"""retriever=MultiQueryRetriever.from_llm(c.as_retriever(search_type={kwargs['search_type']!r}, search_kwargs={{'k': {int(kwargs['search_kwargs'])}}}),llm=llm)"""
+        import_string = f"""from langchain_classic.retrievers.multi_query import MultiQueryRetriever"""
         return {'code_string':code_string,'import_string':import_string}
 
     elif retriever_type == "parentDocFullDoc":
@@ -79,8 +79,8 @@ store = InMemoryStore()
 retriever=ParentDocumentRetriever(vectorstore=c,docstore=store,child_splitter=splitter)
 retriever.add_documents(docs)
         """
-        import_string = f"""from langchain.retrievers import ParentDocumentRetriever
-from langchain.storage import InMemoryStore"""
+        import_string = f"""from langchain_classic.retrievers import ParentDocumentRetriever
+from langchain_classic.storage import InMemoryStore"""
         return {'code_string':code_string,'import_string':import_string}
 
     elif retriever_type == "parentDocLargeChunk":
@@ -97,8 +97,8 @@ from langchain.storage import InMemoryStore"""
 store = InMemoryStore()
 retriever = ParentDocumentRetriever(vectorstore=c,docstore=store,child_splitter=splitter,parent_splitter=parent_splitter)
 retriever.add_documents(docs)"""
-        import_string = f"""from langchain.retrievers import ParentDocumentRetriever
-from langchain.storage import InMemoryStore"""
+        import_string = f"""from langchain_classic.retrievers import ParentDocumentRetriever
+from langchain_classic.storage import InMemoryStore"""
         return {'code_string':code_string,'import_string':import_string}
 
     elif retriever_type == "bm25Retriever":
@@ -118,7 +118,7 @@ RAG.index(
             index_name="{index_name}",
             split_documents=True,
         )
-retriever = RAG.as_langchain_retriever(k={search_kwargs})
+retriever = RAG.as_langchain_retriever(k={int(search_kwargs)})
 """
         import_string = f"""from ragatouille import RAGPretrainedModel"""
         return {'code_string':code_string,'import_string':import_string}
@@ -141,7 +141,7 @@ def getCompressors(**kwargs):
     arr_transformer=[]
     if 'LLMChainExtractor' in compressor_config:
         code_string= f"""arr_comp.append(LLMChainExtractor.from_llm(llm))"""
-        import_string = f"""from langchain.retrievers.document_compressors import DocumentCompressorPipeline, LLMChainExtractor"""
+        import_string = f"""from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline, LLMChainExtractor"""
         return {'code_string':code_string,'import_string':import_string}
 
     if 'EmbeddingsFilter' in compressor_config:
@@ -153,7 +153,7 @@ def getCompressors(**kwargs):
         num_clusters=kwargs['retriever_kwargs']['EmbeddingsClusteringFilter_kwargs']['num_clusters']
         num_closest=kwargs['retriever_kwargs']['EmbeddingsClusteringFilter_kwargs']['num_closest']
         sorted=kwargs['retriever_kwargs']['EmbeddingsClusteringFilter_kwargs']['sorted']
-        code_string= f"""arr_comp.append(EmbeddingsClusteringFilter(embeddings=embedding, num_clusters={num_clusters}, num_closest={num_closest}, sorted={sorted}))"""
+        code_string= f"""arr_comp.append(EmbeddingsClusteringFilter(embeddings=embedding, num_clusters={int(num_clusters)}, num_closest={int(num_closest)}, sorted={bool(sorted)}))"""
         import_string = f"""from langchain_community.document_transformers import EmbeddingsClusteringFilter"""
         return {'code_string':code_string,'import_string':import_string}
     
@@ -164,7 +164,7 @@ def getCompressors(**kwargs):
 
     if 'LLMChainFilter' in compressor_config:
         code_string= f"""arr_comp.append(LLMChainFilter.from_llm(llm))"""
-        import_string = f"""from langchain.retrievers.document_compressors import LLMChainFilter"""
+        import_string = f"""from langchain_classic.retrievers.document_compressors import LLMChainFilter"""
         return {'code_string':code_string,'import_string':import_string}
 
     if 'LongContextReorder' in compressor_config:
@@ -174,7 +174,7 @@ def getCompressors(**kwargs):
     
     if 'mixedbread-ai/mxbai-rerank-large-v1' in compressor_config:
         code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-large-v1", model_type='cross-encoder', verbose=0)
-compressor = ranker.as_langchain_compressor(k={search_kwargs})
+compressor = ranker.as_langchain_compressor(k={int(search_kwargs)})
 arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""
@@ -182,7 +182,7 @@ arr_comp.append(compressor)
     
     if 'flashrank' in compressor_config:
         code_string= f"""ranker = Reranker("flashrank", model_type='FlashRankRanker', verbose=0)
-compressor = ranker.as_langchain_compressor(k={search_kwargs})
+compressor = ranker.as_langchain_compressor(k={int(search_kwargs)})
 arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""
@@ -190,7 +190,7 @@ arr_comp.append(compressor)
     
     if 'cohere' in compressor_config:
         code_string= f"""ranker = Reranker("cohere", model_type='APIRanker', lang='en', api_key = os.getenv('COHERE_API_KEY'))
-compressor = ranker.as_langchain_compressor(k={search_kwargs})
+compressor = ranker.as_langchain_compressor(k={int(search_kwargs)})
 arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""
@@ -198,7 +198,7 @@ arr_comp.append(compressor)
 
     if 'jina' in compressor_config:
         code_string= f"""ranker = Reranker("jina", model_type='APIRanker', api_key = os.getenv('JINA_API_KEY'))
-compressor = ranker.as_langchain_compressor(k={search_kwargs})
+compressor = ranker.as_langchain_compressor(k={int(search_kwargs)})
 arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""
@@ -206,7 +206,7 @@ arr_comp.append(compressor)
     
     if 'colbert' in compressor_config:
         code_string= f"""ranker = Reranker("colbert", model_type='ColBERTRanker')
-compressor = ranker.as_langchain_compressor(k={search_kwargs})
+compressor = ranker.as_langchain_compressor(k={int(search_kwargs)})
 arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""
@@ -215,7 +215,7 @@ arr_comp.append(compressor)
     if 'mixedbread-ai/mxbai-rerank-base-v1' in compressor_config:
         # code_string= f"""ranker = Reranker("cross-encoder")
         code_string= f"""ranker = Reranker("mixedbread-ai/mxbai-rerank-base-v1", model_type='cross-encoder', verbose=1)
-compressor = ranker.as_langchain_compressor(k={search_kwargs})
+compressor = ranker.as_langchain_compressor(k={int(search_kwargs)})
 arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""
@@ -223,7 +223,7 @@ arr_comp.append(compressor)
     
     if 'rankllm' in compressor_config:
         code_string= f"""ranker = Reranker("rankllm", model_type='RankLLMRanker', api_key = os.getenv('OPENAI_API_KEY'))
-compressor = ranker.as_langchain_compressor(k={search_kwargs})
+compressor = ranker.as_langchain_compressor(k={int(search_kwargs)})
 arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""
@@ -231,7 +231,7 @@ arr_comp.append(compressor)
     
     if 'BAAI/bge-reranker-base' in compressor_config:
         code_string= f"""ranker = Reranker("BAAI/bge-reranker-base", model_type='TransformerRanker')
-compressor = ranker.as_langchain_compressor(k={search_kwargs})
+compressor = ranker.as_langchain_compressor(k={int(search_kwargs)})
 arr_comp.append(compressor)
 """
         import_string = f"""from rerankers import Reranker"""

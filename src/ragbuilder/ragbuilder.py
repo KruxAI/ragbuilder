@@ -1,10 +1,12 @@
+from ragbuilder.security import LocalAccessMiddleware, validate_bind_address, validate_source_path
+from ragbuilder.network import public_get, public_head
 from fastapi import FastAPI, Depends, HTTPException, Request, Path as PathParam
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.logger import logger 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 import sqlite3
 import markdown
@@ -42,6 +44,7 @@ logger.info(f"LOG_FILENAME = {LOG_FILENAME}")
 url = "http://localhost:8005"
 
 app = FastAPI()
+app.add_middleware(LocalAccessMiddleware)
 DATABASE = 'eval.db'
 BAYES_OPT = 1
 CURRENT_RUN_ID = 0
@@ -477,7 +480,11 @@ def docs():
 
 @app.get('/view_log/{filename}', response_class=HTMLResponse)
 async def view_log(request: Request, filename: str):
-    log_filepath = os.path.join(LOG_DIRNAME, filename)
+    if Path(filename).name != filename or not filename.endswith(".log"):
+        raise HTTPException(status_code=400, detail="Invalid log filename")
+    log_filepath = Path(LOG_DIRNAME, filename).resolve()
+    if log_filepath.parent != Path(LOG_DIRNAME).resolve():
+        raise HTTPException(status_code=400, detail="Invalid log filename")
     logger.info(f"Accessing log file at: {log_filepath}")
     try:
         with open(log_filepath, 'r') as file:
@@ -511,6 +518,11 @@ class SourceDataCheck(BaseModel):
     sourceData: str
     useSampling: Optional[bool] = Field(None)
 
+    @field_validator("sourceData")
+    @classmethod
+    def check_source(cls, value):
+        return validate_source_path(value)
+
 def get_hash(source_data, use_sampling=False):
     src_type=l.classify_path(source_data)
     prefix = "sampled_" if use_sampling else ""
@@ -536,7 +548,7 @@ def _get_hash_url(url, prefix=""):
     try:
         # Fetch the content of the URL
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
-        response = requests.get(url, headers=headers, allow_redirects=True)
+        response = public_get(url, headers=headers, allow_redirects=True)
         response.raise_for_status()  # Check for HTTP errors
         md5_hash = hashlib.md5(prefix.encode())
         md5_hash.update(response.content)
@@ -578,7 +590,7 @@ def _is_valid_source_data(source_data):
         result = urlparse(source_data)
         if all([result.scheme, result.netloc]):
             headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
-            response = requests.head(source_data, headers=headers, allow_redirects=True)
+            response = public_head(source_data, headers=headers, allow_redirects=True)
             return response.status_code == 200
     except:
         pass
@@ -655,6 +667,11 @@ class ProjectData(BaseModel):
     numRuns: Optional[str] = Field(default=None)
     nJobs: Optional[int] = Field(default=None)
     dataProcessors: Optional[List[str]] = Field(default=None)
+
+    @field_validator("sourceData", "existingSynthDataPath", "testDataPath")
+    @classmethod
+    def check_source(cls, value):
+        return validate_source_path(value) if value else value
 
 @app.post("/rbuilder")
 def rbuilder_route(project_data: ProjectData, db: sqlite3.Connection = Depends(get_db)):
@@ -898,7 +915,7 @@ def parse_config(config: dict, db: sqlite3.Connection):
 
 # def main():
 #     threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-#     uvicorn.run(app, host="0.0.0.0", port=8005)
+#     uvicorn.run(app, host=host, port=8005)
 
 # if __name__ == '__main__':
 #     main()
@@ -912,7 +929,7 @@ def is_docker():
 
 def open_url(url):
     import urllib.request
-    context = ssl._create_unverified_context()
+    context = ssl.create_default_context()
     try:
         urllib.request.urlopen(url, context=context)
     except Exception as e:
@@ -921,17 +938,20 @@ def open_url(url):
 
 
 def main():
+    host = os.getenv("RAGBUILDER_HOST", "127.0.0.1")
+    validate_bind_address(host)
+    logger.warning("RAGBuilder is no longer maintained. Use only with trusted data.")
     if is_docker():
         url = "http://0.0.0.0:55003"
         logging.info("Running inside Docker container")
         logging.info("Open http://0.0.0.0:55003 in your browser. Please open with appropriate port number if you have mapped another port.")
         threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-        uvicorn.run(app, host="0.0.0.0", port=8005)
+        uvicorn.run(app, host=host, port=8005)
     else:
         url = "http://127.0.0.1:8005"
         logging.info("Opening URL in browser")
         threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-        uvicorn.run(app, host="0.0.0.0", port=8005)
+        uvicorn.run(app, host=host, port=8005)
 
 if __name__ == '__main__':
     main()

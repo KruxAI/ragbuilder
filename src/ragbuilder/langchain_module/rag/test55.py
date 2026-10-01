@@ -1,16 +1,16 @@
 from langchain_openai import ChatOpenAI
-from langchain_community.document_loaders import WebBaseLoader
+from ragbuilder.network import PublicWebLoader as WebBaseLoader
 from langchain_openai import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 
 import os
 from operator import itemgetter
-from langchain import hub
+from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-from langchain.retrievers import MergerRetriever
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+from langchain_classic.retrievers import MergerRetriever
+from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
 
 def rag_pipeline():
     try:
@@ -24,7 +24,7 @@ def rag_pipeline():
         
         embedding=OpenAIEmbeddings(model='text-embedding-3-large')
         
-        from langchain.text_splitter import RecursiveCharacterTextSplitter
+        from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits=splitter.split_documents(docs)
         c=Chroma.from_documents(documents=splits, embedding=embedding, collection_name='testindex-ragbuilder-1719591605',)

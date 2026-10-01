@@ -1,3 +1,4 @@
+from ragbuilder.network import public_get, public_head
 import os
 import random
 import logging
@@ -69,12 +70,12 @@ class DataSampler:
     def estimate_url_size(self, url: str) -> int:
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
-            response = requests.head(url, headers=headers, allow_redirects=True)
+            response = public_head(url, headers=headers, allow_redirects=True)
             content_length = response.headers.get('Content-Length')
             if content_length:
                 return int(content_length)
             else:
-                response = requests.get(url, stream=True)
+                response = public_get(url, stream=True)
                 return int(response.headers.get('Content-Length', 0))
         except Exception as e:
             logger.error(f"Error estimating URL size: {str(e)}")
@@ -223,7 +224,7 @@ class DataSampler:
     def sample_url(self) -> str:
         try:
             url = self.data_source
-            response = requests.get(url)
+            response = public_get(url)
             response.raise_for_status()
             
             # Save the content to a temporary file

@@ -1,5 +1,4 @@
-import gensim.parsing.preprocessing as gpp
-import nltk  # For example, if you want to add NLTK functions
+from ragbuilder.network import public_get, public_head
 # import spacy or other libraries if needed
 import os
 import logging
@@ -8,7 +7,6 @@ from tqdm import tqdm
 from urllib.parse import urlparse
 from pathlib import Path
 import requests
-from unstructured.partition.auto import partition
 logger = logging.getLogger("ragbuilder")
 # List of processor names, categorized by their library or origin
 
@@ -23,9 +21,12 @@ DATA_PROCESSORS = [
 
 # Function to resolve processors based on the prefix (library)
 def resolve_processor(processor_name: str):
+    if processor_name not in DATA_PROCESSORS:
+        raise ValueError("Unsupported data processor")
     # Split the processor into library and function name
     library, func_name = processor_name.split(":")
     if library == "gpp":
+        import gensim.parsing.preprocessing as gpp
         return getattr(gpp, func_name)
     elif library == "custom": # For custom functions defined in the script
         return globals()[func_name]
@@ -99,6 +100,7 @@ class DataProcessor:
 
     def process_file(self, file_path: str, processed_file: str = None) -> str:
         try:
+            from unstructured.partition.auto import partition
             if not processed_file:
                 # Generate a processed file path based on the original file path
                 processed_file = f"{file_path}.processed"
@@ -134,7 +136,7 @@ class DataProcessor:
     def process_url(self) -> str:
         try:
             url = self.data_source
-            response = requests.get(url)
+            response = public_get(url)
             response.raise_for_status()
 
             # Save the content to a temporary file

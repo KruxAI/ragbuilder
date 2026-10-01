@@ -1,3 +1,5 @@
+> **Maintenance status:** RAGBuilder is no longer actively maintained. This repository is kept for reference. Ongoing updates and support are not planned.
+
 ![RagBuilder logo](./assets/ragbuilder_dark.png#gh-dark-mode-only)
 ![RagBuilder logo](./assets/ragbuilder_light.png#gh-light-mode-only)
 
@@ -320,16 +322,23 @@ generator = builder.generation.get_generator()
 
 ## Usage Analytics
 
-We collect anonymous usage metrics to improve RAGBuilder:
-- Number of optimization runs
-- Success/failure rates
-- No personal or business data is collected
+Basic usage telemetry is enabled by default. It sends the event type, RAGBuilder version, component name, and a random installation ID through our Cloudflare collector to Honeycomb. It does not send documents, prompts, model responses, file paths, API keys, or exception messages. Cloudflare receives the connection IP address to apply traffic limits; the collector does not forward it to Honeycomb. Telemetry is best effort and does not affect a run if unavailable.
 
-To opt-out set `ENABLE_ANALYTICS=False` in `.env`:
+To opt out, set `ENABLE_ANALYTICS=false` in your environment or `.env` before starting RAGBuilder.
+
+## Security and local use
+
+Python 3.10 or newer is required. The UI and SDK server listen on `127.0.0.1` by default. To bind another address, set `RAGBUILDER_API_TOKEN` to a random value of at least 32 characters. The browser prompts for username `ragbuilder` and that token as the password; API clients can use `Authorization: Bearer <token>`. Use TLS through a trusted reverse proxy for remote access. This is a tool for trusted operators, not a public service.
+
+The UI only accepts local files inside `RAGBUILDER_DATA_ROOT` (the working directory by default). Use a dedicated data directory. URL inputs allow only public HTTP(S) addresses on ports 80/443, validate redirects, and limit downloads to 20 MiB. Local LLM and database integrations are separate from document URL inputs.
+
+Docker Compose builds this checkout, binds published ports to localhost, and requires `NEO4J_PASSWORD` and `RAGBUILDER_API_TOKEN`. Set those values in `.env` before running `docker compose up --build`. Changing the Neo4j environment variable does not rotate the password in an existing database volume.
+
+See [SECURITY.md](SECURITY.md) for remaining dependency risks and [collector deployment instructions](telemetry-collector/README.md). Older installations must be upgraded; changing this repository cannot patch them.
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+The source remains available for reference and forks. There is no commitment to review contributions or provide support.
 
 ## License
 

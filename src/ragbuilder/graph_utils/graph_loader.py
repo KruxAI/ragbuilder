@@ -9,10 +9,10 @@ from langchain_community.graphs.graph_document import (
     Relationship as BaseRelationship,
     GraphDocument,
 )
-from langchain.schema import Document
+from langchain_classic.schema import Document
 from pydantic import Field, BaseModel
-from langchain.docstore.document import Document
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.documents import Document
+from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticToolsParser
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 from ragbuilder.graph_utils import check_graph_dependencies

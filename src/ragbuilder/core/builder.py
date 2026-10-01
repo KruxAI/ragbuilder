@@ -1,3 +1,4 @@
+from ragbuilder.security import LocalAccessMiddleware, validate_bind_address
 from typing import Optional, Any, Dict, Union
 from ragbuilder.config.data_ingest import DataIngestOptionsConfig 
 from ragbuilder.config.retriever import RetrievalOptionsConfig
@@ -404,7 +405,7 @@ class RAGBuilder:
         with open(file_path, 'w') as f:
             yaml.dump(configs, f)
 
-    def serve(self, host: str = "0.0.0.0", port: int = 8005):
+    def serve(self, host: str = "127.0.0.1", port: int = 8005):
         """
         Launch a FastAPI server to serve RAG queries
         
@@ -415,7 +416,9 @@ class RAGBuilder:
         if not self._optimization_results.generation:
             raise DependencyError("No generation pipeline found. Run generation optimization first.")
             
+        validate_bind_address(host)
         app = FastAPI(title="RAGBuilder API")
+        app.add_middleware(LocalAccessMiddleware)
         
         @app.post("/invoke")
         async def invoke(request: QueryRequest) -> Dict[str, Any]:
@@ -427,10 +430,10 @@ class RAGBuilder:
                 console.print(f"Response:{result}")
                 return {"response": result}
             except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
+                raise HTTPException(status_code=500, detail="Query failed; see the server log")
                 
         self.logger.info(f"Starting RAG server on http://{host}:{port}")
-        asyncio.run(uvicorn.run(app, host=host, port=port))
+        uvicorn.run(app, host=host, port=port)
 
     def save(self, path: str, include_vectorstore: bool = True) -> None:
         """

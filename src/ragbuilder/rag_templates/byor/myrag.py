@@ -1,14 +1,14 @@
 from langchain_community.llms import Ollama
-from langchain_community.document_loaders import WebBaseLoader
+from ragbuilder.network import PublicWebLoader as WebBaseLoader
 from langchain_community.embeddings import OllamaEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from operator import itemgetter
-from langchain import hub
+from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-from langchain.retrievers import MergerRetriever
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+from langchain_classic.retrievers import MergerRetriever
+from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
 
 def rag_pipeline():
     try:

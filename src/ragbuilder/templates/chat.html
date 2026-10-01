@@ -20,6 +20,9 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
 
 <script>
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[char]));
+}
     let currentSessionId = null;
     var evalId = document.getElementById('chat-container').getAttribute('data-eval-id');
 
@@ -54,7 +57,7 @@
         $('.chat-messages').append(`
             <div class="d-flex justify-content-end mb-4">
                 <div class="msg_cotainer_send">
-                    ${message}
+                    ${escapeHtml(message)}
                 </div>
                 <div class="img_cont_send">
                     &ensp;<img src="/static/user-avatar.png" class="rounded-circle user_img_send">
@@ -97,7 +100,7 @@
                             <img src="/static/ai-avatar.png" class="rounded-circle user_img_msg">&ensp;
                         </div>
                         <div class="msg_cotainer">
-                            ${response.answer}
+                            ${escapeHtml(response.answer)}
                         </div>
                     </div>
                 `);

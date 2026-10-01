@@ -11,7 +11,7 @@ from ragbuilder.core import DBLoggerCallback, DocumentStore, ConfigStore, setup_
 from ragbuilder.core.results import DataIngestResults
 from .pipeline import DataIngestPipeline
 from .evaluation import Evaluator, SimilarityEvaluator
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from ragbuilder.graph_utils.graph_loader import load_graph 
 
 class DataIngestOptimizer:

@@ -3,10 +3,6 @@ import logging
 import chromadb
 from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS, SingleStoreDB
-from langchain_postgres.vectorstores import PGVector
-from langchain_pinecone import PineconeVectorStore
-from pinecone import Pinecone, ServerlessSpec
-from langchain_milvus import Milvus
 import uuid
 import time
 import random
@@ -99,7 +95,9 @@ spec=ServerlessSpec(cloud="aws", region="us-east-1"),)
 while not pc.describe_index(index_name).status["ready"]:
     time.sleep(1)
 c=PineconeVectorStore.from_documents(splits, embedding, index_name='{index_name}')"""
-        import_string = f"""from langchain_pinecone import PineconeVectorStore"""
+        import_string = f"""from langchain_pinecone import PineconeVectorStore
+from pinecone import Pinecone, ServerlessSpec
+import time"""
     elif db_type == "pgvector":
         code_string= f"""
 connection = PGVECTOR_CONNECTION_STRING
@@ -109,4 +107,3 @@ c = PGVector(embeddings=embedding,collection_name=collection_name,connection=con
     else:
         raise ValueError(f"Unsupported db_type: {db_type}. Supported types are singleStoreDB, 'chromaDB', 'pineconeDB' and 'faissDB'.")
     return {'code_string':code_string,'import_string':import_string}
-

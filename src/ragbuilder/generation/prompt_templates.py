@@ -1,3 +1,4 @@
+from ragbuilder.network import public_get, public_head
 from ragbuilder.config.generation import PromptTemplate
 import os
 import logging
@@ -56,7 +57,7 @@ def load_prompts(
     if not read_local_only and prompt_template_path:
         logger.debug(f"Fetching prompts from online file: {prompt_template_path}")
         try:
-            response = requests.get(prompt_template_path)
+            response = public_get(prompt_template_path)
             response.raise_for_status()
             yaml_content_online = response.text
         except requests.exceptions.RequestException as e:
