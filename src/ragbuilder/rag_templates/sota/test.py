@@ -8,6 +8,7 @@ from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 from langchain_classic.retrievers import MergerRetriever
+from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
 from langchain_community.llms import Ollama

@@ -3,6 +3,7 @@ from langchain_community.document_loaders import *
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
+from langchain_experimental.text_splitter import SemanticChunker
 from operator import itemgetter
 from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser

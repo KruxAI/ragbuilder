@@ -44,7 +44,7 @@ def test_default_enabled_and_no_sensitive_fields(monkeypatch, tmp_path):
 
 def test_invalid_endpoint_disables_network(monkeypatch):
     monkeypatch.setenv("ENABLE_ANALYTICS", "true")
-    for endpoint in ["", "http://collector.example/events", "https://user:secret@collector.example/events"]:
+    for endpoint in ["", "http://collector.example/events", "https://user:secret@collector.example/events", "https://[invalid"]:
         monkeypatch.setenv("RAGBUILDER_TELEMETRY_URL", endpoint)
         assert not usage.RAGBuilderTelemetry().enabled
 

@@ -1,3 +1,4 @@
+from ragbuilder.network import read_csv
 from ragbuilder.rag_templates.top_n_templates import top_n_templates
 #use below for testing templates
 # from ragbuilder.rag_templates.template_testing import top_n_templates
@@ -152,7 +153,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
     sota_embedding=kwargs.get('sota_embedding')
     sota_llm=kwargs.get('sota_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
-    test_df=pd.read_csv(test_data)
+    test_df=read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None
@@ -273,20 +274,12 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                 ##      exit()
                 result = rageval.evaluate()
                 logger.info(f"Completed evaluation. result={result}...")
-                if 'answer_correctness' in result and result['answer_correctness'] != float('NaN'):
-                    logger.debug("Answer_correctness: ", result.scores["answer_correctness"])
-                    none_records = len(result.scores.filter(lambda x: math.isnan(x['answer_correctness']) if x['answer_correctness'] is not None else False))
-                    percent_none = (none_records * 1.0 / len(result.scores)) 
-                    if percent_none > 0.2:
-                        logger.warning(f"More than 20% of the records have 'answer_correctness' as None. Skipping this config...")
-                        return float('NaN')
-                    
+                score = eval.answer_correctness_score(result)
+                if math.isfinite(score):
                     if not progress_state.get_progress()['first_eval_complete']:
                         progress_state.set_first_eval_complete()
-                    
                     rag_manager.cache_rag(rageval.id, rag_builder.rag)
-                    return result['answer_correctness'] 
-                return float('NaN')
+                return score
                 
             except Exception as e:
                 logger.error(f"Error while evaluating config: {config}")
@@ -342,7 +335,7 @@ def rag_builder(**kwargs):
     sota_embedding=kwargs.get('sota_embedding')
     sota_llm=kwargs.get('sota_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
-    test_df=pd.read_csv(test_data)
+    test_df=read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None

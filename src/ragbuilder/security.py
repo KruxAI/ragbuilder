@@ -83,6 +83,9 @@ def validate_source_path(source: str) -> str:
         raise ValueError("Hidden files and directories cannot be used as sources")
     if path.is_dir():
         for child in path.rglob("*"):
-            if child.is_symlink() and not child.resolve().is_relative_to(root):
+            resolved = child.resolve()
+            if not resolved.is_relative_to(root):
                 raise ValueError("Source directory contains a symlink outside RAGBUILDER_DATA_ROOT")
+            if any(part.startswith(".") for part in child.relative_to(root).parts + resolved.relative_to(root).parts):
+                raise ValueError("Choose a document directory without hidden files or directories")
     return str(path)

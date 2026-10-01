@@ -72,3 +72,35 @@ def test_sota_substitution_does_not_expand_placeholders_in_user_data(monkeypatch
     namespace["ChatOpenAI"] = lambda **kwargs: kwargs["model"]
     namespace["OpenAIEmbeddings"] = lambda **kwargs: kwargs["model"]
     assert namespace["rag_pipeline"]() == (source, model, "test")
+
+
+def test_legacy_evaluation_preserves_database_fields_and_averages_scores(monkeypatch):
+    import inspect
+    import math
+    from datasets import Dataset
+    from ragas import EvaluationDataset, EvaluationResult, evaluate
+    from ragbuilder import eval as legacy
+
+    rows = [{"question": "q", "answer": "a", "contexts": ["c"], "ground_truth": "a",
+             "eval_id": 1, "run_id": 2, "eval_ts": 3, "latency": 4, "tokens": 5, "cost": 6}]
+    current_result = EvaluationResult(
+        dataset=EvaluationDataset.from_list([{"user_input": "q", "response": "a", "retrieved_contexts": ["c"], "reference": "a"}]),
+        scores=[{"answer_correctness": 0.75}],
+    )
+    def evaluate_without_model_calls(*args, **kwargs):
+        inspect.signature(evaluate).bind(*args, **kwargs)
+        return current_result
+    monkeypatch.setattr(legacy, "evaluate", evaluate_without_model_calls)
+    evaluator = legacy.RagEvaluator.__new__(legacy.RagEvaluator)
+    evaluator.eval_dataset = Dataset.from_list(rows)
+    evaluator.id = 1
+    evaluator.llm = evaluator.embeddings = evaluator.run_config = None
+    evaluator.prepare_eval_dataset = lambda: evaluator.eval_dataset
+    evaluator._db_write = lambda: None
+    assert evaluator.evaluate() is current_result
+    expected = {**rows[0], "contexts": "c", "answer_correctness": 0.75}
+    assert evaluator.result_df.iloc[0].to_dict() == expected
+    assert legacy.answer_correctness_score(current_result) == 0.75
+    assert math.isnan(legacy.answer_correctness_score(SimpleNamespace(scores=[{"answer_correctness": None}])))
+    partial = SimpleNamespace(scores=[{"answer_correctness": n} for n in [1, 0.5, 1, 0.5, None]])
+    assert legacy.answer_correctness_score(partial) == 0.75

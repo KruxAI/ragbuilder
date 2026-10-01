@@ -91,6 +91,20 @@ def public_head(url, **kwargs):
     return public_request(url, method="HEAD", **kwargs)
 
 
+def read_csv(source, **kwargs):
+    """Load evaluation CSVs through the same URL boundary as documents."""
+    from io import BytesIO
+    from pathlib import Path
+    import pandas as pd
+
+    if urlsplit(str(source)).scheme in {"http", "https"}:
+        response = public_get(str(source))
+        response.raise_for_status()
+        return pd.read_csv(BytesIO(response.content), **kwargs)
+    # A Path prevents pandas/fsspec from interpreting other URL protocols.
+    return pd.read_csv(Path(source), **kwargs)
+
+
 class PublicWebLoader:
     """Load web text without allowing a loader to bypass the download boundary."""
 

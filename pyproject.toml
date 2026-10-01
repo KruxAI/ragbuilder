@@ -85,3 +85,5 @@ build-backend = "setuptools.build_meta"
 write_to = "src/ragbuilder/_version.py"
 version_scheme = "python-simplified-semver"
 
+[tool.setuptools.package-data]
+ragbuilder = ["static/*", "templates/*", "generation/*.yaml", "langchain_module/*.yml"]

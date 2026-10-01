@@ -169,3 +169,25 @@ def test_download_size_limit(monkeypatch):
     monkeypatch.setattr(network.urllib3, "HTTPSConnectionPool", Pool)
     with pytest.raises(ValueError, match="size or time"):
         network.public_get("https://example.com")
+
+
+def test_csv_downloads_use_public_boundary(monkeypatch, tmp_path):
+    dns(monkeypatch, ["127.0.0.1"])
+    with pytest.raises(ValueError, match="public IP"):
+        network.read_csv("http://localhost/data.csv")
+    path = tmp_path / "data.csv"
+    path.write_text("question,ground_truth\nq,a\n")
+    assert network.read_csv(path).iloc[0].to_dict() == {"question": "q", "ground_truth": "a"}
+
+
+def test_hidden_directory_contents_and_symlink_targets_are_rejected(monkeypatch, tmp_path):
+    root = tmp_path / "data"
+    root.mkdir()
+    monkeypatch.setenv("RAGBUILDER_DATA_ROOT", str(root))
+    (root / ".env").write_text("private")
+    docs = root / "documents"
+    docs.mkdir()
+    (docs / "public.txt").symlink_to(root / ".env")
+    for path in [root, docs, docs / "public.txt"]:
+        with pytest.raises(ValueError, match="[Hh]idden"):
+            validate_source_path(str(path))

@@ -9,6 +9,13 @@ import logging
 setup_logging()
 logger = logging.getLogger("ragbuilder")
 
+def _splitter_name(kwargs):
+    name = kwargs.get('splitter_name', 'splitter')
+    if name not in {'splitter', 'parent_splitter'}:
+        raise ValueError('Invalid splitter name')
+    return name
+
+
 def getChunkingStrategy(**kwargs):
     try:
         strategy = kwargs.get('chunking_kwargs').get('chunk_strategy')
@@ -36,9 +43,7 @@ def getChunkingStrategy(**kwargs):
 def getLangchainRecursiveCharacterTextSplitter(**kwargs):
     try:
         logger.info("RecursiveCharacterTextSplitter Invoked")
-        splitter_name=kwargs.get('splitter_name','splitter')
-        if splitter_name not in {'splitter', 'parent_splitter'}:
-            raise ValueError('Invalid splitter name')
+        splitter_name = _splitter_name(kwargs)
         code_string = f"""
 {splitter_name} = RecursiveCharacterTextSplitter(chunk_size={int(kwargs['chunk_size'])}, chunk_overlap={int(kwargs['chunk_overlap'])})
 splits={splitter_name}.split_documents(docs)"""
@@ -51,9 +56,7 @@ splits={splitter_name}.split_documents(docs)"""
 def getLangchainCharacterTextSplitter(**kwargs):
     try:
         logger.info("CharacterTextSplitter Invoked")
-        splitter_name=kwargs.get('splitter_name','splitter')
-        if splitter_name not in {'splitter', 'parent_splitter'}:
-            raise ValueError('Invalid splitter name')
+        splitter_name = _splitter_name(kwargs)
         code_string = f"""
 {splitter_name} = CharacterTextSplitter(chunk_size={int(kwargs['chunk_size'])}, chunk_overlap={int(kwargs['chunk_overlap'])})
 splits={splitter_name}.split_documents(docs)"""
@@ -66,9 +69,7 @@ splits={splitter_name}.split_documents(docs)"""
 def getLangchainSemanticChunker(**kwargs):
     try:
         logger.info("SemanticChunker Invoked")
-        splitter_name=kwargs.get('splitter_name','splitter')
-        if splitter_name not in {'splitter', 'parent_splitter'}:
-            raise ValueError('Invalid splitter name')
+        splitter_name = _splitter_name(kwargs)
         code_string = f"""
 {splitter_name} = SemanticChunker(embedding, breakpoint_threshold_type={kwargs.get('chunking_kwargs').get('breakpoint_threshold_type','percentile')!r})
 splits={splitter_name}.create_documents(docs[0].page_content)
@@ -81,9 +82,7 @@ splits={splitter_name}.create_documents(docs[0].page_content)
 
 def getMarkdownHeaderTextSplitter(**kwargs):
     try:
-        splitter_name=kwargs.get('splitter_name','splitter')
-        if splitter_name not in {'splitter', 'parent_splitter'}:
-            raise ValueError('Invalid splitter name')
+        splitter_name = _splitter_name(kwargs)
         logger.info("MarkdownHeaderTextSplitter Invoked")
         code_string = f"""
 headers_to_split_on = [
@@ -103,9 +102,7 @@ for doc in docs:
 def getHTMLHeaderTextSplitter(**kwargs):
     try:
         logger.info("HTMLHeaderTextSplitter Invoked")
-        splitter_name=kwargs.get('splitter_name','splitter')
-        if splitter_name not in {'splitter', 'parent_splitter'}:
-            raise ValueError('Invalid splitter name')
+        splitter_name = _splitter_name(kwargs)
         code_string = f"""
 headers_to_split_on = [
     ("h1", "Header 1"),

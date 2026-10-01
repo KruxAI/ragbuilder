@@ -68,6 +68,14 @@ OPENAI_PRICING = {
 class RagEvaluatorException(Exception):
     pass
 
+
+def answer_correctness_score(result):
+    scores = pd.Series([row.get("answer_correctness") for row in result.scores], dtype="float64")
+    scores = scores.replace([float("inf"), float("-inf")], float("nan"))
+    if scores.empty or scores.isna().mean() > 0.2:
+        return float("nan")
+    return float(scores.mean())
+
 class RagEvaluator:
     def __init__(
             self, 
@@ -159,11 +167,17 @@ class RagEvaluator:
             raise_exceptions=False, 
             llm=self.llm,
             embeddings=self.embeddings,
-            is_async=self.is_async,
             run_config=self.run_config
         )
         
-        self.result_df = result.to_pandas()
+        # Ragas normalizes legacy field names and drops our run metadata.
+        # Keep the original rows and attach the corresponding metric scores.
+        self.result_df = self.eval_dataset.to_pandas().reset_index(drop=True)
+        scores = pd.DataFrame(result.scores)
+        if len(scores) != len(self.result_df):
+            raise RagEvaluatorException("Evaluation returned an unexpected number of scores")
+        for column in scores:
+            self.result_df[column] = scores[column]
         logger.info(f"Eval: Evaluation complete for {self.id}")
 
         # Transform "contexts" array to string to save to DB properly

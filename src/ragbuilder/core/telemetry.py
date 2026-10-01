@@ -39,11 +39,13 @@ class RAGBuilderTelemetry:
         self._worker = None
         self._lock = threading.Lock()
         self._closed = False
-        parsed = urlsplit(self.endpoint)
-        if not self.enabled or parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-            self.enabled = False
+        if not self.enabled:
             return
         try:
+            parsed = urlsplit(self.endpoint)
+            if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+                self.enabled = False
+                return
             self.user_id = self._get_or_create_user_id()
             self._emit("installation_started", "ragbuilder")
             atexit.register(self.shutdown)

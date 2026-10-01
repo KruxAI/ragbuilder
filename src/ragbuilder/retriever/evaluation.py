@@ -1,3 +1,4 @@
+from ragbuilder.network import read_csv
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Tuple
 import pandas as pd
@@ -49,7 +50,7 @@ class RetrieverF1ScoreEvaluator(Evaluator):
         # TODO: Add metrics to evaluation config
 
         self.eval_config = eval_config
-        self.test_data = Dataset.from_pandas(pd.read_csv(self.eval_config.test_dataset))
+        self.test_data = Dataset.from_pandas(read_csv(self.eval_config.test_dataset))
 
         llm_config = self.eval_config.llm if self.eval_config.llm else ConfigStore().get_default_llm()
         self.llm = llm_config.llm
