@@ -6,6 +6,13 @@ from langchain_core.runnables import RunnableLambda
 from starlette.testclient import TestClient
 
 
+def test_package_contains_ui_and_prompt_resources():
+    from importlib.resources import files
+    package = files("ragbuilder")
+    for path in ["templates/index.html", "templates/chat.html", "static/main.js", "generation/prompts.yaml"]:
+        assert package.joinpath(path).read_bytes()
+
+
 def test_sdk_generation_with_current_langchain():
     from ragbuilder import RAGBuilder
     from ragbuilder.generation.pipeline import GenerationPipeline
@@ -78,7 +85,9 @@ def test_legacy_evaluation_preserves_database_fields_and_averages_scores(monkeyp
     import inspect
     import math
     from datasets import Dataset
-    from ragas import EvaluationDataset, EvaluationResult, evaluate
+    from ragas import EvaluationDataset, evaluate
+    from ragas.dataset_schema import EvaluationResult
+    from ragas.callbacks import ChainRun
     from ragbuilder import eval as legacy
 
     rows = [{"question": "q", "answer": "a", "contexts": ["c"], "ground_truth": "a",
@@ -86,6 +95,7 @@ def test_legacy_evaluation_preserves_database_fields_and_averages_scores(monkeyp
     current_result = EvaluationResult(
         dataset=EvaluationDataset.from_list([{"user_input": "q", "response": "a", "retrieved_contexts": ["c"], "reference": "a"}]),
         scores=[{"answer_correctness": 0.75}],
+        ragas_traces={"test": ChainRun(run_id="test", parent_run_id=None, name="evaluation", inputs={}, metadata={})},
     )
     def evaluate_without_model_calls(*args, **kwargs):
         inspect.signature(evaluate).bind(*args, **kwargs)
@@ -104,3 +114,29 @@ def test_legacy_evaluation_preserves_database_fields_and_averages_scores(monkeyp
     assert math.isnan(legacy.answer_correctness_score(SimpleNamespace(scores=[{"answer_correctness": None}])))
     partial = SimpleNamespace(scores=[{"answer_correctness": n} for n in [1, 0.5, 1, 0.5, None]])
     assert legacy.answer_correctness_score(partial) == 0.75
+
+
+def test_hybrid_template_runs_with_local_test_components(monkeypatch):
+    from langchain_classic import hub
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.retrievers import BaseRetriever
+    import langchain_chroma
+    from ragbuilder.rag_templates.sota.hybrid_rag import code
+
+    docs = [Document(page_content="test document with context")]
+    class Retriever(BaseRetriever):
+        def _get_relevant_documents(self, query, *, run_manager):
+            return docs
+    class VectorStore:
+        @classmethod
+        def from_documents(cls, **kwargs):
+            return cls()
+        def as_retriever(self, **kwargs):
+            return Retriever()
+    monkeypatch.setattr(langchain_chroma, "Chroma", VectorStore)
+    monkeypatch.setattr(hub, "pull", lambda name: ChatPromptTemplate.from_template("{context}\n{question}"))
+    code = code.replace("{llm_class}", "llm = test_llm").replace("{loader_class}", "docs = test_docs").replace("{embedding_class}", "embedding = None")
+    namespace = {"test_llm": FakeListChatModel(responses=["test answer"]), "test_docs": docs}
+    exec(code, namespace)
+    pipeline = namespace["rag_pipeline"]()
+    assert pipeline.invoke("test")["answer"] == "test answer"

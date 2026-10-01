@@ -23,7 +23,7 @@ As of October 1, 2026, the dependency audit still reports the advisories below w
 ## Deployment boundaries
 
 - Keep the default localhost binding. For remote access use a strong `RAGBUILDER_API_TOKEN` and HTTPS through a trusted reverse proxy. The token grants operator access, not isolated access for multiple tenants.
-- Set `RAGBUILDER_DATA_ROOT` to a dedicated directory containing only documents intended for processing. The SDK is a local programming interface and retains caller-directed filesystem access.
+- Set `RAGBUILDER_DATA_ROOT` to a dedicated directory containing only documents intended for processing. Selected directories must not contain hidden files, hidden directories, or symlinks to hidden or out-of-root content. The SDK is a local programming interface and retains caller-directed filesystem access.
 - Document and prompt URL downloads use public IP addresses only, pin the resolved address, validate each redirect, verify TLS, and cap decoded response size at 20 MiB. HTTP proxy environment settings are not used for these downloads.
 - Set `NEO4J_PASSWORD` before deploying Compose. For an existing Neo4j volume, rotate the database password through Neo4j itself; changing `.env` alone does not rotate it.
 - Disable the previously published Honeycomb key and revoke any matching historical OpenAI key in the provider consoles. Removing source text cannot revoke credentials or erase old clones, releases, and Git history.
