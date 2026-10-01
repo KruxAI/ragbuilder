@@ -33,4 +33,4 @@ As of October 1, 2026, the dependency audit still reports the advisories below w
 
 Run `python -m pytest -c tests/security/pytest.ini tests/security` and `npm test --prefix telemetry-collector`. The tests use synthetic data and do not call paid model APIs or send real telemetry. Run `python scripts/audit_dependencies.py` after installing `pip-audit`; its explicit exceptions are the unresolved advisories above.
 
-The GitHub Actions workflow is prepared at `scripts/security-workflow.yml`. To activate it, move it to `.github/workflows/security.yml` and push using GitHub credentials with the `workflow` permission. The current automation login lacks that permission, so CI has not been activated by this patch.
+The GitHub Actions workflow at `.github/workflows/security.yml` runs these checks on pull requests and pushes to `main`.
