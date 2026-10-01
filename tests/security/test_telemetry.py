@@ -20,11 +20,12 @@ def test_opt_out_has_no_network_or_identity_side_effects(monkeypatch):
 def test_default_enabled_and_no_sensitive_fields(monkeypatch, tmp_path):
     monkeypatch.delenv("ENABLE_ANALYTICS", raising=False)
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("RAGBUILDER_TELEMETRY_URL", "https://collector.example/events")
+    monkeypatch.delenv("RAGBUILDER_TELEMETRY_URL", raising=False)
     monkeypatch.setattr(usage, "user_data_dir", lambda **kwargs: str(tmp_path))
     monkeypatch.setattr(usage.RAGBuilderTelemetry, "_drain", lambda self: None)
     telemetry = usage.RAGBuilderTelemetry()
     assert telemetry.enabled
+    assert telemetry.endpoint == usage.DEFAULT_TELEMETRY_ENDPOINT
     secret = "sensitive-user-content"
     with pytest.raises(RuntimeError):
         with telemetry.optimization_span("ragbuilder", {"api_key": secret}) as span:

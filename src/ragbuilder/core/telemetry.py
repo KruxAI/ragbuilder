@@ -17,8 +17,8 @@ import requests
 
 from ragbuilder import __version__
 
-# Set to the deployed public collector URL before releasing this patch.
-DEFAULT_TELEMETRY_ENDPOINT = ""
+# Public collector address. The Honeycomb ingest key stays in the Worker secret.
+DEFAULT_TELEMETRY_ENDPOINT = "https://ragbuilder-telemetry.imaravind.workers.dev/events"
 MODULES = {"data_ingest", "retriever", "generation", "ragbuilder", "eval_data_generation", "ui"}
 EVENTS = {"installation_started", "run_started", "run_completed", "run_failed", "error"}
 

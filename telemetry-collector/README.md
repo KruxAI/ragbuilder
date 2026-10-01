@@ -21,7 +21,7 @@ npm exec wrangler secret put HONEYCOMB_API_KEY
 
 The last command prompts for the key without putting it in shell history or source files. Use a new Honeycomb ingest-only key for the US region (`api.honeycomb.io`). Create the `ragbuilder-usage` dataset beforehand, or grant the key permission to create it. Never use a management or configuration key. Do not paste the key into chat or commit it. The deployed collector returns 503 for event submissions until its secret is configured.
 
-Set `DEFAULT_TELEMETRY_ENDPOINT` in `src/ragbuilder/core/telemetry.py` to the deployed URL ending in `/events` before publishing the Python package. This URL is public and contains no credential. Leave `ENABLE_ANALYTICS` enabled by default; users can opt out with `ENABLE_ANALYTICS=false`. `RAGBUILDER_TELEMETRY_URL` overrides the URL for self-hosting.
+The collector is deployed at `https://ragbuilder-telemetry.imaravind.workers.dev`; `DEFAULT_TELEMETRY_ENDPOINT` in `src/ragbuilder/core/telemetry.py` uses its `/events` endpoint. This URL is public and contains no credential. Leave `ENABLE_ANALYTICS` enabled by default; users can opt out with `ENABLE_ANALYTICS=false`. `RAGBUILDER_TELEMETRY_URL` overrides the URL for self-hosting. Deployments to another account must update the default URL before publishing the Python package.
 
 `GET /health` checks reachability without generating a Honeycomb event. It does not validate the Honeycomb secret. After configuring the secret, send one synthetic test event and confirm it in Honeycomb, then revoke the old exposed key if it has not already been disabled.
 
