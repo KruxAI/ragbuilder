@@ -2,7 +2,8 @@ import re
 import os
 import logging
 from ragbuilder.langchain_module.common import setup_logging,codeGen
-from langchain_community.document_loaders import DirectoryLoader, WebBaseLoader, UnstructuredFileLoader
+from langchain_community.document_loaders import DirectoryLoader, UnstructuredFileLoader
+from ragbuilder.network import PublicWebLoader as WebBaseLoader
 
 # Setup logging
 setup_logging()
@@ -69,7 +70,7 @@ def ragbuilder_directory_loader(input_path):
 from langchain_community.document_loaders import DirectoryLoader"""
 
     code_string = f"""
-loader = DirectoryLoader('{input_path}')
+loader = DirectoryLoader({input_path!r})
 docs = loader.load()
 """
     return {'code_string':code_string,'import_string':import_string}
@@ -77,10 +78,10 @@ docs = loader.load()
 def ragbuilder_url_loader(input_path):
     logger.info("ragbuilder_url_loader Invoked")
     import_string = f"""
-from langchain_community.document_loaders import WebBaseLoader"""
+from ragbuilder.network import PublicWebLoader as WebBaseLoader"""
 
     code_string = f"""
-loader = WebBaseLoader('{input_path}')
+loader = WebBaseLoader({input_path!r})
 docs = loader.load()
 """
     return {'code_string':code_string,'import_string':import_string}
@@ -91,7 +92,7 @@ def ragbuilder_file_loader(input_path):
 from langchain_community.document_loaders import UnstructuredFileLoader"""
 
     code_string = f"""
-loader = UnstructuredFileLoader('{input_path}')
+loader = UnstructuredFileLoader({input_path!r})
 docs = loader.load()
 """
     return {'code_string':code_string,'import_string':import_string}

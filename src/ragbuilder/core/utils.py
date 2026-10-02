@@ -1,3 +1,5 @@
+from ragbuilder.network import PublicWebLoader as WebBaseLoader
+from ragbuilder.network import public_get, public_head
 import logging
 import os
 import re
@@ -5,7 +7,6 @@ from typing import Optional, List, Union, Any, Dict, Tuple
 from dotenv import load_dotenv
 from langchain_community.document_loaders import (
     DirectoryLoader, 
-    WebBaseLoader,
     UnstructuredFileLoader
 )
 # from langchain_unstructured import UnstructuredLoader
@@ -251,10 +252,10 @@ def _is_valid_input_source(input_path: str) -> bool:
     if parsed.scheme in ['http', 'https'] and parsed.netloc:
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'}
-            response = requests.head(input_path, headers=headers, allow_redirects=True)
+            response = public_head(input_path, headers=headers, allow_redirects=True)
 
             if response.status_code == 405:
-                response = requests.get(input_path, headers=headers, stream=True)
+                response = public_get(input_path, headers=headers, stream=True)
 
             return response.status_code == 200
         except Exception as e:

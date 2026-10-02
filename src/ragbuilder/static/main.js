@@ -1,3 +1,6 @@
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[char]));
+}
 
 let progressInterval;
 let smoothInterval;
@@ -398,7 +401,7 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.exists) {
                     existingSynthDataPath = response.path;
-                    dataExists=`<p><strong>Existing synthetic test data found for the provided source dataset.</strong><br>Path: ${response.path}</p>`
+                    dataExists=`<p><strong>Existing synthetic test data found for the provided source dataset.</strong><br>Path: ${escapeHtml(response.path)}</p>`
                     $('#hashLookupResult').html(`${dataExists}`);
                     $('#foundExistingSynthData').show();
                     $('#useExistingSynthData').prop('checked', true);
@@ -456,7 +459,7 @@ $(document).ready(function () {
             testDataHtml = `<p><strong>Generate synthetic data:</strong> ${$('#generateSynthetic').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</p>`;
         } else {
             const testDataPath = $('#testDataPath').val();
-            testDataHtml = `<p><strong>Test Data Path:</strong> ${testDataPath}</p>`;
+            testDataHtml = `<p><strong>Test Data Path:</strong> ${escapeHtml(testDataPath)}</p>`;
         }
 
         const evalFramework = $('#evalFramework').val();
@@ -464,9 +467,9 @@ $(document).ready(function () {
         const evalLLM = getModel('evalLLM', 'customEvalLLM');
 
         const evaluationHtml = `
-            <p><strong>Evaluation Framework:</strong> ${evalFramework}</p>
-            <p><strong>Evaluation Embedding Model:</strong> ${evalEmbedding}</p>
-            <p><strong>Evaluation LLM:</strong> ${evalLLM}</p>
+            <p><strong>Evaluation Framework:</strong> ${escapeHtml(evalFramework)}</p>
+            <p><strong>Evaluation Embedding Model:</strong> ${escapeHtml(evalEmbedding)}</p>
+            <p><strong>Evaluation LLM:</strong> ${escapeHtml(evalLLM)}</p>
         `;
 
         testDataHtml += evaluationHtml;
@@ -500,10 +503,10 @@ $(document).ready(function () {
                             <li><div class="row"><div class="col-8">text-embedding-3-small: </div>${$('#embeddingSmall').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div</li>
                             <li><div class="row"><div class="col-8">text-embedding-3-large: </div>${$('#embeddingLarge').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-8">text-embedding-ada-002: </div>${$('#embeddingAda').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
-                            <li><div class="row"><div class="col-8">HuggingFace: </div>${$('#embeddingHuggingFace').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#embeddingHuggingFaceModel').val()}</li>
-                            <li><div class="row"><div class="col-8">Azure OpenAI: </div>${$('#embeddingAzureOAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#embeddingAzureOAIModel').val()}</li>
-                            <li><div class="row"><div class="col-8">Google Vertex AI: </div>${$('#embeddingGoogleVertexAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#embeddingGoogleVertexAIModel').val()}</li>
-                            <li><div class="row"><div class="col-8">Ollama: </div>${$('#embeddingOllama').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#embeddingOllamaModel').val()}</li>
+                            <li><div class="row"><div class="col-8">HuggingFace: </div>${$('#embeddingHuggingFace').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${escapeHtml($('#embeddingHuggingFaceModel').val())}</li>
+                            <li><div class="row"><div class="col-8">Azure OpenAI: </div>${$('#embeddingAzureOAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${escapeHtml($('#embeddingAzureOAIModel').val())}</li>
+                            <li><div class="row"><div class="col-8">Google Vertex AI: </div>${$('#embeddingGoogleVertexAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${escapeHtml($('#embeddingGoogleVertexAIModel').val())}</li>
+                            <li><div class="row"><div class="col-8">Ollama: </div>${$('#embeddingOllama').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${escapeHtml($('#embeddingOllamaModel').val())}</li>
                         </ul>
                     </div>    
                     <div class="col-md-6 mt-3">
@@ -553,11 +556,11 @@ $(document).ready(function () {
                             <li><div class="row"><div class="col-6">GPT-4o: </div>${$('#gpt4o').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-6">GPT-3.5 Turbo: </div>${$('#gpt35').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
                             <li><div class="row"><div class="col-6">GPT-4 Turbo: </div>${$('#gpt4Turbo').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div></li>
-                            <li><div class="row"><div class="col-6">HuggingFace: </div>${$('#llmHuggingFace').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmHuggingFaceModel').val()}</li>
-                            <li><div class="row"><div class="col-6">Groq: </div>${$('#llmGroq').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmGroqModel').val()}</li>
-                            <li><div class="row"><div class="col-6">Azure OpenAI: </div>${$('#llmAzureOAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmAzureOAIModel').val()}</li>
-                            <li><div class="row"><div class="col-6">Google Vertex AI: </div>${$('#llmGoogleVertexAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmGoogleVertexAIModel').val()}</li>
-                            <li><div class="row"><div class="col-6">Ollama: </div>${$('#llmOllama').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${$('#llmOllamaModel').val()}</li>
+                            <li><div class="row"><div class="col-6">HuggingFace: </div>${$('#llmHuggingFace').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${escapeHtml($('#llmHuggingFaceModel').val())}</li>
+                            <li><div class="row"><div class="col-6">Groq: </div>${$('#llmGroq').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${escapeHtml($('#llmGroqModel').val())}</li>
+                            <li><div class="row"><div class="col-6">Azure OpenAI: </div>${$('#llmAzureOAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${escapeHtml($('#llmAzureOAIModel').val())}</li>
+                            <li><div class="row"><div class="col-6">Google Vertex AI: </div>${$('#llmGoogleVertexAI').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${escapeHtml($('#llmGoogleVertexAIModel').val())}</li>
+                            <li><div class="row"><div class="col-6">Ollama: </div>${$('#llmOllama').is(':checked')? '<div class="col-1"><i class="fas fa-check-circle me-2 text-success"></i></div>' : '<div class="col-1"><i class="fa-regular fa-circle me-2 text-secondary"></i></div>'}</div> ${escapeHtml($('#llmOllamaModel').val())}</li>
                         </ul>
                     </div>
                 </div>    
@@ -567,8 +570,8 @@ $(document).ready(function () {
         // Fill the review section with selections from all steps
         const selections = `
             <div class="row row-cols-2">
-                <div class="col-md-4"><strong>Description:</strong></div><div class="col-md-8">${$('#description').val()}</div>
-                <div class="col-md-4"><strong>Source data:</strong></div><div class="col-md-8">${$('#sourceData').val()}</div>
+                <div class="col-md-4"><strong>Description:</strong></div><div class="col-md-8">${escapeHtml($('#description').val())}</div>
+                <div class="col-md-4"><strong>Source data:</strong></div><div class="col-md-8">${escapeHtml($('#sourceData').val())}</div>
                 <div class="col-md-4"><strong>Use data sampling:</strong></div>
                 <div class="col-md-8">${$('#useSampling').is(':checked')? '<i class="fas fa-check-circle me-2 text-success"></i>' : '<i class="fa-regular fa-circle me-2 text-secondary"></i>'}</div>
                 <div class="col-md-4"><strong>Use Pre-defined RAG Templates:</strong></div>

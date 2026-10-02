@@ -141,7 +141,7 @@ LLM_MAP = {
 
 LOADER_MAP = {
     # ParserType.UNSTRUCTURED: lazy_load("langchain_unstructured", "UnstructuredLoader"),
-    ParserType.TEXT: lazy_load("langchain.document_loaders", "TextLoader"),
+    ParserType.TEXT: lazy_load("langchain_community.document_loaders", "TextLoader"),
     ParserType.UNSTRUCTURED: lazy_load("langchain_community.document_loaders", "UnstructuredFileLoader"),
     ParserType.PYMUPDF: lazy_load("langchain_community.document_loaders", "PyMuPDFLoader"),
     ParserType.PYPDF: lazy_load("langchain_community.document_loaders", "PyPDFLoader"),
@@ -149,7 +149,7 @@ LOADER_MAP = {
     ParserType.AZURE_BLOB: lazy_load("langchain_community.document_loaders", "AzureBlobStorageContainerLoader"),
     ParserType.S3: lazy_load("langchain_community.document_loaders", "S3DirectoryLoader"),
     ParserType.DIRECTORY: lazy_load("langchain_community.document_loaders", "DirectoryLoader"),
-    ParserType.WEB: lazy_load("langchain_community.document_loaders", "WebBaseLoader"),
+    ParserType.WEB: lazy_load("ragbuilder.network", "PublicWebLoader"),
 }
 
 CHUNKER_MAP = {

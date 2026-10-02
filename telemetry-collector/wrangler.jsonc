@@ -1,0 +1,12 @@
+{
+  "name": "ragbuilder-telemetry",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {"enabled": false},
+  "vars": {"HONEYCOMB_DATASET": "ragbuilder-usage", "DAILY_EVENT_LIMIT": "1000"},
+  "ratelimits": [{"name": "CLIENT_LIMIT", "namespace_id": "271828", "simple": {"limit": 10, "period": 60}}],
+  "durable_objects": {"bindings": [{"name": "BUDGET", "class_name": "DailyBudget"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["DailyBudget"]}]
+}

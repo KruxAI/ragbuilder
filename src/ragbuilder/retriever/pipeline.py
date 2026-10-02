@@ -2,11 +2,11 @@ import os
 import logging
 from typing import List, Optional, Any, Dict, Union
 from importlib import import_module
-from langchain.schema import BaseRetriever, Document
-from langchain.storage import InMemoryStore
+from langchain_classic.schema import BaseRetriever, Document
+from langchain_classic.storage import InMemoryStore
 from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import ContextualCompressionRetriever, MultiQueryRetriever, ParentDocumentRetriever, EnsembleRetriever
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+from langchain_classic.retrievers import ContextualCompressionRetriever, MultiQueryRetriever, ParentDocumentRetriever, EnsembleRetriever
+from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
 # from rerankers import Reranker
 
 from ragbuilder.config.components import RetrieverType, RerankerType, RERANKER_MAP, CHUNKER_MAP

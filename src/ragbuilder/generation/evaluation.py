@@ -1,3 +1,4 @@
+from ragbuilder.network import read_csv
 """
 Evaluation module for generation components in RAGBuilder.
 Uses RAGAS metrics to evaluate generation quality.
@@ -74,7 +75,7 @@ class GenerationEvaluator:
             DataFrame containing the test dataset
         """
         try:
-            df = pd.read_csv(self.test_dataset_path)
+            df = read_csv(self.test_dataset_path)
             required_columns = ['user_input', 'reference']
             
             # Validate required columns

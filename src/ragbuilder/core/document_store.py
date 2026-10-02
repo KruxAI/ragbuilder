@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Tuple, Any
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 import logging
 import time
 

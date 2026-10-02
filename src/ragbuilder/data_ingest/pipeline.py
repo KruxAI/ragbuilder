@@ -6,9 +6,9 @@ import random
 from importlib import import_module
 from copy import deepcopy
 from typing import List, Optional, Any
-from langchain.docstore.document import Document
-from langchain.embeddings.base import Embeddings
-from langchain.vectorstores.base import VectorStore
+from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
+from langchain_core.vectorstores import VectorStore
 
 from ragbuilder.config.components import (
     LOADER_MAP, CHUNKER_MAP, EMBEDDING_MAP, VECTORDB_MAP, NO_CHUNK_SIZE_STRATEGIES,

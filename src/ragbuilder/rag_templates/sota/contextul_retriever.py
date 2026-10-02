@@ -1,23 +1,22 @@
 code="""from langchain_openai import ChatOpenAI
 
-from langchain_community.document_loaders import WebBaseLoader
+from ragbuilder.network import PublicWebLoader as WebBaseLoader
 from langchain_openai import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 import chromadb
-from langchain.prompts import PromptTemplate
-from langchain.prompts import ChatPromptTemplate
+from langchain_classic.prompts import PromptTemplate
+from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
 from langchain_community.retrievers import  BM25Retriever
 import os
 from operator import itemgetter
 from langchain_community.embeddings import OllamaEmbeddings
-from langchain import hub
+from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-from langchain.retrievers import MergerRetriever,EnsembleRetriever
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
-from langchain_ollama import ChatOllama
+from langchain_classic.retrievers import MergerRetriever,EnsembleRetriever
+from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
 def rag_pipeline():
     try:
         def format_docs(docs):

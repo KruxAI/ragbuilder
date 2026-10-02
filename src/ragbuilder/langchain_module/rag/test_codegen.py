@@ -1,10 +1,10 @@
 def rag_pipeline():
-        from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+        from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
         from operator import itemgetter
-        from langchain import hub
+        from langchain_classic import hub
         from langchain_core.output_parsers import StrOutputParser
         from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-        from langchain.retrievers import ContextualCompressionRetriever, MergerRetriever
+        from langchain_classic.retrievers import ContextualCompressionRetriever, MergerRetriever
         from langchain_community.document_transformers import LongContextReorder
         def format_docs(docs):
             return ".".join(doc.page_content for doc in docs)
@@ -14,10 +14,11 @@ def rag_pipeline():
         from langchain_openai import ChatOpenAI
 
 
-        from langchain_community.document_loaders import DirectoryLoader, WebBaseLoader, UnstructuredFileLoader
+        from langchain_community.document_loaders import DirectoryLoader, UnstructuredFileLoader
+        from ragbuilder.network import PublicWebLoader as WebBaseLoader
 
 
-        from langchain.text_splitter import RecursiveCharacterTextSplitter
+        from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 
         from langchain_openai import OpenAIEmbeddings
 
@@ -27,7 +28,7 @@ def rag_pipeline():
 
         from langchain_community.retrievers import  BM25Retriever
 
-        from langchain.retrievers import ContextualCompressionRetriever
+        from langchain_classic.retrievers import ContextualCompressionRetriever
 
 
         from langchain_openai import ChatOpenAI
@@ -54,7 +55,7 @@ def rag_pipeline():
         retrievers.append(retriever)
         
         retriever=MergerRetriever(retrievers=retrievers)
-        from langchain.retrievers.document_compressors import EmbeddingsFilter
+        from langchain_classic.retrievers.document_compressors import EmbeddingsFilter
         embeddings_filter =EmbeddingsFilter(embeddings=embedding, similarity_threshold=0.76)
         arr_comp=[]
         # arr_comp.append(embeddings_filter)

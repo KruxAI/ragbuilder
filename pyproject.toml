@@ -6,28 +6,32 @@ authors = [
     {name = "Ashwin Aravind", email = "ashwin@krux.ai"},
     {name = "Aravind Parameswaran", email = "aravind@krux.ai"},
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.10,<4"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 
 dependencies = [
-    "chromadb",
+    "chromadb>=1.5.9",
+    "langchain-chroma>=1.1.0",
+    "beautifulsoup4>=4.12.0",
+    "requests>=2.32.5",
+    "urllib3>=2.6.3",
+    "scikit-optimize>=0.10.2",
+    "markdown>=3.5.0",
     "datasets>=2.18.0",
-    "fastapi>=0.100.0",
-    "jinja2",
-    "langchain>=0.3.24",
-    "langchain-community==0.3.22",
-    "langchain-core==0.3.55",
-    "langchain-huggingface==0.1.2",
-    "langchain-openai==0.3.14",
-    "opentelemetry-api>=1.23.0",
-    "opentelemetry-sdk>=1.23.0",
-    "opentelemetry-exporter-otlp>=1.23.0",
+    "fastapi>=0.142.2,<1",
+    "jinja2>=3.1.6",
+    "langchain>=1.4.3,<2",
+    "langchain-classic>=1.0.8,<2",
+    "langchain-community==0.4.1",
+    "langchain-core>=1.6.6,<2",
+    "langchain-huggingface>=1.2.2,<2",
+    "langchain-openai>=1.6.7,<2",
     "optuna",
     "platformdirs",
     "pydantic>=2.0.0",
     "python-dotenv",
-    "ragas==0.2.14",
+    "ragas>=0.4.3,<0.5",
     "rerankers",
     "rich>=13.0.0",
     "sentence-transformers",
@@ -81,3 +85,5 @@ build-backend = "setuptools.build_meta"
 write_to = "src/ragbuilder/_version.py"
 version_scheme = "python-simplified-semver"
 
+[tool.setuptools.package-data]
+ragbuilder = ["static/*", "templates/*", "generation/*.yaml", "langchain_module/*.yml"]

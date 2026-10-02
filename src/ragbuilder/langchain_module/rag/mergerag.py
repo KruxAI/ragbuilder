@@ -1,8 +1,8 @@
 import os
 import dotenv
 from operator import itemgetter
-from langchain_community.document_loaders import WebBaseLoader
-from langchain import hub
+from ragbuilder.network import PublicWebLoader as WebBaseLoader
+from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 from ragbuilder.langchain_module.common import setup_logging
@@ -10,8 +10,8 @@ from ragbuilder.langchain_module.retriever.retriever import *
 from ragbuilder.langchain_module.loader.loader import *
 import logging
 from langchain_text_splitters import CharacterTextSplitter
-from langchain.retrievers import ContextualCompressionRetriever, MergerRetriever
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+from langchain_classic.retrievers import ContextualCompressionRetriever, MergerRetriever
+from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
 from ragbuilder.langchain_module.llms.llmConfig import *
 from ragbuilder.langchain_module.chunkingstrategy.langchain_chunking import *
 from ragbuilder.langchain_module.embedding_model.embedding import *

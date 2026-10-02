@@ -1,8 +1,8 @@
 import os
 import dotenv
 from operator import itemgetter
-from langchain_community.document_loaders import WebBaseLoader
-from langchain import hub
+from ragbuilder.network import PublicWebLoader as WebBaseLoader
+from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 # from ragbuilder.langchain_module.common import setup_logging
@@ -10,8 +10,8 @@ from ragbuilder.langchain_module.retriever.retriever import *
 from ragbuilder.langchain_module.loader.loader import *
 # import logging
 from langchain_text_splitters import CharacterTextSplitter
-from langchain.retrievers import ContextualCompressionRetriever, MergerRetriever
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+from langchain_classic.retrievers import ContextualCompressionRetriever, MergerRetriever
+from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
 from ragbuilder.langchain_module.llms.llmConfig import *
 from ragbuilder.langchain_module.chunkingstrategy.langchain_chunking import *
 from ragbuilder.langchain_module.embedding_model.embedding import *
@@ -26,11 +26,11 @@ logger = logging.getLogger("ragbuilder")
 global_imports = """
 import os
 from operator import itemgetter
-from langchain import hub
+from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-from langchain.retrievers import MergerRetriever,EnsembleRetriever
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+from langchain_classic.retrievers import MergerRetriever,EnsembleRetriever
+from langchain_classic.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 """
 def codeGen(**kwargs):
@@ -93,8 +93,8 @@ def codeGen(**kwargs):
             imports.append(compressor_code['import_string'])
         code_strings.append("pipeline_compressor = DocumentCompressorPipeline(transformers=arr_comp)")
         code_strings.append("retriever=ContextualCompressionRetriever(base_retriever=retriever,base_compressor=pipeline_compressor)")
-        imports.append("from langchain.retrievers.document_compressors import EmbeddingsFilter")
-        imports.append("from langchain.retrievers import ContextualCompressionRetriever")
+        imports.append("from langchain_classic.retrievers.document_compressors import EmbeddingsFilter")
+        imports.append("from langchain_classic.retrievers import ContextualCompressionRetriever")
 
     code_text =  "\n" + "\n".join(code_strings)
     import_text="\n".join(imports)+global_imports
@@ -136,8 +136,9 @@ def sota_code_mod(**kwargs):
     llm = getLLM(**kwargs)
     embedding = getEmbedding(**kwargs)
     docs = ragbuilder_loader(input_path=kwargs['input_path'])
-    codmod=code.replace("{loader_class}",docs['code_string'].replace("\n",'\n        '))
-    codmod=codmod.replace("{llm_class}",llm['code_string'].replace("\n",'\n        '))
-    codmod=codmod.replace("{embedding_class}",embedding['code_string'].replace("\n",'\n        '))
+    import re
+    replacements = {"loader_class": docs["code_string"], "llm_class": llm["code_string"], "embedding_class": embedding["code_string"]}
+    codmod = re.sub(r"\{(loader_class|llm_class|embedding_class)\}", lambda match: replacements[match[1]].replace("\n", "\n        "), code)
     # codmod=codmod.replace("\n",'\n        ') 
-    return codmod
+    environment = "import os\nOLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')"
+    return "\n".join([environment, llm["import_string"], embedding["import_string"], docs["import_string"], codmod])

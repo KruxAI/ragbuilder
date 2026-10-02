@@ -1,3 +1,4 @@
+from ragbuilder.network import read_csv
 from ragbuilder.rag_templates.top_n_templates import top_n_templates
 #use below for testing templates
 # from ragbuilder.rag_templates.template_testing import top_n_templates
@@ -43,10 +44,9 @@ OVERRIDE_BASELINE_RETRIEVERS = os.getenv('OVERRIDE_BASELINE_RETRIEVERS', 'true')
 DATABASE = 'eval.db' #TODO: Define this in common.py
 # Imports needed for Executing the Generated Code
 from operator import itemgetter
-from langchain import hub
+from langchain_classic import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-import singlestoredb as s2
 load_dotenv()
 
 # Get the database URL from the environment variable
@@ -58,8 +58,7 @@ import dotenv
 from langchain_community.document_loaders import *
 from langchain_text_splitters import *
 from langchain_community.retrievers import AmazonKendraRetriever
-from ragatouille import RAGPretrainedModel
-from langchain.retrievers import (
+from langchain_classic.retrievers import (
     ContextualCompressionRetriever,
     EnsembleRetriever,
     MergerRetriever,
@@ -70,41 +69,29 @@ from langchain.retrievers import (
     SelfQueryRetriever,
     TimeWeightedVectorStoreRetriever
 )
-import weaviate
-from langchain_weaviate.vectorstores import WeaviateVectorStore
-from langchain_qdrant import QdrantVectorStore, RetrievalMode, FastEmbedSparse
 from rerankers import Reranker
 from langchain_core.documents import Document
-from langchain.retrievers.document_compressors import *
+from langchain_classic.retrievers.document_compressors import *
 from langchain_community.document_transformers import *
-from langchain.retrievers.multi_query import *
-from langchain_mistralai.chat_models import *
+from langchain_classic.retrievers.multi_query import *
 from langchain_openai import *
-from langchain_mistralai import *
 from langchain_huggingface import *
-from langchain_experimental.text_splitter import *
 from langchain_community.embeddings import *
 from langchain_chroma import Chroma
 from langchain_community.vectorstores import *
-from langchain_pinecone import PineconeVectorStore
-from langchain.storage import InMemoryStore
-from langchain_groq import ChatGroq
+from langchain_classic.storage import InMemoryStore
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
-from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
-from langchain_postgres.vectorstores import PGVector
 from langchain_community.llms import Ollama
-from langchain_ollama import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
-from langchain.chains import LLMChain, HypotheticalDocumentEmbedder
-from langchain.prompts import ChatPromptTemplate
-from langchain.load import dumps, loads
+from langchain_classic.chains import LLMChain, HypotheticalDocumentEmbedder
+from langchain_classic.prompts import ChatPromptTemplate
+from langchain_classic.load import dumps, loads
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 import os
 from langchain_community.graphs import Neo4jGraph
-from langchain.text_splitter import MarkdownHeaderTextSplitter
+from langchain_classic.text_splitter import MarkdownHeaderTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
@@ -117,13 +104,13 @@ from langchain_community.graphs.graph_document import (
     GraphDocument,
 )
 from operator import itemgetter
-from langchain import hub
+from langchain_classic import hub
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel
-from langchain.schema import Document
+from langchain_classic.schema import Document
 from typing import List, Dict, Any, Optional
-from langchain.pydantic_v1 import Field, BaseModel
-from langchain.docstore.document import Document
-from langchain.prompts import ChatPromptTemplate
+from pydantic import Field, BaseModel
+from langchain_core.documents import Document
+from langchain_classic.prompts import ChatPromptTemplate
 from ragbuilder.graph_utils.graph_loader import load_graph 
 import chromadb
 # import local modules
@@ -143,8 +130,8 @@ def get_model_obj(model_type: str, model: str, temperature: Optional[float] = No
     elif model_type == 'llm':
         code=getLLM(retrieval_model=model, temperature=temperature)
     code_str=f"\n{code['import_string']}\n\n{code['code_string']}"
-    locals_dict={}
-    exec(code_str, None, locals_dict)
+    locals_dict={"os": os, "OLLAMA_BASE_URL": OLLAMA_BASE_URL}
+    exec(code_str, locals_dict, locals_dict)
     return locals_dict[model_type]
 
 def rag_builder_bayes_optimization_optuna(**kwargs):
@@ -166,7 +153,7 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
     sota_embedding=kwargs.get('sota_embedding')
     sota_llm=kwargs.get('sota_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
-    test_df=pd.read_csv(test_data)
+    test_df=read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None
@@ -287,20 +274,12 @@ def rag_builder_bayes_optimization_optuna(**kwargs):
                 ##      exit()
                 result = rageval.evaluate()
                 logger.info(f"Completed evaluation. result={result}...")
-                if 'answer_correctness' in result and result['answer_correctness'] != float('NaN'):
-                    logger.debug("Answer_correctness: ", result.scores["answer_correctness"])
-                    none_records = len(result.scores.filter(lambda x: math.isnan(x['answer_correctness']) if x['answer_correctness'] is not None else False))
-                    percent_none = (none_records * 1.0 / len(result.scores)) 
-                    if percent_none > 0.2:
-                        logger.warning(f"More than 20% of the records have 'answer_correctness' as None. Skipping this config...")
-                        return float('NaN')
-                    
+                score = eval.answer_correctness_score(result)
+                if math.isfinite(score):
                     if not progress_state.get_progress()['first_eval_complete']:
                         progress_state.set_first_eval_complete()
-                    
                     rag_manager.cache_rag(rageval.id, rag_builder.rag)
-                    return result['answer_correctness'] 
-                return float('NaN')
+                return score
                 
             except Exception as e:
                 logger.error(f"Error while evaluating config: {config}")
@@ -356,7 +335,7 @@ def rag_builder(**kwargs):
     sota_embedding=kwargs.get('sota_embedding')
     sota_llm=kwargs.get('sota_llm')
     test_data=kwargs['test_data'] #loader_kwargs ={'source':'url','input_path': url1},
-    test_df=pd.read_csv(test_data)
+    test_df=read_csv(test_data)
     test_ds = Dataset.from_pandas(test_df)
     disabled_opts=kwargs['disabled_opts']
     result=None
@@ -452,7 +431,7 @@ class SOTARAGBuilder:
             embedding_kwargs=self.embedding_kwargs
         )
         locals_dict={}
-        globals_dict = globals()
+        globals_dict = locals_dict
 
         logger.info("Creating RAG object from generated code...(this may take a while in some cases)")
         try:
@@ -483,8 +462,8 @@ class RagBuilderException(Exception):
                 | retry_if_exception_type(openai.RateLimitError)),
         before_sleep=before_sleep_log(logger, LOG_LEVEL)) 
 def _exec(code):
-    locals_dict={}
-    exec(code, None, locals_dict)
+    locals_dict={"os": os, "OLLAMA_BASE_URL": OLLAMA_BASE_URL, "MILVUS_CONNECTION_STRING": MILVUS_CONNECTION_STRING, "PGVECTOR_CONNECTION_STRING": PGVECTOR_CONNECTION_STRING, "SINGLESTOREDB_URL": SINGLESTOREDB_URL}
+    exec(code, locals_dict, locals_dict)
     ragchain=locals_dict['rag_pipeline']()
     return ragchain
 

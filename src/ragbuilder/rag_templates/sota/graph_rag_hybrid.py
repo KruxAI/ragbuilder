@@ -1,10 +1,10 @@
 code="""from langchain_core.runnables import  RunnablePassthrough
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 import os
 from langchain_community.graphs import Neo4jGraph
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
@@ -17,19 +17,15 @@ from langchain_community.graphs.graph_document import (
     GraphDocument,
 )
 from operator import itemgetter
-from langchain import hub
+from langchain_classic import hub
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel
-from langchain.schema import Document
+from langchain_classic.schema import Document
 from typing import List, Dict, Any, Optional
-from langchain.pydantic_v1 import Field, BaseModel
-from langchain.docstore.document import Document
-from langchain.prompts import ChatPromptTemplate
+from pydantic import Field, BaseModel
+from langchain_core.documents import Document
+from langchain_classic.prompts import ChatPromptTemplate
 from ragbuilder.graph_utils.graph_loader import load_graph 
-from langchain_ollama import ChatOllama
-from langchain_groq import ChatGroq
 from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI,GoogleGenerativeAIEmbeddings
-from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
 load_dotenv()
